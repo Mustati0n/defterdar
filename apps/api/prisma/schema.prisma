@@ -42,6 +42,11 @@ enum CategoryKind {
   BOTH
 }
 
+enum AttachmentStatus {
+  PENDING
+  READY
+}
+
 model User {
   id                         String               @id @default(uuid()) @db.Uuid
   email                      String               @unique
@@ -62,6 +67,7 @@ model User {
   createdExpenseSplitOffsets ExpenseSplitOffset[] @relation("OffsetCreator")
   createdCategories          Category[]           @relation("CategoryCreator")
   createdIncomes             Income[]             @relation("IncomeCreator")
+  createdExpenseAttachments  ExpenseAttachment[]  @relation("AttachmentCreator")
   participations             PlanParticipant[]
   authSessions               AuthSession[]
   createdLedgerInvitations   LedgerInvitation[]   @relation("InvitationCreator")
@@ -161,28 +167,29 @@ model Plan {
 }
 
 model Expense {
-  id          String             @id @default(uuid()) @db.Uuid
-  ledgerId    String             @db.Uuid
-  planId      String?            @db.Uuid
-  createdById String             @db.Uuid
-  payerId     String             @db.Uuid
+  id          String              @id @default(uuid()) @db.Uuid
+  ledgerId    String              @db.Uuid
+  planId      String?             @db.Uuid
+  createdById String              @db.Uuid
+  payerId     String              @db.Uuid
   title       String
   description String?
   amountMinor BigInt
-  currency    String             @db.VarChar(3)
+  currency    String              @db.VarChar(3)
   splitMethod ExpenseSplitMethod
-  isGift      Boolean            @default(false)
-  expenseDate DateTime           @db.Timestamptz(3)
-  createdAt   DateTime           @default(now()) @db.Timestamptz(3)
-  updatedAt   DateTime           @updatedAt @db.Timestamptz(3)
-  voidedAt    DateTime?          @db.Timestamptz(3)
-  categoryId  String?            @db.Uuid
-  ledger      Ledger             @relation(fields: [ledgerId], references: [id], onDelete: Restrict)
-  plan        Plan?              @relation(fields: [planId], references: [id], onDelete: Restrict)
-  createdBy   User               @relation("ExpenseCreator", fields: [createdById], references: [id], onDelete: Restrict)
-  payer       User               @relation("ExpensePayer", fields: [payerId], references: [id], onDelete: Restrict)
+  isGift      Boolean             @default(false)
+  expenseDate DateTime            @db.Timestamptz(3)
+  createdAt   DateTime            @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime            @updatedAt @db.Timestamptz(3)
+  voidedAt    DateTime?           @db.Timestamptz(3)
+  categoryId  String?             @db.Uuid
+  ledger      Ledger              @relation(fields: [ledgerId], references: [id], onDelete: Restrict)
+  plan        Plan?               @relation(fields: [planId], references: [id], onDelete: Restrict)
+  createdBy   User                @relation("ExpenseCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  payer       User                @relation("ExpensePayer", fields: [payerId], references: [id], onDelete: Restrict)
   splits      ExpenseSplit[]
-  category    Category?          @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  category    Category?           @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  attachments ExpenseAttachment[]
 
   @@index([ledgerId])
   @@index([planId])
@@ -191,6 +198,26 @@ model Expense {
   @@index([categoryId])
   @@index([ledgerId, expenseDate])
   @@index([planId, expenseDate])
+}
+
+model ExpenseAttachment {
+  id               String           @id @default(uuid()) @db.Uuid
+  expenseId        String           @db.Uuid
+  storageKey       String           @unique
+  originalFileName String
+  mimeType         String
+  sizeBytes        Int
+  status           AttachmentStatus @default(PENDING)
+  createdById      String           @db.Uuid
+  createdAt        DateTime         @default(now()) @db.Timestamptz(3)
+  completedAt      DateTime?        @db.Timestamptz(3)
+  deletedAt        DateTime?        @db.Timestamptz(3)
+  expense          Expense          @relation(fields: [expenseId], references: [id], onDelete: Restrict)
+  createdBy        User             @relation("AttachmentCreator", fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@index([expenseId])
+  @@index([createdById])
+  @@index([expenseId, deletedAt])
 }
 
 model Category {

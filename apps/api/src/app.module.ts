@@ -14,6 +14,7 @@ import { SettlementsModule } from './settlements/settlements.module.js';
 import { ExpenseSplitOffsetsModule } from './offsets/expense-split-offsets.module.js';
 import { CategoriesModule } from './categories/categories.module.js';
 import { IncomesModule } from './incomes/incomes.module.js';
+import { ExpenseAttachmentsModule } from './attachments/expense-attachments.module.js';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { IncomesModule } from './incomes/incomes.module.js';
     ExpenseSplitOffsetsModule,
     CategoriesModule,
     IncomesModule,
+    ExpenseAttachmentsModule,
   ],
 })
 export class AppModule {}

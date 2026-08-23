@@ -2,7 +2,7 @@
 
 - [x] A — Finish Phase 5 financial reconciliation
 - [x] B — Categories + Income
-- [ ] C — Receipt/Object Storage
+- [x] C — Receipt/Object Storage
 - [ ] D — Audit trail
 - [ ] E — Idempotency + concurrency hardening
 - [ ] F — Analytics API

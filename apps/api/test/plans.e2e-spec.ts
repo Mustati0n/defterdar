@@ -838,6 +838,44 @@ describe('Plan lifecycle and participant API', () => {
     ).toBe(400);
   });
 
+  it('runs presigned receipt lifecycle and enforces the concurrent five-image limit', async () => {
+    const expense = await api('member')
+      .post(`/ledgers/${sourceLedgerId}/expenses`)
+      .send({
+        title: 'Receipt target',
+        amountMinor: 5_000,
+        payerUserId: identity('member').id,
+        expenseDate: '2026-08-23T10:00:00.000Z',
+        isGift: false,
+        split: { method: 'EXACT', entries: [{ userId: identity('member').id, amountMinor: 5_000 }] },
+      });
+    expect(expense.status).toBe(201);
+    const path = `/expenses/${expense.body.id}/attachments`;
+    const payload = { fileName: '../receipt.webp', mimeType: 'image/webp', sizeBytes: 1_024 };
+    expect((await api('other-member').post(path).send(payload)).status).toBe(403);
+    expect((await api('member').post(path).send({ ...payload, mimeType: 'image/gif' })).status).toBe(400);
+    expect((await api('member').post(path).send({ ...payload, sizeBytes: 10 * 1024 * 1024 + 1 })).status).toBe(400);
+
+    const uploads = await Promise.all(
+      Array.from({ length: 5 }, (_, index) =>
+        api('member').post(path).send({ ...payload, fileName: `receipt-${index}.webp` }),
+      ),
+    );
+    expect(uploads.every((upload) => upload.status === 201)).toBe(true);
+    expect(uploads[0]!.body.uploadUrl).toMatch(/^memory:\/\/upload\//);
+    expect((await api('member').post(path).send(payload)).status).toBe(409);
+    const attachmentId = uploads[0]!.body.attachmentId as string;
+    const completed = await api('member').post(`/attachments/${attachmentId}/complete`);
+    expect(completed.status).toBe(201);
+    expect(completed.body.status).toBe('READY');
+    expect((await api('other-member').get(`/attachments/${attachmentId}/url`)).status).toBe(200);
+    expect((await api('outsider').get(`/attachments/${attachmentId}/url`)).status).toBe(404);
+    expect((await api('owner').delete(`/attachments/${attachmentId}`)).status).toBe(204);
+    expect((await api('member').post(path).send(payload)).status).toBe(201);
+    expect((await api('member').post(`/expenses/${expense.body.id}/void`)).status).toBe(201);
+    expect((await api('member').post(path).send(payload)).status).toBe(409);
+  });
+
   async function register(name: string): Promise<Identity> {
     const response = await request(API_URL)
       .post('/auth/register')

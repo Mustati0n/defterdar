@@ -1,6 +1,6 @@
 # Defterdar
 
-Defterdar'ın pnpm monorepo tabanlı Phase 0 teknik temeli. Bu repository NestJS REST API, Next.js web iskeleti, Prisma 7 ve PostgreSQL geliştirme altyapısını içerir.
+Defterdar pnpm monorepo'su NestJS REST API, Next.js web iskeleti, Prisma 7, PostgreSQL ve S3-compatible receipt storage altyapısını içerir.
 
 ## Gereksinimler
 
@@ -12,11 +12,13 @@ Defterdar'ın pnpm monorepo tabanlı Phase 0 teknik temeli. Bu repository NestJS
 
 ```bash
 cp .env.example .env
-# .env içindeki yerel parolayı değiştirin; POSTGRES_PORT ve DATABASE_URL eşleşmelidir.
+# .env içindeki PostgreSQL ve MinIO parolalarını değiştirin.
 pnpm install
 docker compose up -d
 pnpm db:deploy
 ```
+
+Docker Compose PostgreSQL yanında MinIO'yu (`:9000`, console `:9001`) ve receipt bucket'ını başlatır. Presigned upload/download akışı için [attachment dokümanına](./docs/ATTACHMENTS.md) bakın.
 
 ## Geliştirme
 

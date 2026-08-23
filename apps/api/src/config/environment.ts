@@ -38,6 +38,27 @@ const environmentSchema = z.object({
         .filter(Boolean),
     )
     .pipe(z.array(z.url()).min(1)),
+  S3_ENDPOINT: z.url().default('http://localhost:9000'),
+  S3_REGION: z.string().min(1).default('us-east-1'),
+  S3_BUCKET: z.string().min(1).default('defterdar-receipts'),
+  S3_ACCESS_KEY_ID: z.string().min(1).default('minioadmin'),
+  S3_SECRET_ACCESS_KEY: z.string().min(1).default('minioadmin'),
+  S3_FORCE_PATH_STYLE: z
+    .enum(['true', 'false'])
+    .default('true')
+    .transform((value) => value === 'true'),
+  ATTACHMENT_MAX_BYTES: z.coerce
+    .number()
+    .int()
+    .positive()
+    .max(50 * 1024 * 1024)
+    .default(10 * 1024 * 1024),
+  ATTACHMENT_URL_TTL_SECONDS: z.coerce
+    .number()
+    .int()
+    .min(60)
+    .max(3600)
+    .default(900),
 });
 
 export type Environment = z.infer<typeof environmentSchema>;

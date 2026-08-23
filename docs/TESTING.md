@@ -18,3 +18,5 @@ Expense coverage, deterministic split calculator ve gerçek PostgreSQL API akı�
 Phase 5 coverage settlement balance etkisi, partial/full/overpayment, completed Plan scope'u, idempotent void, resource enumeration ve aynı borca eşzamanlı ödeme yarışını; offset coverage eligibility, partial/concurrent apply, no-double-count, authorization, financial update protection ve Expense void cleanup davranışını gerçek PostgreSQL Serializable transaction'larıyla doğrular.
 
 Category/Income e2e coverage PERSONAL ve SHARED Ledger, case-insensitive duplicate, kind/scope/archive kuralları, currency snapshot, Plan lifecycle, authorization/resource enumeration, void ve Income sonrası Balance'ın değişmemesini kapsar.
+
+Attachment e2e testleri in-memory `ObjectStorageService` ile presigned lifecycle, MIME/size, read/mutation authorization, soft remove, void protection ve aynı Expense'a concurrent beş reservation invariant'ını doğrular. MinIO yalnız development smoke için gerekir.

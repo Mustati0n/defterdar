@@ -36,3 +36,4 @@
 34. Settlement ve ExpenseSplitOffset yarışları PostgreSQL Serializable transaction ve bounded retry ile korunur. Overpayment ve over-apply conflict üretir.
 35. Category Ledger-scoped, case-insensitive benzersiz isimli ve archive-only referans verisidir. Finans geçmişinde kullanılan Category silinmez.
 36. Income pozitif cashflow kaydıdır; Ledger currency snapshot'ı taşır fakat interpersonal Balance veya Settlement hesabına girmez.
+37. Receipt binary'si PostgreSQL'de tutulmaz. Server-generated key, allowlist MIME, configurable size ve Expense başına beş aktif attachment limiti uygulanır.

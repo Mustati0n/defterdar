@@ -8,6 +8,8 @@ NestJS API
 Prisma
  ↓
 PostgreSQL
+
+API → presigned URL → S3-compatible object storage
 ```
 
 `apps/web` ve `apps/api` bağımsız uygulamalardır. Web uygulaması PostgreSQL'e veya Prisma'ya doğrudan bağlanmaz; bütün işlevlere sürümlenebilir REST API sözleşmesi üzerinden erişir.
@@ -57,3 +59,5 @@ Expense yazımı Expense ve ExpenseSplit kayıtlarını aynı PostgreSQL transac
 `FinancialProjectionService`, Expense/Split ve Settlement olaylarını ortak saf `BalanceCalculator` üzerinden zero-sum pozisyonlara dönüştürür. Ledger projection tüm alt Plan olaylarını; Plan projection yalnız kendi olaylarını kapsar. Settlement validation ve ExpenseSplitOffset eligibility aynı projection'ı kullanır. Kritik create işlemleri PostgreSQL Serializable isolation ve en fazla üç denemeli retry ile concurrency altında aggregate limitleri korur. Offset yalnız reconciliation metadata'sıdır ve projection girdisi değildir.
 
 Category, Ledger kapsamlı referans verisidir. Income ayrı cashflow aggregate'ıdır ve projection katmanına bilinçli olarak dahil edilmez; böylece kişisel gelir takibi interpersonal borçtan ayrılır.
+
+Receipt binary'leri API ve PostgreSQL sınırının dışındadır. `ObjectStorageService` S3/MinIO presigned URL, HEAD ve delete işlemlerini soyutlar; test provider'ı aynı contract'ı in-memory uygular. PostgreSQL yalnız immutable server storage key'i ve dosya metadata'sını tutar.

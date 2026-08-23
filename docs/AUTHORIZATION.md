@@ -43,3 +43,7 @@ Offset availability aktif üyelerce okunabilir. Offset create OWNER, ADMIN, Expe
 ## Category ve Income
 
 Category create/update/archive OWNER ve ADMIN'e, listeleme aktif üyelere açıktır. Income'u aktif üye oluşturabilir ve okuyabilir; update/void OWNER, ADMIN veya Income creator'a açıktır. Non-member kaynak kimlikleri `404` ile gizlenir.
+
+## Receipt attachment
+
+Expense'ı okuyabilen aktif Ledger üyesi READY receipt URL'si alabilir. Reservation, complete ve remove OWNER, ADMIN veya Expense creator'a açıktır. Voided Expense ve archived Ledger yeni reservation kabul etmez.
