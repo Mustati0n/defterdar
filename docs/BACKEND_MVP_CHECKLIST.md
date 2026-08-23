@@ -6,5 +6,5 @@
 - [x] D — Audit trail
 - [x] E — Idempotency + concurrency hardening
 - [x] F — Analytics API
-- [ ] G — Backend hardening + final docs
+- [x] G — Backend hardening + final docs
 - [ ] H — Full regression + Git push

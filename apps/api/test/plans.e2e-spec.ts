@@ -1155,6 +1155,37 @@ describe('Plan lifecycle and participant API', () => {
     expect((await api('owner').get(`/ledgers/${identity('owner').personalLedgerId}/analytics/summary`)).status).toBe(200);
   });
 
+  it('exposes readiness, security headers, complete Swagger paths, and safe responses', async () => {
+    const ready = await request(API_URL).get('/health/ready');
+    expect(ready.status).toBe(200);
+    expect(ready.headers['x-content-type-options']).toBe('nosniff');
+    const openApi = await request(API_URL).get('/docs-json');
+    expect(openApi.status).toBe(200);
+    for (const path of [
+      '/ledgers/{ledgerId}/balances',
+      '/plans/{planId}/balances',
+      '/ledgers/{ledgerId}/settlements',
+      '/expense-splits/{expenseSplitId}/offsets',
+      '/ledgers/{ledgerId}/categories',
+      '/ledgers/{ledgerId}/incomes',
+      '/expenses/{expenseId}/attachments',
+      '/ledgers/{ledgerId}/activity',
+      '/ledgers/{ledgerId}/analytics/summary',
+      '/plans/{planId}/analytics/summary',
+      '/health/ready',
+    ]) expect(openApi.body.paths[path]).toBeDefined();
+    const responses = await Promise.all([
+      api('owner').get(`/ledgers/${sourceLedgerId}/expenses`),
+      api('owner').get(`/ledgers/${sourceLedgerId}/settlements`),
+      api('owner').get(`/ledgers/${sourceLedgerId}/incomes`),
+      api('owner').get(`/ledgers/${sourceLedgerId}/categories`),
+      api('owner').get(`/ledgers/${sourceLedgerId}/activity?limit=100`),
+      api('owner').get(`/ledgers/${sourceLedgerId}/analytics/summary`),
+    ]);
+    const serialized = JSON.stringify(responses.map((response) => response.body));
+    expect(serialized).not.toMatch(/passwordHash|refreshTokenHash|tokenHash|AuthSession|JWT_ACCESS_SECRET|S3_SECRET_ACCESS_KEY|storageKey/i);
+  });
+
   async function register(name: string): Promise<Identity> {
     const response = await request(API_URL)
       .post('/auth/register')

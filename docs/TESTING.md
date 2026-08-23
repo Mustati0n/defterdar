@@ -26,3 +26,5 @@ Audit e2e coverage cursor pagination, member/non-member visibility, archived Led
 Consistency e2e coverage aynı anda duplicate Expense create, aynı key/farklı body, Settlement/Offset/Income replay, tek persistent event, stale Expense PATCH ve successful version increment senaryolarını kapsar.
 
 Analytics e2e coverage SHARED/PERSONAL scope, UTC date range, Gift inclusion, voided Expense/Income exclusion, category/month/member grouping, Plan isolation, Settlement/Offset exclusion ve non-member `404` davranışını kapsar.
+
+Hardening coverage Helmet header'ı, body-size 413, real PostgreSQL readiness, tüm backend pathlerinin Swagger'da bulunması ve yeni/eski response'larda password/session/token/storage credential alanlarının bulunmamasını doğrular.

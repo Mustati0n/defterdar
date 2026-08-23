@@ -5,6 +5,10 @@ const environmentSchema = z.object({
     .enum(['development', 'test', 'production'])
     .default('development'),
   API_PORT: z.coerce.number().int().positive().max(65_535).default(3001),
+  API_BODY_LIMIT: z
+    .string()
+    .regex(/^\d+(kb|mb)$/i)
+    .default('1mb'),
   DATABASE_URL: z
     .string()
     .min(1)

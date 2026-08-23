@@ -67,3 +67,5 @@ Receipt binary'leri API ve PostgreSQL sınırının dışındadır. `ObjectStora
 `IdempotencyService`, finansal POST retry'larını PostgreSQL unique `(userId, operation, key)` claim'i ve canonical request hash'iyle koordine eder. Expense PATCH compare-and-increment version koşulunu mutation transaction'ında uygular. Redis veya distributed lock yoktur.
 
 Analytics persistent/materialized tablo değildir. Bounded Ledger/Plan ve tarih filtreli PostgreSQL sorguları uygulama katmanında category/month/member projection'larına dönüştürülür; current Balance ortak balance service'inden alınır. Tutarlar API'ye decimal minor-unit string olarak çıkar.
+
+HTTP sınırı environment tabanlı CORS, Helmet, bounded JSON/urlencoded parser, global DTO validation ve güvenli exception filter uygular. `/health` process liveness, `/health/ready` gerçek PostgreSQL sorgusuyla readiness gösterir.

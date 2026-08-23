@@ -23,3 +23,9 @@ Kişisel kullanımda kullanıcı kendi kayıtlarını yönetir. Ortak kullanımd
 ## Harcama
 
 Expense gerçek harcamayı, ExpenseSplit ise dağılımını saklar. Ledger currency snapshot alınır; Gift/Ismarla harcaması geçmişte kalır ancak geri ödeme yükümlülüğü üretmez.
+
+## Finansal reconciliation ve takip
+
+Balance Expense/Split ve gerçek Settlement olaylarından anlık türetilir; persistent bakiye tablosu yoktur. Borçtan düş ters yönlü geçmiş borç için reconciliation metadata'sıdır ve Balance'a ikinci kez etki etmez. Category, Expense ve Income raporlamasını özelleştirir; Income interpersonal borca etki etmeyen pozitif cashflow kaydıdır.
+
+Receipt'ler S3-compatible object storage'da, metadata PostgreSQL'de tutulur. Önemli mutation'lar immutable Ledger activity stream'ine yazılır. Financial retry'lar Idempotency-Key, Expense editleri version token ile korunur. Analytics Ledger/Plan spending ve income kayıtlarından türetilir.

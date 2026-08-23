@@ -18,13 +18,23 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const response = context.getResponse<Response>();
     const request = context.getRequest<Request>();
     const isHttpException = exception instanceof HttpException;
+    const prismaConflict = this.hasPrismaCode(exception, ['P2002', 'P2034']);
+    const payloadTooLarge = this.hasStatus(exception, HttpStatus.PAYLOAD_TOO_LARGE);
     const statusCode = isHttpException
       ? exception.getStatus()
-      : HttpStatus.INTERNAL_SERVER_ERROR;
+      : prismaConflict
+        ? HttpStatus.CONFLICT
+        : payloadTooLarge
+          ? HttpStatus.PAYLOAD_TOO_LARGE
+        : HttpStatus.INTERNAL_SERVER_ERROR;
     const exceptionResponse = isHttpException
       ? exception.getResponse()
       : undefined;
-    const message = this.getMessage(exception, exceptionResponse);
+    const message = payloadTooLarge
+      ? 'Payload too large'
+      : prismaConflict
+      ? 'Request conflicts with current state'
+      : this.getMessage(exception, exceptionResponse);
 
     response.status(statusCode).json({
       statusCode,
@@ -62,5 +72,16 @@ export class HttpExceptionFilter implements ExceptionFilter {
       typeof value === 'string' ||
       (Array.isArray(value) && value.every((item) => typeof item === 'string'))
     );
+  }
+
+  private hasPrismaCode(exception: unknown, codes: string[]): boolean {
+    return typeof exception === 'object' && exception !== null && 'code' in exception &&
+      codes.includes(String((exception as { code?: unknown }).code));
+  }
+
+  private hasStatus(exception: unknown, status: number): boolean {
+    if (typeof exception !== 'object' || exception === null) return false;
+    const candidate = exception as { status?: unknown; statusCode?: unknown };
+    return candidate.status === status || candidate.statusCode === status;
   }
 }

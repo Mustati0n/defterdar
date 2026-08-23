@@ -21,3 +21,5 @@ Creator Plan oluşturulurken otomatik participant olur. Katılımcı gerçek bir
 ## Yetki ve taşıma
 
 OWNER/ADMIN tüm Plan yönetimini yapar. MEMBER yalnız kendi oluşturduğu ACTIVE Plan'da metadata ve participant yönetimi yapabilir; kendi Planını complete edebilir. Plan taşıma yalnız source OWNER'a açıktır ve target Ledgerde OWNER/ADMIN rolü gerekir. Tüm participant'lar target'ın aktif üyesi değilse taşıma `409 Conflict` ile reddedilir; participant otomatik silinmez.
+
+Plan Expense ve yeni Income yalnız ACTIVE durumda oluşturulur. Settlement ACTIVE ve COMPLETED Plan'da kaydedilebilir; ARCHIVED Plan mutation kabul etmez. Plan Balance ve Analytics yalnız ilgili Plan'ın kayıtlarını kapsar.

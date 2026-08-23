@@ -5,7 +5,7 @@ import { AppModule } from './app.module.js';
 import { configureApplication } from './application.js';
 
 export async function createApplication(): Promise<INestApplication> {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { bodyParser: false });
   configureApplication(app);
 
   return app;

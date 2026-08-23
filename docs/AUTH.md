@@ -23,3 +23,7 @@ Logout, gönderilen refresh token'ın session'ını revoke eder. Aynı veya bili
 ## Rate limiting ve CORS
 
 Auth controller in-memory rate limit kullanır. Bu çözüm tek API instance'ı içindir; bu fazda Redis veya distributed limiter yoktur. İzin verilen CORS origin'leri virgülle ayrılmış `CORS_ORIGINS` environment değeriyle belirlenir; wildcard kabul edilmez.
+
+## HTTP hardening
+
+Helmet security header'ları tüm response'lara uygulanır; development Swagger uyumluluğu için yalnız CSP devre dışıdır, production'da Helmet default CSP açıktır. JSON/urlencoded body varsayılan `1mb` ile sınırlıdır (`API_BODY_LIMIT`). Beklenen validation/authorization/conflict hataları 400/401/403/404/409; beklenmeyen hata ve Prisma detayları generic 500 response'unun arkasında kalır.
