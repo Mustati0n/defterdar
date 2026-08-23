@@ -26,6 +26,7 @@ export class ExpensesService {
       'MEMBER',
     ]);
     const allocations = this.calculate(dto.amountMinor, dto.split);
+    await this.validateCategory(ledgerId, dto.categoryId ?? null);
     await this.validatePeople(
       ledgerId,
       dto.planId ?? null,
@@ -38,6 +39,7 @@ export class ExpensesService {
           ledgerId,
           planId: dto.planId ?? null,
           createdById: userId,
+          categoryId: dto.categoryId ?? null,
           payerId: dto.payerUserId,
           title: dto.title.trim(),
           description: dto.description?.trim() ?? null,
@@ -77,6 +79,7 @@ export class ExpensesService {
       where: { id },
       include: {
         ledger: true,
+        category: true,
         payer: { select: { id: true, displayName: true } },
         splits: {
           include: {
@@ -150,6 +153,8 @@ export class ExpensesService {
         })),
       } as SplitDto);
     const allocations = this.calculate(amount, split);
+    if (dto.categoryId !== undefined)
+      await this.validateCategory(old.ledgerId, dto.categoryId);
     await this.validatePeople(
       old.ledgerId,
       planId,
@@ -169,6 +174,7 @@ export class ExpensesService {
           amountMinor: BigInt(amount),
           payerId: payer,
           planId,
+          categoryId: dto.categoryId,
           isGift: dto.isGift,
           splitMethod: split.method,
         },
@@ -299,5 +305,19 @@ export class ExpensesService {
           'Payer and split users must be plan participants',
         );
     }
+  }
+
+  private async validateCategory(ledgerId: string, categoryId: string | null) {
+    if (!categoryId) return;
+    const category = await this.prisma.category.findFirst({
+      where: {
+        id: categoryId,
+        ledgerId,
+        archivedAt: null,
+        kind: { in: ['EXPENSE', 'BOTH'] },
+      },
+      select: { id: true },
+    });
+    if (!category) throw new BadRequestException('Expense category is invalid');
   }
 }

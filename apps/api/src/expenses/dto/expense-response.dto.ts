@@ -1,4 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { CategoryResponseDto } from '../../categories/dto/category-response.dto.js';
 
 class SafeExpenseUserDto {
   @ApiProperty({ format: 'uuid' }) id!: string;
@@ -25,6 +26,10 @@ export class ExpenseResponseDto {
   @ApiProperty({ format: 'uuid' }) ledgerId!: string;
   @ApiPropertyOptional({ format: 'uuid', nullable: true }) planId!:
     string | null;
+  @ApiPropertyOptional({ format: 'uuid', nullable: true }) categoryId!:
+    string | null;
+  @ApiPropertyOptional({ type: CategoryResponseDto, nullable: true })
+  category!: CategoryResponseDto | null;
   @ApiProperty({ format: 'uuid' }) createdById!: string;
   @ApiProperty({ format: 'uuid' }) payerId!: string;
   @ApiProperty({ type: SafeExpenseUserDto }) payer!: SafeExpenseUserDto;

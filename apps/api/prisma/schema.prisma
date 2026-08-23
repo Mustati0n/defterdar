@@ -36,6 +36,12 @@ enum UserStatus {
   DISABLED
 }
 
+enum CategoryKind {
+  EXPENSE
+  INCOME
+  BOTH
+}
+
 model User {
   id                         String               @id @default(uuid()) @db.Uuid
   email                      String               @unique
@@ -54,6 +60,8 @@ model User {
   settlementsTo              Settlement[]         @relation("SettlementTo")
   createdSettlements         Settlement[]         @relation("SettlementCreator")
   createdExpenseSplitOffsets ExpenseSplitOffset[] @relation("OffsetCreator")
+  createdCategories          Category[]           @relation("CategoryCreator")
+  createdIncomes             Income[]             @relation("IncomeCreator")
   participations             PlanParticipant[]
   authSessions               AuthSession[]
   createdLedgerInvitations   LedgerInvitation[]   @relation("InvitationCreator")
@@ -90,6 +98,8 @@ model Ledger {
   invitations LedgerInvitation[]
   expenses    Expense[]
   settlements Settlement[]
+  categories  Category[]
+  incomes     Income[]
 
   @@index([ownerId])
 }
@@ -144,6 +154,7 @@ model Plan {
   participants PlanParticipant[]
   expenses     Expense[]
   settlements  Settlement[]
+  incomes      Income[]
 
   @@index([ledgerId])
   @@index([createdById])
@@ -165,16 +176,66 @@ model Expense {
   createdAt   DateTime           @default(now()) @db.Timestamptz(3)
   updatedAt   DateTime           @updatedAt @db.Timestamptz(3)
   voidedAt    DateTime?          @db.Timestamptz(3)
+  categoryId  String?            @db.Uuid
   ledger      Ledger             @relation(fields: [ledgerId], references: [id], onDelete: Restrict)
   plan        Plan?              @relation(fields: [planId], references: [id], onDelete: Restrict)
   createdBy   User               @relation("ExpenseCreator", fields: [createdById], references: [id], onDelete: Restrict)
   payer       User               @relation("ExpensePayer", fields: [payerId], references: [id], onDelete: Restrict)
   splits      ExpenseSplit[]
+  category    Category?          @relation(fields: [categoryId], references: [id], onDelete: Restrict)
 
   @@index([ledgerId])
   @@index([planId])
   @@index([createdById])
   @@index([payerId])
+  @@index([categoryId])
+  @@index([ledgerId, expenseDate])
+  @@index([planId, expenseDate])
+}
+
+model Category {
+  id          String       @id @default(uuid()) @db.Uuid
+  ledgerId    String       @db.Uuid
+  name        String
+  kind        CategoryKind
+  createdById String       @db.Uuid
+  createdAt   DateTime     @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime     @updatedAt @db.Timestamptz(3)
+  archivedAt  DateTime?    @db.Timestamptz(3)
+  ledger      Ledger       @relation(fields: [ledgerId], references: [id], onDelete: Restrict)
+  createdBy   User         @relation("CategoryCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  expenses    Expense[]
+  incomes     Income[]
+
+  @@index([ledgerId])
+  @@index([createdById])
+}
+
+model Income {
+  id          String    @id @default(uuid()) @db.Uuid
+  ledgerId    String    @db.Uuid
+  planId      String?   @db.Uuid
+  createdById String    @db.Uuid
+  title       String
+  description String?
+  amountMinor BigInt
+  currency    String    @db.VarChar(3)
+  categoryId  String?   @db.Uuid
+  incomeDate  DateTime  @db.Timestamptz(3)
+  createdAt   DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime  @updatedAt @db.Timestamptz(3)
+  voidedAt    DateTime? @db.Timestamptz(3)
+  ledger      Ledger    @relation(fields: [ledgerId], references: [id], onDelete: Restrict)
+  plan        Plan?     @relation(fields: [planId], references: [id], onDelete: Restrict)
+  createdBy   User      @relation("IncomeCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  category    Category? @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+
+  @@index([ledgerId])
+  @@index([planId])
+  @@index([createdById])
+  @@index([categoryId])
+  @@index([ledgerId, incomeDate])
+  @@index([planId, incomeDate])
 }
 
 model ExpenseSplit {

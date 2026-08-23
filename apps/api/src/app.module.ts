@@ -12,6 +12,8 @@ import { PrismaModule } from './prisma/prisma.module.js';
 import { UsersModule } from './users/users.module.js';
 import { SettlementsModule } from './settlements/settlements.module.js';
 import { ExpenseSplitOffsetsModule } from './offsets/expense-split-offsets.module.js';
+import { CategoriesModule } from './categories/categories.module.js';
+import { IncomesModule } from './incomes/incomes.module.js';
 
 @Module({
   imports: [
@@ -32,6 +34,8 @@ import { ExpenseSplitOffsetsModule } from './offsets/expense-split-offsets.modul
     BalancesModule,
     SettlementsModule,
     ExpenseSplitOffsetsModule,
+    CategoriesModule,
+    IncomesModule,
   ],
 })
 export class AppModule {}

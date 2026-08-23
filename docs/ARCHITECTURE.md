@@ -55,3 +55,5 @@ Expense yazımı Expense ve ExpenseSplit kayıtlarını aynı PostgreSQL transac
 ## Finansal reconciliation sınırı
 
 `FinancialProjectionService`, Expense/Split ve Settlement olaylarını ortak saf `BalanceCalculator` üzerinden zero-sum pozisyonlara dönüştürür. Ledger projection tüm alt Plan olaylarını; Plan projection yalnız kendi olaylarını kapsar. Settlement validation ve ExpenseSplitOffset eligibility aynı projection'ı kullanır. Kritik create işlemleri PostgreSQL Serializable isolation ve en fazla üç denemeli retry ile concurrency altında aggregate limitleri korur. Offset yalnız reconciliation metadata'sıdır ve projection girdisi değildir.
+
+Category, Ledger kapsamlı referans verisidir. Income ayrı cashflow aggregate'ıdır ve projection katmanına bilinçli olarak dahil edilmez; böylece kişisel gelir takibi interpersonal borçtan ayrılır.

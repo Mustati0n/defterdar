@@ -16,3 +16,5 @@ Plan e2e suite ayrı `plan_e2e` şemasında Plan–Ledger hiyerarşisini, creato
 Expense coverage, deterministic split calculator ve gerçek PostgreSQL API akışlarında currency snapshot, authorization, Gift reimbursement state, atomic invalid update ve void yaşam döngüsünü doğrular.
 
 Phase 5 coverage settlement balance etkisi, partial/full/overpayment, completed Plan scope'u, idempotent void, resource enumeration ve aynı borca eşzamanlı ödeme yarışını; offset coverage eligibility, partial/concurrent apply, no-double-count, authorization, financial update protection ve Expense void cleanup davranışını gerçek PostgreSQL Serializable transaction'larıyla doğrular.
+
+Category/Income e2e coverage PERSONAL ve SHARED Ledger, case-insensitive duplicate, kind/scope/archive kuralları, currency snapshot, Plan lifecycle, authorization/resource enumeration, void ve Income sonrası Balance'ın değişmemesini kapsar.

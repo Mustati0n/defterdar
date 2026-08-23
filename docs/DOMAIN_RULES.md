@@ -34,3 +34,5 @@
 32. Gift/Ismarla Settlement veya Borçtan düş değildir: harcama geçmişte kalır, tüm splitler non-reimbursable olur.
 33. Settlement gerçek bir debtor→creditor ödemesidir. Scope net pozisyonları üzerinden doğrulanır; Income veya Expense değildir. ACTIVE ve COMPLETED Plan settlement kabul eder, ARCHIVED Plan etmez.
 34. Settlement ve ExpenseSplitOffset yarışları PostgreSQL Serializable transaction ve bounded retry ile korunur. Overpayment ve over-apply conflict üretir.
+35. Category Ledger-scoped, case-insensitive benzersiz isimli ve archive-only referans verisidir. Finans geçmişinde kullanılan Category silinmez.
+36. Income pozitif cashflow kaydıdır; Ledger currency snapshot'ı taşır fakat interpersonal Balance veya Settlement hesabına girmez.

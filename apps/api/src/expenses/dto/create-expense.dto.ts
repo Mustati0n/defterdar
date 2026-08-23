@@ -49,6 +49,7 @@ export class CreateExpenseDto {
   @IsInt() @Min(1) @Max(Number.MAX_SAFE_INTEGER) amountMinor!: number;
   @IsUUID() payerUserId!: string;
   @IsOptional() @IsUUID() planId?: string | null;
+  @IsOptional() @IsUUID() categoryId?: string | null;
   @IsBoolean() isGift = false;
   @Type(() => Date) @IsDate() expenseDate!: Date;
   @ValidateNested() @Type(() => SplitDto) split!: SplitDto;

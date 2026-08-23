@@ -39,3 +39,7 @@ Aktif Ledger üyesi Expense oluşturabilir ve okuyabilir. Update/void yalnız OW
 Settlement create OWNER, ADMIN veya işlemin `fromUser`/`toUser` tarafına; void OWNER, ADMIN veya Settlement creator'a açıktır. Unrelated MEMBER `403`, non-member `404` alır.
 
 Offset availability aktif üyelerce okunabilir. Offset create OWNER, ADMIN, Expense creator veya payer'a; void bunlara ek olarak offset creator'a açıktır. Split user olmak tek başına mutation izni vermez.
+
+## Category ve Income
+
+Category create/update/archive OWNER ve ADMIN'e, listeleme aktif üyelere açıktır. Income'u aktif üye oluşturabilir ve okuyabilir; update/void OWNER, ADMIN veya Income creator'a açıktır. Non-member kaynak kimlikleri `404` ile gizlenir.

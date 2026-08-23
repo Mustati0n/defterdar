@@ -720,6 +720,124 @@ describe('Plan lifecycle and participant API', () => {
     expect((await api('owner').post(`/expense-split-offsets/${reapplied.body.id}/void`)).status).toBe(201);
   });
 
+  it('manages ledger categories and tracks Income without changing Balance', async () => {
+    const incomeCategory = await api('owner')
+      .post(`/ledgers/${sourceLedgerId}/categories`)
+      .send({ name: ' Maaş ', kind: 'INCOME' });
+    expect(incomeCategory.status).toBe(201);
+    expect(incomeCategory.body.name).toBe('Maaş');
+    expect(
+      (
+        await api('owner')
+          .post(`/ledgers/${sourceLedgerId}/categories`)
+          .send({ name: 'maaŞ', kind: 'BOTH' })
+      ).status,
+    ).toBe(409);
+    expect(
+      (
+        await api('member')
+          .post(`/ledgers/${sourceLedgerId}/categories`)
+          .send({ name: 'Forbidden', kind: 'BOTH' })
+      ).status,
+    ).toBe(403);
+
+    const before = (await api('member').get(`/ledgers/${sourceLedgerId}/balances`)).body;
+    const income = await api('member')
+      .post(`/ledgers/${sourceLedgerId}/incomes`)
+      .send({
+        title: ' Salary ',
+        amountMinor: 125_000,
+        categoryId: incomeCategory.body.id,
+        incomeDate: '2026-08-23T09:00:00.000Z',
+      });
+    expect(income.status).toBe(201);
+    expect(income.body.title).toBe('Salary');
+    expect(income.body.currency).toBe('TRY');
+    expect((await api('member').get(`/ledgers/${sourceLedgerId}/balances`)).body).toEqual(before);
+    expect((await api('outsider').get(`/incomes/${income.body.id}`)).status).toBe(404);
+    expect(
+      (
+        await api('other-member')
+          .patch(`/incomes/${income.body.id}`)
+          .send({ title: 'No' })
+      ).status,
+    ).toBe(403);
+    expect(
+      (
+        await api('admin')
+          .patch(`/incomes/${income.body.id}`)
+          .send({ amountMinor: 130_000 })
+      ).status,
+    ).toBe(200);
+    expect((await api('member').post(`/incomes/${income.body.id}/void`)).status).toBe(201);
+    expect((await api('member').post(`/incomes/${income.body.id}/void`)).status).toBe(201);
+
+    expect((await api('owner').post(`/categories/${incomeCategory.body.id}/archive`)).status).toBe(201);
+    expect(
+      (
+        await api('owner')
+          .post(`/ledgers/${sourceLedgerId}/incomes`)
+          .send({
+            title: 'Archived category',
+            amountMinor: 1_000,
+            categoryId: incomeCategory.body.id,
+            incomeDate: '2026-08-23T09:00:00.000Z',
+          })
+      ).status,
+    ).toBe(400);
+
+    const personalCategory = await api('owner')
+      .post(`/ledgers/${identity('owner').personalLedgerId}/categories`)
+      .send({ name: 'Personal both', kind: 'BOTH' });
+    expect(personalCategory.status).toBe(201);
+    expect(
+      (
+        await api('owner')
+          .post(`/ledgers/${identity('owner').personalLedgerId}/incomes`)
+          .send({
+            title: 'Personal income',
+            amountMinor: 2_000,
+            categoryId: personalCategory.body.id,
+            incomeDate: '2026-08-23T09:00:00.000Z',
+          })
+      ).status,
+    ).toBe(201);
+  });
+
+  it('validates Expense category kind and completed Plan Income constraints', async () => {
+    const expenseCategory = await api('admin')
+      .post(`/ledgers/${sourceLedgerId}/categories`)
+      .send({ name: 'Market Category', kind: 'EXPENSE' });
+    expect(expenseCategory.status).toBe(201);
+    const expense = await api('member')
+      .post(`/ledgers/${sourceLedgerId}/expenses`)
+      .send({
+        title: 'Categorized expense',
+        amountMinor: 1_000,
+        payerUserId: identity('member').id,
+        categoryId: expenseCategory.body.id,
+        expenseDate: '2026-08-23T10:00:00.000Z',
+        isGift: false,
+        split: { method: 'EXACT', entries: [{ userId: identity('member').id, amountMinor: 1_000 }] },
+      });
+    expect(expense.status).toBe(201);
+    expect(expense.body.category.id).toBe(expenseCategory.body.id);
+    const planId = await createPlan('member', sourceLedgerId, 'Income lifecycle');
+    expect((await api('member').post(`/plans/${planId}/complete`)).status).toBe(201);
+    expect(
+      (
+        await api('member')
+          .post(`/ledgers/${sourceLedgerId}/incomes`)
+          .send({
+            title: 'Completed Plan income',
+            amountMinor: 1_000,
+            planId,
+            incomeDate: '2026-08-23T10:00:00.000Z',
+          })
+      ).status,
+    ).toBe(400);
+  });
+
   async function register(name: string): Promise<Identity> {
     const response = await request(API_URL)
       .post('/auth/register')
