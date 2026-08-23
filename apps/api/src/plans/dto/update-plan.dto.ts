@@ -1,4 +1,4 @@
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   IsDate,
   IsOptional,
@@ -10,12 +10,14 @@ import { ApiPropertyOptional } from '@nestjs/swagger';
 
 export class UpdatePlanDto {
   @ApiPropertyOptional({ example: 'Güncel gezi planı', maxLength: 100 })
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
   @IsOptional()
   @IsString()
   @Length(1, 100)
   name?: string;
 
   @ApiPropertyOptional({ maxLength: 1000, nullable: true })
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
   @IsOptional()
   @IsString()
   @MaxLength(1000)

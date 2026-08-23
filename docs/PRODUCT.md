@@ -14,4 +14,8 @@ Bir kullanıcı istediği kadar `SHARED` Defter oluşturabilir. Oluşturan kulla
 
 Plan, bir Defter'in altında yer alan kısa süreli organizasyondur. Gezi veya etkinlik gibi belirli bir döneme ait kayıtları gruplar. Plan ile Defter ilişkisi açık bir yabancı anahtardır; böylece ileride bir Plan, geçmişi korunarak başka bir Defter'e taşınabilir.
 
+Plan bağımsız veya sahipsiz oluşturulamaz: hızlı kişisel Plan da kullanıcının `PERSONAL` Defteri altında normal bir Plan'dır. Oluşturan kullanıcı başlangıçta otomatik katılımcıdır. Katılımcılar yalnız aktif Defter üyelerinden seçilir; davet/üyelikten ayrılma sonrası geçmiş katılımcı kaydı silinmez.
+
+Plan yaşam döngüsü `ACTIVE`, `COMPLETED`, `ARCHIVED` durumlarıyla yönetilir. Archive geçmişi okunur tutar fakat düzenleme ve katılımcı değişikliklerini kapatır. Plan, yalnız kaynak Defter OWNER'ı tarafından ve hedef Defterde OWNER/ADMIN yetkisi varsa taşınabilir; hedefte aktif üye olmayan katılımcı bulunursa taşıma gerçekleşmez.
+
 Kişisel kullanımda kullanıcı kendi kayıtlarını yönetir. Ortak kullanımda roller, üyelikler ve katılımcılar üzerinden birden fazla kişinin aynı finansal bağlamda çalışması sağlanır. Bir Plan'ın katılımcıları Defter üyelerinin tamamıyla aynı olmak zorunda değildir.

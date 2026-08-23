@@ -23,5 +23,12 @@
 21. Email-bound davetler normalize edilmiş email eşleşmesi ister; emailsiz davetler authenticated herhangi bir kullanıcı tarafından kabul edilebilir.
 22. Arşivlenmiş SHARED Defter ve aktif üyeleri okunabilir. Metadata güncelleme, davet oluşturma/kabul, rol değişikliği, üye çıkarma, ayrılma ve ownership transfer engellenir; yalnız OWNER unarchive edebilir.
 23. Ownership transfer, üye çıkarma, rol değişikliği ve Defter archive olayları ActivityLog eklendiğinde audit edilmelidir.
+24. Plan her zaman tam olarak bir Ledger'a bağlıdır; orphan Plan oluşturulamaz. Hızlı kişisel Plan, PERSONAL Ledger altında normal bir Plan'dır.
+25. Plan lifecycle canonical olarak `ACTIVE`, `COMPLETED`, `ARCHIVED` kullanır. `ARCHIVED` ancak `archivedAt` doluyken geçerlidir; `archivedAt` yalnız ARCHIVED durumda doludur. Unarchive Plan'ı `ACTIVE` durumuna döndürür.
+26. Plan oluşturma creator'ı atomik olarak participant yapar. Yeni participant yalnız aktif LedgerMembership sahibi gerçek kullanıcı olabilir; `(planId, userId)` unique'tir.
+27. Archived Plan veya archived parent Ledger üzerinde Plan/participant mutation yapılamaz. Archive fiziksel silme değildir; ileride Expense eklenmesi de engellenecektir.
+28. Ledger'dan ayrılan veya çıkarılan kullanıcının geçmiş PlanParticipant kaydı topluca silinmez. Ancak bu kullanıcı Plan mutation yapamaz ve yeni participant olarak eklenemez.
+29. Plan yalnız source Ledger OWNER'ı tarafından taşınabilir; actor target Ledgerde OWNER veya ADMIN olmalıdır. Tüm mevcut participant'lar target'ın aktif üyesi değilse taşıma atomik olarak reddedilir.
+30. ExpenseSplit ile referanslanan geçmiş participant ilişkileri, ileride finansal geçmişi bozacak biçimde silinemez.
 
 Bu fazda Expense, ExpenseSplit, Settlement, Category, Attachment ve ActivityLog tabloları oluşturulmamıştır. Kurallar sonraki şema değişikliklerinin sınırıdır; finans motoru uygulanırken migration ile ekleneceklerdir.

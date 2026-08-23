@@ -45,3 +45,7 @@ PostgreSQL
 Defter oluşturma, kayıt sırasında PERSONAL Defter oluşturma, ownership transfer ve invitation kabul işlemleri transaction sınırları içindedir. PostgreSQL kısmi unique indexleri her Defter için tek aktif `OWNER` ve kullanıcı başına tek `PERSONAL` Defter kuralını korur. Deferred constraint trigger, `Ledger.ownerId` ile aktif OWNER üyeliğinin eşleşmesini ve PERSONAL Defterin tek aktif üyeliğe sahip olmasını commit anında doğrular.
 
 Davet token'ı 256-bit güvenli rastgele veridir. Raw token yalnızca oluşturma response'unda bulunur; PostgreSQL'e deterministik SHA-256 hash yazılır. Kabul işlemi ledger satır kilidi, atomik invitation claim ve aktif üyelik unique invariant'ı ile yarış koşullarına karşı korunur.
+
+## Plan sınırı
+
+`PlansService`, Plan erişimini bağlı `LedgerAuthorizationService` üyeliğinden türetir. Ayrı bir Plan ACL tablosu veya policy motoru yoktur. Plan create işlemi Plan ve creator `PlanParticipant` kaydını tek transaction içinde yazar. Taşıma işlemi kaynak/target Ledger satırlarını ve target üyeliklerini transaction içinde doğrular; uyumsuz katılımcı varsa `ledgerId` değişmeden conflict döner.

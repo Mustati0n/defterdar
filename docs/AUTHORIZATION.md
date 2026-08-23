@@ -23,3 +23,9 @@ Arşivlenmiş SHARED Defterde yalnız okuma, üye listeleme ve OWNER tarafından
 ## PERSONAL Defter
 
 PERSONAL Defter aynı authorization katmanını kullanır ve yalnız sahibinin aktif `OWNER` üyeliğini taşır. Adı OWNER tarafından değiştirilebilir. Yeni üye, davet, rol değişikliği, üyelikten ayrılma, ownership transfer, archive veya ikinci PERSONAL Defter oluşturma desteklenmez.
+
+## Plan yetkilendirmesi
+
+Plan yetkisi daima bağlı Ledger üyeliğinden gelir. OWNER ve ADMIN Plan oluşturabilir, okuyabilir, güncelleyebilir, complete/reopen/archive/unarchive yapabilir ve participant yönetebilir. MEMBER Plan oluşturup okuyabilir; yalnız kendi oluşturduğu ACTIVE Plan'ı güncelleyebilir, tamamlayabilir ve participant yönetebilir. MEMBER reopen, archive, unarchive veya Plan taşıyamaz.
+
+Plan taşıma yalnız source Ledger OWNER'ına açıktır ve actor target Ledgerde OWNER ya da ADMIN olmalıdır. Archived Ledger veya archived Plan mutation'ları engeller.

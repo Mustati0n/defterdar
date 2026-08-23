@@ -6,8 +6,12 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import type { SafeUser } from '../users/dto/user-response.dto.js';
+import { Prisma } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { LedgerAuthorizationService } from '../ledgers/ledger-authorization.service.js';
+import {
+  LedgerAuthorizationService,
+  type LedgerAccessContext,
+} from '../ledgers/ledger-authorization.service.js';
 import type { AddParticipantDto } from './dto/add-participant.dto.js';
 import type { CreatePlanDto } from './dto/create-plan.dto.js';
 import type { ListPlansQueryDto } from './dto/list-plans-query.dto.js';
@@ -38,7 +42,24 @@ const PARTICIPANT_SELECT = {
   user: { select: { displayName: true, id: true } },
 } as const;
 
-type PlanRecord = Awaited<ReturnType<PlansService['findPlan']>>;
+type PlanRecord = {
+  archivedAt: Date | null;
+  createdAt: Date;
+  createdById: string;
+  description: string | null;
+  endsAt: Date | null;
+  id: string;
+  ledger: LedgerAccessContext['ledger'];
+  ledgerId: string;
+  name: string;
+  role: LedgerAccessContext['role'];
+  startsAt: Date | null;
+  status: 'ACTIVE' | 'COMPLETED' | 'ARCHIVED';
+  updatedAt: Date;
+  _count: { participants: number };
+};
+
+type PlanResponseRecord = Omit<PlanRecord, 'ledger' | 'role'>;
 
 @Injectable()
 export class PlansService {
@@ -121,13 +142,16 @@ export class PlansService {
       throw new BadRequestException('At least one plan field is required');
     }
 
-    const startsAt = input.startsAt === undefined ? plan.startsAt : input.startsAt;
+    const startsAt =
+      input.startsAt === undefined ? plan.startsAt : input.startsAt;
     const endsAt = input.endsAt === undefined ? plan.endsAt : input.endsAt;
     this.validateDates(startsAt, endsAt);
     const updated = await this.prisma.plan.update({
       where: { id: planId },
       data: {
-        ...(input.name === undefined ? {} : { name: this.normalizeName(input.name) }),
+        ...(input.name === undefined
+          ? {}
+          : { name: this.normalizeName(input.name) }),
         ...(input.description === undefined
           ? {}
           : { description: this.normalizeNullableText(input.description) }),
@@ -195,11 +219,15 @@ export class PlansService {
     userId: string,
   ): Promise<PlanParticipantResponseDto[]> {
     await this.requireAccessiblePlan(planId, userId);
-    return this.prisma.planParticipant.findMany({
+    const participants = await this.prisma.planParticipant.findMany({
       where: { planId, userId: { not: null } },
       select: PARTICIPANT_SELECT,
       orderBy: { createdAt: 'asc' },
     });
+    return participants.filter(
+      (participant): participant is PlanParticipantResponseDto =>
+        participant.user !== null,
+    );
   }
 
   async addParticipant(
@@ -214,13 +242,18 @@ export class PlansService {
       select: { id: true },
     });
     if (!member) {
-      throw new BadRequestException('Participant must be an active ledger member');
+      throw new BadRequestException(
+        'Participant must be an active ledger member',
+      );
     }
     try {
-      return await this.prisma.planParticipant.create({
+      const participant = await this.prisma.planParticipant.create({
         data: { planId, userId: input.userId },
         select: PARTICIPANT_SELECT,
       });
+      if (!participant.user)
+        throw new ConflictException('Participant user missing');
+      return { createdAt: participant.createdAt, user: participant.user };
     } catch (error) {
       if (this.hasPrismaCode(error, 'P2002')) {
         throw new ConflictException('User is already a plan participant');
@@ -253,10 +286,14 @@ export class PlansService {
     this.requireLedgerOpen(accessible);
     this.requirePlanOpen(accessible);
     if (accessible.role !== 'OWNER') {
-      throw new ForbiddenException('Only the source ledger OWNER can move a plan');
+      throw new ForbiddenException(
+        'Only the source ledger OWNER can move a plan',
+      );
     }
     if (input.targetLedgerId === accessible.ledgerId) {
-      throw new BadRequestException('Target ledger must differ from source ledger');
+      throw new BadRequestException(
+        'Target ledger must differ from source ledger',
+      );
     }
 
     try {
@@ -272,7 +309,9 @@ export class PlansService {
             select: { archivedAt: true, ledgerId: true, status: true },
           });
           if (!plan || plan.ledgerId !== accessible.ledgerId) {
-            throw new ConflictException('Plan changed while it was being moved');
+            throw new ConflictException(
+              'Plan changed while it was being moved',
+            );
           }
           const [sourceLedger, targetLedger, sourceAccess, targetAccess] =
             await Promise.all([
@@ -285,7 +324,12 @@ export class PlansService {
                 select: { archivedAt: true },
               }),
               transaction.ledgerMembership.findFirst({
-                where: { ledgerId: plan.ledgerId, leftAt: null, role: 'OWNER', userId: actorId },
+                where: {
+                  ledgerId: plan.ledgerId,
+                  leftAt: null,
+                  role: 'OWNER',
+                  userId: actorId,
+                },
                 select: { id: true },
               }),
               transaction.ledgerMembership.findFirst({
@@ -298,36 +342,63 @@ export class PlansService {
                 select: { id: true },
               }),
             ]);
-          if (!sourceLedger || !targetLedger || !sourceAccess || !targetAccess) {
+          if (
+            !sourceLedger ||
+            !targetLedger ||
+            !sourceAccess ||
+            !targetAccess
+          ) {
             throw new ForbiddenException('Required ledger access is missing');
           }
-          if (sourceLedger.archivedAt || targetLedger.archivedAt || plan.archivedAt || plan.status === 'ARCHIVED') {
-            throw new ConflictException('Archived plans or ledgers cannot be moved');
+          if (
+            sourceLedger.archivedAt ||
+            targetLedger.archivedAt ||
+            plan.archivedAt ||
+            plan.status === 'ARCHIVED'
+          ) {
+            throw new ConflictException(
+              'Archived plans or ledgers cannot be moved',
+            );
           }
 
           const participants = await transaction.planParticipant.findMany({
             where: { planId, userId: { not: null } },
             select: { userId: true },
           });
-          const participantIds = participants.map((participant) => participant.userId);
+          const participantIds = participants
+            .map((participant) => participant.userId)
+            .filter((userId): userId is string => userId !== null);
           if (participantIds.length > 0) {
             await transaction.$queryRaw`
               SELECT "id" FROM "LedgerMembership"
               WHERE "ledgerId" = ${input.targetLedgerId}::uuid
-                AND "userId" IN (${PrismaService.joinUuids(participantIds)})
+                AND "userId" IN (${Prisma.join(
+                  participantIds.map((userId) => Prisma.sql`${userId}::uuid`),
+                )})
                 AND "leftAt" IS NULL
               FOR SHARE
             `;
           }
-          const targetMemberships = await transaction.ledgerMembership.findMany({
-            where: { ledgerId: input.targetLedgerId, leftAt: null, userId: { in: participantIds } },
-            select: { userId: true },
-          });
-          const activeTargetUsers = new Set(targetMemberships.map((item) => item.userId));
-          const missingUserIds = participantIds.filter((id) => !activeTargetUsers.has(id));
+          const targetMemberships = await transaction.ledgerMembership.findMany(
+            {
+              where: {
+                ledgerId: input.targetLedgerId,
+                leftAt: null,
+                userId: { in: participantIds },
+              },
+              select: { userId: true },
+            },
+          );
+          const activeTargetUsers = new Set(
+            targetMemberships.map((item) => item.userId),
+          );
+          const missingUserIds = participantIds.filter(
+            (id) => !activeTargetUsers.has(id),
+          );
           if (missingUserIds.length > 0) {
             throw new ConflictException({
-              message: 'Some plan participants are not members of the target ledger',
+              message:
+                'Some plan participants are not members of the target ledger',
               userIds: missingUserIds,
             });
           }
@@ -348,13 +419,22 @@ export class PlansService {
     }
   }
 
-  private async requireAccessiblePlan(planId: string, userId: string): Promise<PlanRecord> {
+  private async requireAccessiblePlan(
+    planId: string,
+    userId: string,
+  ): Promise<PlanRecord> {
     const plan = await this.findPlan(planId);
-    const access = await this.authorization.requireMember(plan.ledgerId, userId);
+    const access = await this.authorization.requireMember(
+      plan.ledgerId,
+      userId,
+    );
     return { ...plan, ledger: access.ledger, role: access.role };
   }
 
-  private async requireMutablePlan(planId: string, userId: string): Promise<PlanRecord> {
+  private async requireMutablePlan(
+    planId: string,
+    userId: string,
+  ): Promise<PlanRecord> {
     const plan = await this.requireAccessiblePlan(planId, userId);
     this.requireLedgerOpen(plan);
     this.requirePlanOpen(plan);
@@ -382,12 +462,18 @@ export class PlansService {
 
   private requireParticipantPermission(plan: PlanRecord, userId: string): void {
     if (plan.role === 'OWNER' || plan.role === 'ADMIN') return;
-    if (plan.role === 'MEMBER' && plan.createdById === userId && plan.status === 'ACTIVE') return;
+    if (
+      plan.role === 'MEMBER' &&
+      plan.createdById === userId &&
+      plan.status === 'ACTIVE'
+    )
+      return;
     throw new ForbiddenException('Insufficient plan permissions');
   }
 
   private requireLedgerOpen(plan: PlanRecord): void {
-    if (plan.ledger.archivedAt) throw new ConflictException('Ledger is archived');
+    if (plan.ledger.archivedAt)
+      throw new ConflictException('Ledger is archived');
   }
 
   private requirePlanOpen(plan: PlanRecord): void {
@@ -406,15 +492,22 @@ export class PlansService {
     return value.trim();
   }
 
-  private normalizeNullableText(value: string | null | undefined): string | null {
+  private normalizeNullableText(
+    value: string | null | undefined,
+  ): string | null {
     return value === undefined || value === null ? null : value.trim();
   }
 
-  private toResponse(plan: typeof PLAN_SELECT extends never ? never : any): PlanResponseDto {
+  private toResponse(plan: PlanResponseRecord): PlanResponseDto {
     return { ...plan, participantCount: plan._count.participants };
   }
 
   private hasPrismaCode(error: unknown, code: string): boolean {
-    return typeof error === 'object' && error !== null && 'code' in error && error.code === code;
+    return (
+      typeof error === 'object' &&
+      error !== null &&
+      'code' in error &&
+      error.code === code
+    );
   }
 }
