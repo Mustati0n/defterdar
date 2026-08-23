@@ -1009,6 +1009,152 @@ describe('Plan lifecycle and participant API', () => {
     expect((await api('owner').get(`/ledgers/${ledgerId}/incomes`)).body).toHaveLength(1);
   });
 
+  it('derives ledger/Plan analytics with date, category, Gift, void and reconciliation rules', async () => {
+    const ledgerId = await createLedger('owner', 'Analytics Defteri');
+    await inviteTo(ledgerId, 'admin');
+    const category = await api('owner')
+      .post(`/ledgers/${ledgerId}/categories`)
+      .send({ name: 'Analytics Both', kind: 'BOTH' });
+    const planId = await createPlan('owner', ledgerId, 'Analytics Plan');
+    expect(
+      (
+        await api('owner')
+          .post(`/plans/${planId}/participants`)
+          .send({ userId: identity('admin').id })
+      ).status,
+    ).toBe(201);
+    const createExpense = (actor: string, body: Record<string, unknown>) =>
+      api(actor).post(`/ledgers/${ledgerId}/expenses`).send({
+        categoryId: category.body.id,
+        expenseDate: '2026-01-10T10:00:00.000Z',
+        isGift: false,
+        ...body,
+      });
+    expect(
+      (
+        await createExpense('owner', {
+          title: 'Plan expense',
+          amountMinor: 1_000,
+          payerUserId: identity('owner').id,
+          planId,
+          split: { method: 'EXACT', entries: [{ userId: identity('admin').id, amountMinor: 1_000 }] },
+        })
+      ).status,
+    ).toBe(201);
+    expect(
+      (
+        await createExpense('owner', {
+          title: 'Gift spending',
+          amountMinor: 2_000,
+          payerUserId: identity('owner').id,
+          expenseDate: '2026-02-10T10:00:00.000Z',
+          isGift: true,
+          split: { method: 'EXACT', entries: [{ userId: identity('admin').id, amountMinor: 2_000 }] },
+        })
+      ).status,
+    ).toBe(201);
+    expect(
+      (
+        await createExpense('admin', {
+          title: 'Reverse debt',
+          amountMinor: 4_000,
+          payerUserId: identity('admin').id,
+          split: { method: 'EXACT', entries: [{ userId: identity('owner').id, amountMinor: 4_000 }] },
+        })
+      ).status,
+    ).toBe(201);
+    const offsetTarget = await createExpense('owner', {
+      title: 'Offset target',
+      amountMinor: 1_000,
+      payerUserId: identity('owner').id,
+      expenseDate: '2026-02-15T10:00:00.000Z',
+      split: { method: 'EXACT', entries: [{ userId: identity('admin').id, amountMinor: 1_000 }] },
+    });
+    expect(offsetTarget.status).toBe(201);
+    expect(
+      (
+        await api('owner')
+          .post(`/expense-splits/${offsetTarget.body.splits[0].id}/offsets`)
+          .send({ amountMinor: 500 })
+      ).status,
+    ).toBe(201);
+    const voidedExpense = await createExpense('owner', {
+      title: 'Voided expense',
+      amountMinor: 4_000,
+      payerUserId: identity('owner').id,
+      expenseDate: '2026-03-10T10:00:00.000Z',
+      split: { method: 'EXACT', entries: [{ userId: identity('owner').id, amountMinor: 4_000 }] },
+    });
+    expect((await api('owner').post(`/expenses/${voidedExpense.body.id}/void`)).status).toBe(201);
+
+    const planIncome = await api('owner').post(`/ledgers/${ledgerId}/incomes`).send({
+      title: 'Plan income', amountMinor: 3_000, planId, categoryId: category.body.id,
+      incomeDate: '2026-01-20T10:00:00.000Z',
+    });
+    expect(planIncome.status).toBe(201);
+    expect(
+      (
+        await api('owner').post(`/ledgers/${ledgerId}/incomes`).send({
+          title: 'Ledger income', amountMinor: 5_000, categoryId: category.body.id,
+          incomeDate: '2026-02-20T10:00:00.000Z',
+        })
+      ).status,
+    ).toBe(201);
+    const voidedIncome = await api('owner').post(`/ledgers/${ledgerId}/incomes`).send({
+      title: 'Voided income', amountMinor: 7_000, categoryId: category.body.id,
+      incomeDate: '2026-03-20T10:00:00.000Z',
+    });
+    expect((await api('owner').post(`/incomes/${voidedIncome.body.id}/void`)).status).toBe(201);
+    expect(
+      (
+        await api('admin').post(`/ledgers/${ledgerId}/settlements`).send({
+          planId,
+          fromUserId: identity('admin').id,
+          toUserId: identity('owner').id,
+          amountMinor: 1_000,
+          settledAt: '2026-01-30T10:00:00.000Z',
+        })
+      ).status,
+    ).toBe(201);
+
+    const summary = await api('owner').get(`/ledgers/${ledgerId}/analytics/summary`);
+    expect(summary.status).toBe(200);
+    expect(summary.body).toEqual(expect.objectContaining({
+      currency: 'TRY',
+      totalExpenseMinor: '8000',
+      totalIncomeMinor: '8000',
+      netCashflowMinor: '0',
+      expenseCount: 4,
+      incomeCount: 2,
+    }));
+    expect(summary.body.byCategory).toEqual([
+      expect.objectContaining({ expenseMinor: '8000', incomeMinor: '8000' }),
+    ]);
+    expect(summary.body.monthly).toEqual([
+      { month: '2026-01', expenseMinor: '5000', incomeMinor: '3000' },
+      { month: '2026-02', expenseMinor: '3000', incomeMinor: '5000' },
+    ]);
+    expect(summary.body.currentBalances.positions).not.toEqual([]);
+    const planSummary = await api('admin').get(`/plans/${planId}/analytics/summary`);
+    expect(planSummary.body.totalExpenseMinor).toBe('1000');
+    expect(planSummary.body.totalIncomeMinor).toBe('3000');
+    expect(planSummary.body.currentBalances.positions).toEqual([]);
+    const february = await api('owner').get(
+      `/ledgers/${ledgerId}/analytics/summary?from=2026-02-01T00:00:00.000Z&to=2026-02-28T23:59:59.999Z`,
+    );
+    expect(february.body.totalExpenseMinor).toBe('3000');
+    expect(february.body.totalIncomeMinor).toBe('5000');
+    expect(
+      (
+        await api('owner').get(
+          `/ledgers/${ledgerId}/analytics/summary?from=2026-03-01T00:00:00.000Z&to=2026-02-01T00:00:00.000Z`,
+        )
+      ).status,
+    ).toBe(400);
+    expect((await api('outsider').get(`/ledgers/${ledgerId}/analytics/summary`)).status).toBe(404);
+    expect((await api('owner').get(`/ledgers/${identity('owner').personalLedgerId}/analytics/summary`)).status).toBe(200);
+  });
+
   async function register(name: string): Promise<Identity> {
     const response = await request(API_URL)
       .post('/auth/register')

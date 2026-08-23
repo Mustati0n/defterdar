@@ -40,3 +40,4 @@
 38. ActivityLog append-only'dir. Kritik mutation ile aynı transaction'da yazılır; update/delete endpoint'i yoktur ve database trigger'ı değişikliği reddeder.
 39. Financial POST aynı user/operation/Idempotency-Key ve aynı request için tek olay üretir; key farklı body ile tekrar kullanılamaz.
 40. Expense update mevcut version'ı açıkça claim eder. Stale writer state'i değiştiremez; başarılı PATCH version'ı atomik artırır.
+41. Analytics Expense ve Income'dan türetilir. Gift spending'e dahildir; Settlement ve Offset cashflow/spending tutarı değildir; voided kayıtlar hariçtir.

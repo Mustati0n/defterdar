@@ -51,3 +51,7 @@ Expense'ı okuyabilen aktif Ledger üyesi READY receipt URL'si alabilir. Reserva
 ## Activity
 
 Aktif Ledger üyesi bounded, cursor-paginated activity stream'ini okuyabilir; archived Ledger read desteklenir. Activity için create/update/delete public endpoint'i yoktur.
+
+## Analytics
+
+Ledger ve Plan analytics, ilgili Ledger'ın aktif üyelerine açıktır. Non-member hem mevcut hem rastgele scope için `404` alır; Balance read yaklaşımı reuse edilir.

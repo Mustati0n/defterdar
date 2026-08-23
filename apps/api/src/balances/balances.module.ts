@@ -9,6 +9,6 @@ import { FinancialProjectionService } from './financial-projection.service.js';
   imports: [AuthModule, LedgersModule],
   controllers: [BalancesController],
   providers: [BalanceCalculator, FinancialProjectionService, BalancesService],
-  exports: [BalanceCalculator, FinancialProjectionService],
+  exports: [BalanceCalculator, FinancialProjectionService, BalancesService],
 })
 export class BalancesModule {}

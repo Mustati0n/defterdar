@@ -5,6 +5,6 @@
 - [x] C — Receipt/Object Storage
 - [x] D — Audit trail
 - [x] E — Idempotency + concurrency hardening
-- [ ] F — Analytics API
+- [x] F — Analytics API
 - [ ] G — Backend hardening + final docs
 - [ ] H — Full regression + Git push

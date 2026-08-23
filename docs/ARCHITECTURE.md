@@ -65,3 +65,5 @@ Receipt binary'leri API ve PostgreSQL sınırının dışındadır. `ObjectStora
 `ActivityLogService` önemli domain mutation'larına transaction-scoped immutable audit insert ekler. Activity stream event-sourcing veya generic event bus değildir; mevcut aggregate tabloları source of truth olmaya devam eder. PostgreSQL trigger'ları audit satırının sonradan update/delete edilmesini engeller.
 
 `IdempotencyService`, finansal POST retry'larını PostgreSQL unique `(userId, operation, key)` claim'i ve canonical request hash'iyle koordine eder. Expense PATCH compare-and-increment version koşulunu mutation transaction'ında uygular. Redis veya distributed lock yoktur.
+
+Analytics persistent/materialized tablo değildir. Bounded Ledger/Plan ve tarih filtreli PostgreSQL sorguları uygulama katmanında category/month/member projection'larına dönüştürülür; current Balance ortak balance service'inden alınır. Tutarlar API'ye decimal minor-unit string olarak çıkar.

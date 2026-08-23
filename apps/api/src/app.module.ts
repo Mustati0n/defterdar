@@ -17,6 +17,7 @@ import { IncomesModule } from './incomes/incomes.module.js';
 import { ExpenseAttachmentsModule } from './attachments/expense-attachments.module.js';
 import { ActivityModule } from './activity/activity.module.js';
 import { IdempotencyModule } from './idempotency/idempotency.module.js';
+import { AnalyticsModule } from './analytics/analytics.module.js';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { IdempotencyModule } from './idempotency/idempotency.module.js';
     ExpenseAttachmentsModule,
     ActivityModule,
     IdempotencyModule,
+    AnalyticsModule,
   ],
 })
 export class AppModule {}
