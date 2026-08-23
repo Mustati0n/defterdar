@@ -12,3 +12,5 @@ Auth e2e testleri yalnızca `TEST_DATABASE_URL` içindeki yerel `auth_e2e` Postg
 Ledger e2e suite aynı güvenlik yaklaşımıyla ayrı `ledger_e2e` şemasını kullanır. Register ile PERSONAL Defter backstop'unu, OWNER/ADMIN/MEMBER matrisini, non-member `404` davranışını, soft membership yaşam döngüsünü, ownership transfer invariant'ını, raw token'ın saklanmadığını, email/open davetleri, expiry/revoke/duplicate durumlarını ve eşzamanlı tek-token kabul yarışını gerçek PostgreSQL üzerinde doğrular. Response ve Swagger kontrolleri gizli hash/session alanlarının dışarı çıkmadığını da sınar.
 
 Plan e2e suite ayrı `plan_e2e` şemasında Plan–Ledger hiyerarşisini, creator participant transaction'ını, tarihlerin nihai state doğrulamasını, lifecycle yetkilerini, participant duplicate/aktif üyelik kurallarını, `404` enumeration davranışını ve participant uyumluluğu ile atomik Plan taşımasını doğrular.
+
+Expense coverage, deterministic split calculator ve gerçek PostgreSQL API akışlarında currency snapshot, authorization, Gift reimbursement state, atomic invalid update ve void yaşam döngüsünü doğrular.

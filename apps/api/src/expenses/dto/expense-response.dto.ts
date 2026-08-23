@@ -1,0 +1,44 @@
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+
+class SafeExpenseUserDto {
+  @ApiProperty({ format: 'uuid' }) id!: string;
+  @ApiProperty() displayName!: string;
+}
+export class ExpenseSplitResponseDto {
+  @ApiProperty({ type: SafeExpenseUserDto }) user!: SafeExpenseUserDto;
+  @ApiProperty({
+    type: String,
+    description: 'Minor-unit integer serialized as a decimal string',
+  })
+  amountMinor!: string;
+  @ApiProperty({
+    description: 'False for gifts and the payer’s own normal split',
+  })
+  isReimbursable!: boolean;
+  @ApiProperty() createdAt!: Date;
+}
+export class ExpenseResponseDto {
+  @ApiProperty({ format: 'uuid' }) id!: string;
+  @ApiProperty({ format: 'uuid' }) ledgerId!: string;
+  @ApiPropertyOptional({ format: 'uuid', nullable: true }) planId!:
+    string | null;
+  @ApiProperty({ format: 'uuid' }) createdById!: string;
+  @ApiProperty({ format: 'uuid' }) payerId!: string;
+  @ApiProperty({ type: SafeExpenseUserDto }) payer!: SafeExpenseUserDto;
+  @ApiProperty() title!: string;
+  @ApiPropertyOptional({ nullable: true }) description!: string | null;
+  @ApiProperty({
+    type: String,
+    description: 'Minor-unit integer serialized as a decimal string',
+  })
+  amountMinor!: string;
+  @ApiProperty({ example: 'TRY' }) currency!: string;
+  @ApiProperty({ enum: ['EQUAL', 'EXACT', 'PERCENTAGE', 'SHARES'] })
+  splitMethod!: string;
+  @ApiProperty({ description: 'Gift/Ismarla: all splits are non-reimbursable' })
+  isGift!: boolean;
+  @ApiProperty() expenseDate!: Date;
+  @ApiPropertyOptional({ nullable: true }) voidedAt!: Date | null;
+  @ApiProperty({ type: ExpenseSplitResponseDto, isArray: true })
+  splits!: ExpenseSplitResponseDto[];
+}

@@ -24,6 +24,13 @@ enum PlanStatus {
   ARCHIVED
 }
 
+enum ExpenseSplitMethod {
+  EQUAL
+  EXACT
+  PERCENTAGE
+  SHARES
+}
+
 enum UserStatus {
   ACTIVE
   DISABLED
@@ -40,6 +47,9 @@ model User {
   ownedLedgers   Ledger[]           @relation("LedgerOwner")
   memberships    LedgerMembership[]
   createdPlans   Plan[]             @relation("PlanCreator")
+  createdExpenses Expense[]         @relation("ExpenseCreator")
+  paidExpenses Expense[]            @relation("ExpensePayer")
+  expenseSplits ExpenseSplit[]
   participations PlanParticipant[]
   authSessions   AuthSession[]
   createdLedgerInvitations LedgerInvitation[] @relation("InvitationCreator")
@@ -74,6 +84,7 @@ model Ledger {
   memberships LedgerMembership[]
   plans       Plan[]
   invitations LedgerInvitation[]
+  expenses    Expense[]
 
   @@index([ownerId])
 }
@@ -126,9 +137,52 @@ model Plan {
   ledger       Ledger            @relation(fields: [ledgerId], references: [id], onDelete: Restrict)
   createdBy    User              @relation("PlanCreator", fields: [createdById], references: [id], onDelete: Restrict)
   participants PlanParticipant[]
+  expenses     Expense[]
 
   @@index([ledgerId])
   @@index([createdById])
+}
+
+model Expense {
+  id          String             @id @default(uuid()) @db.Uuid
+  ledgerId    String             @db.Uuid
+  planId      String?            @db.Uuid
+  createdById String             @db.Uuid
+  payerId     String             @db.Uuid
+  title       String
+  description String?
+  amountMinor BigInt
+  currency    String             @db.VarChar(3)
+  splitMethod ExpenseSplitMethod
+  isGift      Boolean            @default(false)
+  expenseDate DateTime           @db.Timestamptz(3)
+  createdAt   DateTime           @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime           @updatedAt @db.Timestamptz(3)
+  voidedAt    DateTime?          @db.Timestamptz(3)
+  ledger      Ledger             @relation(fields: [ledgerId], references: [id], onDelete: Restrict)
+  plan        Plan?              @relation(fields: [planId], references: [id], onDelete: Restrict)
+  createdBy   User               @relation("ExpenseCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  payer       User               @relation("ExpensePayer", fields: [payerId], references: [id], onDelete: Restrict)
+  splits      ExpenseSplit[]
+
+  @@index([ledgerId])
+  @@index([planId])
+  @@index([createdById])
+  @@index([payerId])
+}
+
+model ExpenseSplit {
+  id              String   @id @default(uuid()) @db.Uuid
+  expenseId       String   @db.Uuid
+  userId          String   @db.Uuid
+  amountMinor     BigInt
+  isReimbursable  Boolean
+  createdAt       DateTime @default(now()) @db.Timestamptz(3)
+  expense         Expense  @relation(fields: [expenseId], references: [id], onDelete: Restrict)
+  user            User     @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@unique([expenseId, userId])
+  @@index([userId])
 }
 
 model PlanParticipant {

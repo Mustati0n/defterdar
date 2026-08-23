@@ -30,5 +30,7 @@
 28. Ledger'dan ayrılan veya çıkarılan kullanıcının geçmiş PlanParticipant kaydı topluca silinmez. Ancak bu kullanıcı Plan mutation yapamaz ve yeni participant olarak eklenemez.
 29. Plan yalnız source Ledger OWNER'ı tarafından taşınabilir; actor target Ledgerde OWNER veya ADMIN olmalıdır. Tüm mevcut participant'lar target'ın aktif üyesi değilse taşıma atomik olarak reddedilir.
 30. ExpenseSplit ile referanslanan geçmiş participant ilişkileri, ileride finansal geçmişi bozacak biçimde silinemez.
+31. Expense gerçek finansal olay, ExpenseSplit ise dağılımıdır; bunlar aynı kayıt değildir. Expense ve split toplamları minor-unit integer olarak eşit olmalıdır.
+32. Gift/Ismarla Settlement veya Borçtan düş değildir: harcama geçmişte kalır, tüm splitler non-reimbursable olur. Balance, Settlement, Borçtan düş ve debt simplification Phase 5'e bırakılmıştır.
 
 Bu fazda Expense, ExpenseSplit, Settlement, Category, Attachment ve ActivityLog tabloları oluşturulmamıştır. Kurallar sonraki şema değişikliklerinin sınırıdır; finans motoru uygulanırken migration ile ekleneceklerdir.

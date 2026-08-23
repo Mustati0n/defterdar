@@ -19,3 +19,7 @@ Plan bağımsız veya sahipsiz oluşturulamaz: hızlı kişisel Plan da kullanı
 Plan yaşam döngüsü `ACTIVE`, `COMPLETED`, `ARCHIVED` durumlarıyla yönetilir. Archive geçmişi okunur tutar fakat düzenleme ve katılımcı değişikliklerini kapatır. Plan, yalnız kaynak Defter OWNER'ı tarafından ve hedef Defterde OWNER/ADMIN yetkisi varsa taşınabilir; hedefte aktif üye olmayan katılımcı bulunursa taşıma gerçekleşmez.
 
 Kişisel kullanımda kullanıcı kendi kayıtlarını yönetir. Ortak kullanımda roller, üyelikler ve katılımcılar üzerinden birden fazla kişinin aynı finansal bağlamda çalışması sağlanır. Bir Plan'ın katılımcıları Defter üyelerinin tamamıyla aynı olmak zorunda değildir.
+
+## Harcama
+
+Expense gerçek harcamayı, ExpenseSplit ise dağılımını saklar. Ledger currency snapshot alınır; Gift/Ismarla harcaması geçmişte kalır ancak geri ödeme yükümlülüğü üretmez.

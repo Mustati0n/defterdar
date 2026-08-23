@@ -49,3 +49,5 @@ Davet token'ı 256-bit güvenli rastgele veridir. Raw token yalnızca oluşturma
 ## Plan sınırı
 
 `PlansService`, Plan erişimini bağlı `LedgerAuthorizationService` üyeliğinden türetir. Ayrı bir Plan ACL tablosu veya policy motoru yoktur. Plan create işlemi Plan ve creator `PlanParticipant` kaydını tek transaction içinde yazar. Taşıma işlemi kaynak/target Ledger satırlarını ve target üyeliklerini transaction içinde doğrular; uyumsuz katılımcı varsa `ledgerId` değişmeden conflict döner.
+
+Expense yazımı Expense ve ExpenseSplit kayıtlarını aynı PostgreSQL transaction'ında oluşturur veya yeniler. Split calculator database bağımsız ve deterministic'tir; BigInt değerleri API response'unda decimal string olarak sunulur.

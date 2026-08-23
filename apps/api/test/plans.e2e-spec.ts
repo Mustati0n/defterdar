@@ -377,6 +377,80 @@ describe('Plan lifecycle and participant API', () => {
     ).toBe(201);
   });
 
+  it('creates, updates, lists, and voids ledger expenses with authorization', async () => {
+    const splitUsers = [
+      identity('owner').id,
+      identity('admin').id,
+      identity('member').id,
+    ];
+    const created = await api('member')
+      .post(`/ledgers/${sourceLedgerId}/expenses`)
+      .send({
+        title: 'Market',
+        amountMinor: 60_000,
+        payerUserId: identity('owner').id,
+        expenseDate: '2026-08-23T10:00:00.000Z',
+        isGift: false,
+        split: { method: 'EQUAL', participantUserIds: splitUsers },
+      });
+    expect(created.status).toBe(201);
+    expect(created.body.currency).toBe('TRY');
+    expect(
+      created.body.splits.reduce(
+        (total: number, split: { amountMinor: string }) =>
+          total + Number(split.amountMinor),
+        0,
+      ),
+    ).toBe(60_000);
+    const expenseId = created.body.id as string;
+    expect((await api('outsider').get(`/expenses/${expenseId}`)).status).toBe(
+      404,
+    );
+    expect(
+      (
+        await api('other-member')
+          .patch(`/expenses/${expenseId}`)
+          .send({ title: 'No' })
+      ).status,
+    ).toBe(403);
+    expect(
+      (
+        await api('member')
+          .patch(`/expenses/${expenseId}`)
+          .send({ isGift: true })
+      ).status,
+    ).toBe(200);
+    const gift = await api('member').get(`/expenses/${expenseId}`);
+    expect(
+      gift.body.splits.every(
+        (split: { isReimbursable: boolean }) => !split.isReimbursable,
+      ),
+    ).toBe(true);
+    const invalid = await api('member')
+      .patch(`/expenses/${expenseId}`)
+      .send({ amountMinor: 10_000 });
+    expect(invalid.status).toBe(400);
+    expect(
+      (await api('member').get(`/expenses/${expenseId}`)).body.amountMinor,
+    ).toBe('60000');
+    expect(
+      (await api('owner').get(`/ledgers/${sourceLedgerId}/expenses`)).status,
+    ).toBe(200);
+    expect(
+      (await api('admin').post(`/expenses/${expenseId}/void`)).status,
+    ).toBe(201);
+    expect(
+      (await api('admin').post(`/expenses/${expenseId}/void`)).status,
+    ).toBe(201);
+    expect(
+      (
+        await api('member')
+          .patch(`/expenses/${expenseId}`)
+          .send({ title: 'Void' })
+      ).status,
+    ).toBe(409);
+  });
+
   async function register(name: string): Promise<Identity> {
     const response = await request(API_URL)
       .post('/auth/register')

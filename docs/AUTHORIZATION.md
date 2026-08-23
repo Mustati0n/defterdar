@@ -29,3 +29,7 @@ PERSONAL Defter aynı authorization katmanını kullanır ve yalnız sahibinin a
 Plan yetkisi daima bağlı Ledger üyeliğinden gelir. OWNER ve ADMIN Plan oluşturabilir, okuyabilir, güncelleyebilir, complete/reopen/archive/unarchive yapabilir ve participant yönetebilir. MEMBER Plan oluşturup okuyabilir; yalnız kendi oluşturduğu ACTIVE Plan'ı güncelleyebilir, tamamlayabilir ve participant yönetebilir. MEMBER reopen, archive, unarchive veya Plan taşıyamaz.
 
 Plan taşıma yalnız source Ledger OWNER'ına açıktır ve actor target Ledgerde OWNER ya da ADMIN olmalıdır. Archived Ledger veya archived Plan mutation'ları engeller.
+
+## Expense yetkilendirmesi
+
+Aktif Ledger üyesi Expense oluşturabilir ve okuyabilir. Update/void yalnız OWNER, ADMIN veya Expense creator'a açıktır; payer olmak tek başına bu izni vermez. Non-member Expense kimlikleri `404` ile gizlenir.
