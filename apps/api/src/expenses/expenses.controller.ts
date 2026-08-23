@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Headers,
   Param,
   ParseUUIDPipe,
   Patch,
@@ -12,6 +13,7 @@ import {
 import {
   ApiBearerAuth,
   ApiCreatedResponse,
+  ApiHeader,
   ApiOkResponse,
   ApiOperation,
   ApiTags,
@@ -23,21 +25,29 @@ import { ExpensesService } from './expenses.service.js';
 import { CreateExpenseDto } from './dto/create-expense.dto.js';
 import { UpdateExpenseDto } from './dto/update-expense.dto.js';
 import { ExpenseResponseDto } from './dto/expense-response.dto.js';
+import { IdempotencyService } from '../idempotency/idempotency.service.js';
 @ApiTags('expenses')
 @ApiBearerAuth('access-token')
 @UseGuards(AccessTokenGuard)
 @Controller()
 export class ExpensesController {
-  constructor(private readonly service: ExpensesService) {}
+  constructor(
+    private readonly service: ExpensesService,
+    private readonly idempotency: IdempotencyService,
+  ) {}
   @ApiOperation({ summary: 'Create an expense and splits atomically' })
   @ApiCreatedResponse({ type: ExpenseResponseDto })
+  @ApiHeader({ name: 'Idempotency-Key', required: false })
   @Post('ledgers/:ledgerId/expenses')
   create(
     @Param('ledgerId', new ParseUUIDPipe({ version: '4' })) id: string,
     @CurrentUser() u: SafeUser,
     @Body() d: CreateExpenseDto,
+    @Headers('idempotency-key') key?: string,
   ) {
-    return this.service.create(id, u.id, d);
+    return this.idempotency.execute(u.id, `expense.create:${id}`, key, d, () =>
+      this.service.create(id, u.id, d),
+    );
   }
   @ApiOperation({ summary: 'List ledger expenses' })
   @ApiOkResponse({ type: ExpenseResponseDto, isArray: true })

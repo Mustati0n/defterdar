@@ -119,6 +119,8 @@ export class ExpensesService {
   async update(id: string, userId: string, dto: UpdateExpenseDto) {
     const old = await this.findMutable(id, userId);
     this.manage(old, userId);
+    if (old.version !== dto.expectedVersion)
+      throw new ConflictException('Expense version does not match');
     const changesFinancialFields =
       dto.amountMinor !== undefined ||
       dto.payerUserId !== undefined ||
@@ -168,8 +170,8 @@ export class ExpensesService {
       allocations.map((x) => x.userId),
     );
     await this.prisma.$transaction(async (tx) => {
-      await tx.expense.update({
-        where: { id },
+      const claimed = await tx.expense.updateMany({
+        where: { id, version: dto.expectedVersion },
         data: {
           title: dto.title?.trim(),
           description:
@@ -183,8 +185,11 @@ export class ExpensesService {
           categoryId: dto.categoryId,
           isGift: dto.isGift,
           splitMethod: split.method,
+          version: { increment: 1 },
         },
       });
+      if (claimed.count !== 1)
+        throw new ConflictException('Expense version does not match');
       if (
         dto.split ||
         dto.amountMinor !== undefined ||

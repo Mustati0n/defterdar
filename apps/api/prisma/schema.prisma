@@ -69,6 +69,7 @@ model User {
   createdIncomes             Income[]             @relation("IncomeCreator")
   createdExpenseAttachments  ExpenseAttachment[]  @relation("AttachmentCreator")
   activityLogs               ActivityLog[]        @relation("ActivityActor")
+  idempotencyRecords         IdempotencyRecord[]
   participations             PlanParticipant[]
   authSessions               AuthSession[]
   createdLedgerInvitations   LedgerInvitation[]   @relation("InvitationCreator")
@@ -184,6 +185,7 @@ model Expense {
   createdAt   DateTime            @default(now()) @db.Timestamptz(3)
   updatedAt   DateTime            @updatedAt @db.Timestamptz(3)
   voidedAt    DateTime?           @db.Timestamptz(3)
+  version     Int                 @default(1)
   categoryId  String?             @db.Uuid
   ledger      Ledger              @relation(fields: [ledgerId], references: [id], onDelete: Restrict)
   plan        Plan?               @relation(fields: [planId], references: [id], onDelete: Restrict)
@@ -282,6 +284,22 @@ model ActivityLog {
   @@index([ledgerId, createdAt, id])
   @@index([actorUserId])
   @@index([entityType, entityId])
+}
+
+model IdempotencyRecord {
+  id             String   @id @default(uuid()) @db.Uuid
+  userId         String   @db.Uuid
+  operation      String
+  key            String
+  requestHash    String   @db.Char(64)
+  responseStatus Int?
+  responseBody   Json?
+  createdAt      DateTime @default(now()) @db.Timestamptz(3)
+  expiresAt      DateTime @db.Timestamptz(3)
+  user           User     @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@unique([userId, operation, key])
+  @@index([expiresAt])
 }
 
 model ExpenseSplit {

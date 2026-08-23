@@ -63,3 +63,5 @@ Category, Ledger kapsamlı referans verisidir. Income ayrı cashflow aggregate'�
 Receipt binary'leri API ve PostgreSQL sınırının dışındadır. `ObjectStorageService` S3/MinIO presigned URL, HEAD ve delete işlemlerini soyutlar; test provider'ı aynı contract'ı in-memory uygular. PostgreSQL yalnız immutable server storage key'i ve dosya metadata'sını tutar.
 
 `ActivityLogService` önemli domain mutation'larına transaction-scoped immutable audit insert ekler. Activity stream event-sourcing veya generic event bus değildir; mevcut aggregate tabloları source of truth olmaya devam eder. PostgreSQL trigger'ları audit satırının sonradan update/delete edilmesini engeller.
+
+`IdempotencyService`, finansal POST retry'larını PostgreSQL unique `(userId, operation, key)` claim'i ve canonical request hash'iyle koordine eder. Expense PATCH compare-and-increment version koşulunu mutation transaction'ında uygular. Redis veya distributed lock yoktur.

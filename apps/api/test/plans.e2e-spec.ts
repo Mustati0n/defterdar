@@ -410,14 +410,14 @@ describe('Plan lifecycle and participant API', () => {
       (
         await api('other-member')
           .patch(`/expenses/${expenseId}`)
-          .send({ title: 'No' })
+          .send({ title: 'No', expectedVersion: 1 })
       ).status,
     ).toBe(403);
     expect(
       (
         await api('member')
           .patch(`/expenses/${expenseId}`)
-          .send({ isGift: true })
+          .send({ isGift: true, expectedVersion: 1 })
       ).status,
     ).toBe(200);
     const gift = await api('member').get(`/expenses/${expenseId}`);
@@ -428,7 +428,7 @@ describe('Plan lifecycle and participant API', () => {
     ).toBe(true);
     const invalid = await api('member')
       .patch(`/expenses/${expenseId}`)
-      .send({ amountMinor: 10_000 });
+      .send({ amountMinor: 10_000, expectedVersion: 2 });
     expect(invalid.status).toBe(400);
     expect(
       (await api('member').get(`/expenses/${expenseId}`)).body.amountMinor,
@@ -446,7 +446,7 @@ describe('Plan lifecycle and participant API', () => {
       (
         await api('member')
           .patch(`/expenses/${expenseId}`)
-          .send({ title: 'Void' })
+          .send({ title: 'Void', expectedVersion: 2 })
       ).status,
     ).toBe(409);
   });
@@ -707,10 +707,10 @@ describe('Plan lifecycle and participant API', () => {
       (
         await api('owner')
           .patch(`/expenses/${target.body.id}`)
-          .send({ amountMinor: 9_000, split: { method: 'EXACT', entries: [{ userId: identity('admin').id, amountMinor: 9_000 }] } })
+          .send({ expectedVersion: 1, amountMinor: 9_000, split: { method: 'EXACT', entries: [{ userId: identity('admin').id, amountMinor: 9_000 }] } })
       ).status,
     ).toBe(409);
-    expect((await api('owner').patch(`/expenses/${target.body.id}`).send({ title: 'Metadata ok' })).status).toBe(200);
+    expect((await api('owner').patch(`/expenses/${target.body.id}`).send({ title: 'Metadata ok', expectedVersion: 1 })).status).toBe(200);
     expect((await api('admin').post(`/expense-split-offsets/${active.body.id}/void`)).status).toBe(403);
     expect((await api('owner').post(`/expense-split-offsets/${active.body.id}/void`)).status).toBe(201);
     const reapplied = await api('owner').post(`/expense-splits/${splitId}/offsets`).send({});
@@ -911,6 +911,102 @@ describe('Plan lifecycle and participant API', () => {
     const archivedLedger = await createLedger('owner', 'Archived activity');
     expect((await api('owner').post(`/ledgers/${archivedLedger}/archive`)).status).toBe(201);
     expect((await api('owner').get(`/ledgers/${archivedLedger}/activity`)).status).toBe(200);
+  });
+
+  it('deduplicates financial retries and rejects stale Expense versions', async () => {
+    const ledgerId = await createLedger('owner', 'Idempotency Defteri');
+    await inviteTo(ledgerId, 'admin');
+    const expensePayload = {
+      title: 'Retry-safe expense',
+      amountMinor: 10_000,
+      payerUserId: identity('owner').id,
+      expenseDate: '2026-08-23T10:00:00.000Z',
+      isGift: false,
+      split: { method: 'EXACT', entries: [{ userId: identity('admin').id, amountMinor: 10_000 }] },
+    };
+    const expenseKey = 'concurrent-expense-key';
+    const duplicateExpenses = await Promise.all([
+      api('owner').post(`/ledgers/${ledgerId}/expenses`).set('Idempotency-Key', expenseKey).send(expensePayload),
+      api('owner').post(`/ledgers/${ledgerId}/expenses`).set('Idempotency-Key', expenseKey).send(expensePayload),
+    ]);
+    expect(duplicateExpenses.map((result) => result.status)).toEqual([201, 201]);
+    expect(duplicateExpenses[0]!.body.id).toBe(duplicateExpenses[1]!.body.id);
+    expect((await api('owner').get(`/ledgers/${ledgerId}/expenses`)).body).toHaveLength(1);
+    expect(
+      (
+        await api('owner')
+          .post(`/ledgers/${ledgerId}/expenses`)
+          .set('Idempotency-Key', expenseKey)
+          .send({ ...expensePayload, title: 'Different request' })
+      ).status,
+    ).toBe(409);
+
+    const expenseId = duplicateExpenses[0]!.body.id as string;
+    const updated = await api('owner')
+      .patch(`/expenses/${expenseId}`)
+      .send({ title: 'Version two', expectedVersion: 1 });
+    expect(updated.status).toBe(200);
+    expect(updated.body.version).toBe(2);
+    expect(
+      (
+        await api('owner')
+          .patch(`/expenses/${expenseId}`)
+          .send({ title: 'Stale write', expectedVersion: 1 })
+      ).status,
+    ).toBe(409);
+    expect((await api('owner').get(`/expenses/${expenseId}`)).body.title).toBe('Version two');
+
+    const settlementPayload = {
+      fromUserId: identity('admin').id,
+      toUserId: identity('owner').id,
+      amountMinor: 1_000,
+      settledAt: '2026-08-23T11:00:00.000Z',
+    };
+    const firstSettlement = await api('admin')
+      .post(`/ledgers/${ledgerId}/settlements`)
+      .set('Idempotency-Key', 'settlement-key')
+      .send(settlementPayload);
+    const replayedSettlement = await api('admin')
+      .post(`/ledgers/${ledgerId}/settlements`)
+      .set('Idempotency-Key', 'settlement-key')
+      .send(settlementPayload);
+    expect(firstSettlement.status).toBe(201);
+    expect(replayedSettlement.body.id).toBe(firstSettlement.body.id);
+    expect((await api('owner').get(`/ledgers/${ledgerId}/settlements`)).body).toHaveLength(1);
+
+    const prior = await api('admin')
+      .post(`/ledgers/${ledgerId}/expenses`)
+      .send({
+        title: 'Reverse debt',
+        amountMinor: 20_000,
+        payerUserId: identity('admin').id,
+        expenseDate: '2026-08-23T08:00:00.000Z',
+        isGift: false,
+        split: { method: 'EXACT', entries: [{ userId: identity('owner').id, amountMinor: 20_000 }] },
+      });
+    expect(prior.status).toBe(201);
+    const target = await api('owner')
+      .post(`/ledgers/${ledgerId}/expenses`)
+      .send({
+        title: 'Offset idempotency target',
+        amountMinor: 5_000,
+        payerUserId: identity('owner').id,
+        expenseDate: '2026-08-23T12:00:00.000Z',
+        isGift: false,
+        split: { method: 'EXACT', entries: [{ userId: identity('admin').id, amountMinor: 5_000 }] },
+      });
+    const offsetPath = `/expense-splits/${target.body.splits[0].id}/offsets`;
+    const firstOffset = await api('owner').post(offsetPath).set('Idempotency-Key', 'offset-key').send({ amountMinor: 2_000 });
+    const replayedOffset = await api('owner').post(offsetPath).set('Idempotency-Key', 'offset-key').send({ amountMinor: 2_000 });
+    expect(firstOffset.status).toBe(201);
+    expect(replayedOffset.body.id).toBe(firstOffset.body.id);
+
+    const incomePayload = { title: 'Retry income', amountMinor: 3_000, incomeDate: '2026-08-23T09:00:00.000Z' };
+    const incomeOne = await api('owner').post(`/ledgers/${ledgerId}/incomes`).set('Idempotency-Key', 'income-key').send(incomePayload);
+    const incomeTwo = await api('owner').post(`/ledgers/${ledgerId}/incomes`).set('Idempotency-Key', 'income-key').send(incomePayload);
+    expect(incomeOne.status).toBe(201);
+    expect(incomeTwo.body.id).toBe(incomeOne.body.id);
+    expect((await api('owner').get(`/ledgers/${ledgerId}/incomes`)).body).toHaveLength(1);
   });
 
   async function register(name: string): Promise<Identity> {

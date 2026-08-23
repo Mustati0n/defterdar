@@ -4,7 +4,7 @@
 - [x] B — Categories + Income
 - [x] C — Receipt/Object Storage
 - [x] D — Audit trail
-- [ ] E — Idempotency + concurrency hardening
+- [x] E — Idempotency + concurrency hardening
 - [ ] F — Analytics API
 - [ ] G — Backend hardening + final docs
 - [ ] H — Full regression + Git push

@@ -38,3 +38,5 @@
 36. Income pozitif cashflow kaydıdır; Ledger currency snapshot'ı taşır fakat interpersonal Balance veya Settlement hesabına girmez.
 37. Receipt binary'si PostgreSQL'de tutulmaz. Server-generated key, allowlist MIME, configurable size ve Expense başına beş aktif attachment limiti uygulanır.
 38. ActivityLog append-only'dir. Kritik mutation ile aynı transaction'da yazılır; update/delete endpoint'i yoktur ve database trigger'ı değişikliği reddeder.
+39. Financial POST aynı user/operation/Idempotency-Key ve aynı request için tek olay üretir; key farklı body ile tekrar kullanılamaz.
+40. Expense update mevcut version'ı açıkça claim eder. Stale writer state'i değiştiremez; başarılı PATCH version'ı atomik artırır.

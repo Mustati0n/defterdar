@@ -47,6 +47,7 @@ export class ExpenseResponseDto {
   isGift!: boolean;
   @ApiProperty() expenseDate!: Date;
   @ApiPropertyOptional({ nullable: true }) voidedAt!: Date | null;
+  @ApiProperty({ minimum: 1 }) version!: number;
   @ApiProperty({ type: ExpenseSplitResponseDto, isArray: true })
   splits!: ExpenseSplitResponseDto[];
 }

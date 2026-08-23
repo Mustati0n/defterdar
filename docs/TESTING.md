@@ -22,3 +22,5 @@ Category/Income e2e coverage PERSONAL ve SHARED Ledger, case-insensitive duplica
 Attachment e2e testleri in-memory `ObjectStorageService` ile presigned lifecycle, MIME/size, read/mutation authorization, soft remove, void protection ve aynı Expense'a concurrent beş reservation invariant'ını doğrular. MinIO yalnız development smoke için gerekir.
 
 Audit e2e coverage cursor pagination, member/non-member visibility, archived Ledger read, beklenen domain action'ları, secret/storage-key sızıntısı ve PostgreSQL immutable UPDATE trigger'ını kapsar.
+
+Consistency e2e coverage aynı anda duplicate Expense create, aynı key/farklı body, Settlement/Offset/Income replay, tek persistent event, stale Expense PATCH ve successful version increment senaryolarını kapsar.
