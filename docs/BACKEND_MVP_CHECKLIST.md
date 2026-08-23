@@ -7,4 +7,4 @@
 - [x] E — Idempotency + concurrency hardening
 - [x] F — Analytics API
 - [x] G — Backend hardening + final docs
-- [ ] H — Full regression + Git push
+- [x] H — Full regression + Git push
