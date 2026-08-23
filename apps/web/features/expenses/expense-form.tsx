@@ -17,6 +17,10 @@ import {
 import { useAuth } from '@/features/auth/auth-provider';
 import { api, ApiError } from '@/lib/api-client';
 import type { SplitMethod } from '@/lib/types';
+import { useCategories } from '@/features/data/hooks';
+import { parseMoneyToMinor, equalPreview } from '@/lib/money';
+import { buildSplit } from './split-payload';
+import { formatMoneyFromMinor } from '@/lib/format';
 
 const schema = z.object({
   ledgerId: z.string().min(1, 'Bir Defter seç.'),
@@ -25,7 +29,7 @@ const schema = z.object({
   amount: z
     .string()
     .refine(
-      (value) => Number(value.replace(',', '.')) > 0,
+      (value) => (parseMoneyToMinor(value) ?? 0) > 0,
       'Sıfırdan büyük bir tutar yaz.',
     ),
   payerUserId: z.string().min(1, 'Kimin ödediğini seç.'),
@@ -33,6 +37,7 @@ const schema = z.object({
   splitMethod: z.enum(['EQUAL', 'EXACT', 'PERCENTAGE', 'SHARES']),
   expenseDate: z.string().min(1, 'Tarih seç.'),
   description: z.string().trim().max(1000).optional(),
+  categoryId: z.string().optional(),
   isGift: z.boolean(),
 });
 type Values = z.infer<typeof schema>;
@@ -69,6 +74,7 @@ export function ExpenseForm() {
   const createExpense = useCreateExpense();
   const [allocations, setAllocations] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
+  const [newCategory, setNewCategory] = useState('');
   const lastPeopleScope = useRef('');
   const requestedLedgerId = searchParams.get('ledgerId') ?? '';
   const requestedPlanId = searchParams.get('planId') ?? '';
@@ -91,6 +97,7 @@ export function ExpenseForm() {
       splitMethod: 'EQUAL',
       expenseDate: new Date().toISOString().slice(0, 10),
       description: '',
+      categoryId: '',
       isGift: false,
     },
   });
@@ -100,8 +107,10 @@ export function ExpenseForm() {
   const splitMethod = useWatch({ control, name: 'splitMethod' });
   const selectedPeople = useWatch({ control, name: 'participantUserIds' });
   const isGift = useWatch({ control, name: 'isGift' });
+  const amount = useWatch({ control, name: 'amount' });
   const selectedLedger = ledgers.data?.find((ledger) => ledger.id === ledgerId);
   const plans = usePlans(ledgerId);
+  const categories = useCategories(ledgerId);
   const members = useQuery({
     queryKey: queryKeys.members(ledgerId),
     queryFn: () => api.ledgers.members(ledgerId),
@@ -120,6 +129,33 @@ export function ExpenseForm() {
         : (members.data ?? []).map((member) => member.user),
     [members.data, participants.data, planId],
   );
+  const preview = useMemo(() => {
+    const minor = parseMoneyToMinor(amount);
+    if (!minor || !selectedPeople.length) return [];
+    if (splitMethod === 'EQUAL') return equalPreview(minor, selectedPeople);
+    return selectedPeople.map((userId) => ({
+      userId,
+      label: allocations[userId] || '—',
+    }));
+  }, [allocations, amount, selectedPeople, splitMethod]);
+
+  async function createCategory() {
+    if (!newCategory.trim() || !ledgerId) return;
+    try {
+      const category = await api.categories.create(ledgerId, {
+        name: newCategory.trim(),
+        kind: 'EXPENSE',
+      });
+      await categories.refetch();
+      setValue('categoryId', category.id);
+      setNewCategory('');
+      toast('Kategori oluşturuldu.');
+    } catch (error) {
+      setFormError(
+        error instanceof ApiError ? error.message : 'Kategori oluşturulamadı.',
+      );
+    }
+  }
 
   useEffect(() => {
     if (!ledgerId && ledgers.data?.length) {
@@ -149,44 +185,25 @@ export function ExpenseForm() {
 
   async function onSubmit(values: Values) {
     setFormError(null);
-    const amountMinor = Math.round(
-      Number(values.amount.replace(',', '.')) * 100,
-    );
-    const entries = values.participantUserIds.map((userId) => {
-      const raw = Number((allocations[userId] ?? '').replace(',', '.'));
-      if (values.splitMethod === 'EXACT')
-        return { userId, amountMinor: Math.round(raw * 100) };
-      if (values.splitMethod === 'PERCENTAGE')
-        return { userId, percentageBps: Math.round(raw * 100) };
-      return { userId, shares: Math.round(raw) };
-    });
-
-    if (
-      values.splitMethod === 'EXACT' &&
-      entries.reduce((sum, entry) => sum + (entry.amountMinor ?? 0), 0) !==
-        amountMinor
-    ) {
-      setFormError('Kişi paylarının toplamı harcama tutarıyla aynı olmalı.');
-      return;
-    }
-    if (
-      values.splitMethod === 'PERCENTAGE' &&
-      entries.reduce((sum, entry) => sum + (entry.percentageBps ?? 0), 0) !==
-        10_000
-    ) {
-      setFormError('Yüzdelerin toplamı %100 olmalı.');
-      return;
-    }
-    if (
-      values.splitMethod === 'SHARES' &&
-      entries.some((entry) => !entry.shares || entry.shares < 1)
-    ) {
-      setFormError('Seçilen herkes için en az 1 pay yaz.');
+    const amountMinor = parseMoneyToMinor(values.amount);
+    if (!amountMinor) return setFormError('Geçerli bir tutar yaz.');
+    let split;
+    try {
+      split = buildSplit(
+        values.splitMethod,
+        values.participantUserIds,
+        allocations,
+        amountMinor,
+      );
+    } catch (error) {
+      setFormError(
+        error instanceof Error ? error.message : 'Payları kontrol et.',
+      );
       return;
     }
 
     try {
-      await createExpense.mutateAsync({
+      const expense = await createExpense.mutateAsync({
         ledgerId: values.ledgerId,
         input: {
           title: values.title,
@@ -194,15 +211,10 @@ export function ExpenseForm() {
           amountMinor,
           payerUserId: values.payerUserId,
           planId: values.planId || null,
+          categoryId: values.categoryId || null,
           isGift: values.isGift,
           expenseDate: new Date(`${values.expenseDate}T12:00:00`).toISOString(),
-          split:
-            values.splitMethod === 'EQUAL'
-              ? {
-                  method: 'EQUAL',
-                  participantUserIds: values.participantUserIds,
-                }
-              : { method: values.splitMethod, entries },
+          split,
         },
       });
       toast(
@@ -210,11 +222,7 @@ export function ExpenseForm() {
           ? 'Ismarlama Deftere yazıldı.'
           : 'Harcama paylaştırıldı ve Deftere yazıldı.',
       );
-      router.push(
-        values.planId
-          ? `/plans/${values.planId}`
-          : `/ledgers/${values.ledgerId}`,
-      );
+      router.push(`/expenses/${expense.id}`);
     } catch (error) {
       setFormError(
         error instanceof ApiError
@@ -284,16 +292,26 @@ export function ExpenseForm() {
         <div className="field-row">
           <label className="field">
             <span>Defter</span>
-            <select className="input" {...register('ledgerId')}>
-              <option value="">Defter seç</option>
-              {ledgers.data
-                ?.filter((ledger) => !ledger.archivedAt)
-                .map((ledger) => (
-                  <option value={ledger.id} key={ledger.id}>
-                    {ledger.name}
-                  </option>
-                ))}
-            </select>
+            {requestedLedgerId ? (
+              <>
+                <input type="hidden" {...register('ledgerId')} />
+                <div className="context-note">
+                  {selectedLedger?.name ?? 'Seçili Defter'} içinde
+                  oluşturulacak.
+                </div>
+              </>
+            ) : (
+              <select className="input" {...register('ledgerId')}>
+                <option value="">Defter seç</option>
+                {ledgers.data
+                  ?.filter((ledger) => !ledger.archivedAt)
+                  .map((ledger) => (
+                    <option value={ledger.id} key={ledger.id}>
+                      {ledger.name}
+                    </option>
+                  ))}
+              </select>
+            )}
             {errors.ledgerId ? <small>{errors.ledgerId.message}</small> : null}
           </label>
           <label className="field">
@@ -311,6 +329,42 @@ export function ExpenseForm() {
                 ))}
             </select>
           </label>
+        </div>
+        <label className="field">
+          <span>
+            Kategori <em>isteğe bağlı</em>
+          </span>
+          <select className="input" {...register('categoryId')}>
+            <option value="">Kategorisiz</option>
+            {categories.data
+              ?.filter(
+                (category) =>
+                  !category.archivedAt &&
+                  (category.kind === 'EXPENSE' || category.kind === 'BOTH'),
+              )
+              .map((category) => (
+                <option value={category.id} key={category.id}>
+                  {category.name}
+                </option>
+              ))}
+          </select>
+        </label>
+        <div className="add-row">
+          <input
+            className="input"
+            value={newCategory}
+            onChange={(event) => setNewCategory(event.target.value)}
+            placeholder="Yeni kategori adı"
+            aria-label="Yeni kategori adı"
+          />
+          <button
+            className="button button--quiet button--small"
+            type="button"
+            disabled={!newCategory.trim()}
+            onClick={() => void createCategory()}
+          >
+            Kategori ekle
+          </button>
         </div>
         <label className="field field--date">
           <span>Harcama tarihi</span>
@@ -381,6 +435,35 @@ export function ExpenseForm() {
             <p className="field-error">{errors.participantUserIds.message}</p>
           ) : null}
         </section>
+
+        {preview.length ? (
+          <section className="paper-section split-preview">
+            <span className="eyebrow">Canlı özet</span>
+            <h3>Paylaştırma önizlemesi</h3>
+            {preview.map((item) => (
+              <div key={item.userId}>
+                <span>
+                  {
+                    people.find((person) => person.id === item.userId)
+                      ?.displayName
+                  }
+                </span>
+                <strong>
+                  {'amountMinor' in item
+                    ? formatMoneyFromMinor(
+                        item.amountMinor,
+                        selectedLedger?.currency,
+                      )
+                    : `${item.label}${splitMethod === 'PERCENTAGE' ? '%' : splitMethod === 'SHARES' ? ' pay' : ` ${selectedLedger?.currency ?? ''}`}`}
+                </strong>
+              </div>
+            ))}
+            <small>
+              Kesin küsurat dağılımı backend tarafından deterministik olarak
+              hesaplanır.
+            </small>
+          </section>
+        ) : null}
 
         <section className="paper-section smart-form__split">
           <div className="form-question">

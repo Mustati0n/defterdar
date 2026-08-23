@@ -86,11 +86,48 @@ function LedgersContent() {
         <ErrorState onRetry={() => void ledgers.refetch()} />
       ) : null}
       {!ledgers.isLoading && !ledgers.isError && filtered.length ? (
-        <section className="ledger-grid">
-          {filtered.map((ledger, index) => (
-            <LedgerCard key={ledger.id} ledger={ledger} index={index} />
-          ))}
-        </section>
+        filter === 'recent' && !search ? (
+          <>
+            {filtered.some((ledger) => ledger.type === 'PERSONAL') ? (
+              <section className="collection-section">
+                <h2>Kişisel Defter</h2>
+                <div className="ledger-grid">
+                  {filtered
+                    .filter((ledger) => ledger.type === 'PERSONAL')
+                    .map((ledger, index) => (
+                      <LedgerCard
+                        key={ledger.id}
+                        ledger={ledger}
+                        index={index}
+                      />
+                    ))}
+                </div>
+              </section>
+            ) : null}
+            {filtered.some((ledger) => ledger.type === 'SHARED') ? (
+              <section className="collection-section">
+                <h2>Ortak Defterler</h2>
+                <div className="ledger-grid">
+                  {filtered
+                    .filter((ledger) => ledger.type === 'SHARED')
+                    .map((ledger, index) => (
+                      <LedgerCard
+                        key={ledger.id}
+                        ledger={ledger}
+                        index={index}
+                      />
+                    ))}
+                </div>
+              </section>
+            ) : null}
+          </>
+        ) : (
+          <section className="ledger-grid">
+            {filtered.map((ledger, index) => (
+              <LedgerCard key={ledger.id} ledger={ledger} index={index} />
+            ))}
+          </section>
+        )
       ) : null}
       {!ledgers.isLoading &&
       !ledgers.isError &&

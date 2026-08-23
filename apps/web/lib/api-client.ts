@@ -12,19 +12,25 @@ import type {
   ApiErrorBody,
   AuthResponse,
   BalanceResponse,
+  Category,
+  CategoryKind,
+  CreatedLedgerInvitation,
   CreateLedgerInput,
   CreateExpenseInput,
   CreateIncomeInput,
   CreatePlanInput,
   Expense,
+  ExpenseAttachment,
   Income,
   Ledger,
   LedgerMember,
+  LedgerInvitation,
   LoginInput,
   Plan,
   PlanParticipant,
   RegisterInput,
   TokenResponse,
+  UpdateExpenseInput,
   User,
 } from './types';
 
@@ -53,6 +59,15 @@ function getErrorMessage(body: ApiErrorBody | null, status: number): string {
   }
   if (normalized.includes('offset') && normalized.includes('mutation')) {
     return 'Bu harcamada Borçtan düş işlemi olduğu için paylaşımı şu anda değiştiremezsin. Önce ilgili Borçtan düş kaydını geri al.';
+  }
+  if (normalized.includes('version') && normalized.includes('match')) {
+    return 'Bu harcama başka bir yerde güncellendi. Son halini yükleyip değişikliklerini yeniden uygula.';
+  }
+  if (
+    normalized.includes('participant') &&
+    normalized.includes('target ledger')
+  ) {
+    return 'Planı taşımadan önce tüm katılımcıları hedef Deftere üye yap.';
   }
   if (normalized.includes('archived') && normalized.includes('ledger')) {
     return 'Arşivdeki bir Deftere yeni kayıt eklenemez. Önce Defteri yeniden aç.';
@@ -188,12 +203,68 @@ export const api = {
     get: (ledgerId: string) => apiRequest<Ledger>(`/ledgers/${ledgerId}`),
     create: (input: CreateLedgerInput) =>
       apiRequest<Ledger>('/ledgers', { method: 'POST', body: input }),
+    update: (
+      ledgerId: string,
+      input: { name?: string; description?: string | null },
+    ) =>
+      apiRequest<Ledger>(`/ledgers/${ledgerId}`, {
+        method: 'PATCH',
+        body: input,
+      }),
+    archive: (ledgerId: string) =>
+      apiRequest<Ledger>(`/ledgers/${ledgerId}/archive`, { method: 'POST' }),
+    unarchive: (ledgerId: string) =>
+      apiRequest<Ledger>(`/ledgers/${ledgerId}/unarchive`, { method: 'POST' }),
+    leave: (ledgerId: string) =>
+      apiRequest<void>(`/ledgers/${ledgerId}/leave`, { method: 'POST' }),
+    transferOwnership: (ledgerId: string, newOwnerUserId: string) =>
+      apiRequest<{
+        ledgerId: string;
+        previousOwnerUserId: string;
+        newOwnerUserId: string;
+      }>(`/ledgers/${ledgerId}/transfer-ownership`, {
+        method: 'POST',
+        body: { newOwnerUserId },
+      }),
     members: (ledgerId: string) =>
       apiRequest<LedgerMember[]>(`/ledgers/${ledgerId}/members`),
+    updateMemberRole: (
+      ledgerId: string,
+      userId: string,
+      role: 'ADMIN' | 'MEMBER',
+    ) =>
+      apiRequest<LedgerMember>(`/ledgers/${ledgerId}/members/${userId}`, {
+        method: 'PATCH',
+        body: { role },
+      }),
+    removeMember: (ledgerId: string, userId: string) =>
+      apiRequest<void>(`/ledgers/${ledgerId}/members/${userId}`, {
+        method: 'DELETE',
+      }),
+    invitations: (ledgerId: string) =>
+      apiRequest<LedgerInvitation[]>(`/ledgers/${ledgerId}/invitations`),
+    invite: (ledgerId: string, email?: string) =>
+      apiRequest<CreatedLedgerInvitation>(`/ledgers/${ledgerId}/invitations`, {
+        method: 'POST',
+        body: email ? { email } : {},
+      }),
+    revokeInvitation: (ledgerId: string, invitationId: string) =>
+      apiRequest<void>(`/ledgers/${ledgerId}/invitations/${invitationId}`, {
+        method: 'DELETE',
+      }),
+    acceptInvitation: (token: string) =>
+      apiRequest<{ ledgerId: string; role: 'MEMBER' }>(
+        `/invitations/${encodeURIComponent(token)}/accept`,
+        {
+          method: 'POST',
+        },
+      ),
     balances: (ledgerId: string) =>
       apiRequest<BalanceResponse>(`/ledgers/${ledgerId}/balances`),
-    activity: (ledgerId: string, limit = 12) =>
-      apiRequest<ActivityPage>(`/ledgers/${ledgerId}/activity?limit=${limit}`),
+    activity: (ledgerId: string, limit = 12, cursor?: string) =>
+      apiRequest<ActivityPage>(
+        `/ledgers/${ledgerId}/activity?limit=${limit}${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`,
+      ),
     analytics: (ledgerId: string) =>
       apiRequest<AnalyticsSummary>(`/ledgers/${ledgerId}/analytics/summary`),
   },
@@ -208,8 +279,32 @@ export const api = {
         method: 'POST',
         body: input,
       }),
+    update: (planId: string, input: Partial<CreatePlanInput>) =>
+      apiRequest<Plan>(`/plans/${planId}`, { method: 'PATCH', body: input }),
+    complete: (planId: string) =>
+      apiRequest<Plan>(`/plans/${planId}/complete`, { method: 'POST' }),
+    reopen: (planId: string) =>
+      apiRequest<Plan>(`/plans/${planId}/reopen`, { method: 'POST' }),
+    archive: (planId: string) =>
+      apiRequest<Plan>(`/plans/${planId}/archive`, { method: 'POST' }),
+    unarchive: (planId: string) =>
+      apiRequest<Plan>(`/plans/${planId}/unarchive`, { method: 'POST' }),
     participants: (planId: string) =>
       apiRequest<PlanParticipant[]>(`/plans/${planId}/participants`),
+    addParticipant: (planId: string, userId: string) =>
+      apiRequest<PlanParticipant>(`/plans/${planId}/participants`, {
+        method: 'POST',
+        body: { userId },
+      }),
+    removeParticipant: (planId: string, userId: string) =>
+      apiRequest<void>(`/plans/${planId}/participants/${userId}`, {
+        method: 'DELETE',
+      }),
+    move: (planId: string, targetLedgerId: string) =>
+      apiRequest<Plan>(`/plans/${planId}/move`, {
+        method: 'POST',
+        body: { targetLedgerId },
+      }),
     balances: (planId: string) =>
       apiRequest<BalanceResponse>(`/plans/${planId}/balances`),
     analytics: (planId: string) =>
@@ -226,8 +321,52 @@ export const api = {
         body: input,
         headers: { 'Idempotency-Key': crypto.randomUUID() },
       }),
+    get: (expenseId: string) => apiRequest<Expense>(`/expenses/${expenseId}`),
+    update: (expenseId: string, input: UpdateExpenseInput) =>
+      apiRequest<Expense>(`/expenses/${expenseId}`, {
+        method: 'PATCH',
+        body: input,
+      }),
+    void: (expenseId: string) =>
+      apiRequest<Expense>(`/expenses/${expenseId}/void`, { method: 'POST' }),
+    attachments: (expenseId: string) =>
+      apiRequest<ExpenseAttachment[]>(`/expenses/${expenseId}/attachments`),
+    reserveAttachment: (
+      expenseId: string,
+      input: { fileName: string; mimeType: string; sizeBytes: number },
+    ) =>
+      apiRequest<{
+        attachmentId: string;
+        uploadUrl: string;
+        expiresAt: string;
+      }>(`/expenses/${expenseId}/attachments`, { method: 'POST', body: input }),
+  },
+  attachments: {
+    complete: (attachmentId: string) =>
+      apiRequest<ExpenseAttachment>(`/attachments/${attachmentId}/complete`, {
+        method: 'POST',
+      }),
+    url: (attachmentId: string) =>
+      apiRequest<{ url: string; expiresAt: string }>(
+        `/attachments/${attachmentId}/url`,
+      ),
+    remove: (attachmentId: string) =>
+      apiRequest<void>(`/attachments/${attachmentId}`, { method: 'DELETE' }),
+  },
+  categories: {
+    list: (ledgerId: string) =>
+      apiRequest<Category[]>(`/ledgers/${ledgerId}/categories`),
+    create: (ledgerId: string, input: { name: string; kind: CategoryKind }) =>
+      apiRequest<Category>(`/ledgers/${ledgerId}/categories`, {
+        method: 'POST',
+        body: input,
+      }),
   },
   incomes: {
+    list: (ledgerId: string, planId?: string) =>
+      apiRequest<Income[]>(
+        `/ledgers/${ledgerId}/incomes${planId ? `?planId=${planId}` : ''}`,
+      ),
     create: (ledgerId: string, input: CreateIncomeInput) =>
       apiRequest<Income>(`/ledgers/${ledgerId}/incomes`, {
         method: 'POST',

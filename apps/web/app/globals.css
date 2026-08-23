@@ -39,6 +39,239 @@
   --content-max: 1440px;
 }
 
+.collection-section {
+  margin: 1.5rem 0 2.5rem;
+}
+.collection-section > h2 {
+  margin: 0 0 1rem;
+  font-family: var(--font-display);
+}
+.context-note,
+.status-banner,
+.gift-note {
+  padding: 0.8rem 1rem;
+  border-radius: 10px;
+  background: var(--color-paper-deep);
+  color: var(--color-muted);
+}
+.status-banner {
+  display: flex;
+  gap: 0.65rem;
+  align-items: center;
+  margin: 1rem 0;
+  border: 1px solid var(--color-line);
+}
+.invite-box,
+.danger-zone,
+.subsection {
+  display: grid;
+  gap: 0.8rem;
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--color-line);
+}
+.copy-row,
+.add-row,
+.transfer-row,
+.page-actions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: end;
+}
+.copy-row .input,
+.add-row .input,
+.transfer-row .input {
+  flex: 1;
+}
+.people-list,
+.attachment-list,
+.simple-list,
+.split-detail-list {
+  display: grid;
+  gap: 0.65rem;
+  margin-top: 1rem;
+}
+.people-list article,
+.attachment-list article,
+.list-row,
+.split-detail-list > div,
+.simple-list > * {
+  display: flex;
+  gap: 0.8rem;
+  align-items: center;
+  padding: 0.75rem;
+  border-bottom: 1px solid var(--color-line);
+}
+.people-list article > div,
+.attachment-list article > div,
+.list-row > span,
+.split-detail-list > div > span,
+.simple-list > * {
+  flex: 1;
+}
+.people-list small,
+.attachment-list small,
+.list-row small,
+.split-detail-list small,
+.simple-list small {
+  display: block;
+  color: var(--color-muted);
+}
+.row-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+.row-actions .input {
+  width: 9rem;
+  padding-block: 0.5rem;
+}
+.icon-button {
+  width: 2.5rem;
+  height: 2.5rem;
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid var(--color-line);
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+.icon-button svg {
+  width: 17px;
+}
+.settings-form {
+  max-width: 46rem;
+}
+.button--danger {
+  background: #8d2d25;
+  color: #fff;
+  border-color: #8d2d25;
+}
+.dialog-card--compact {
+  max-width: 30rem;
+}
+.invitation-page {
+  max-width: 38rem;
+  margin: 8vh auto;
+  text-align: center;
+}
+.invitation-page > svg {
+  width: 48px;
+  height: 48px;
+}
+.expense-list > a {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 1rem;
+  align-items: center;
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--color-line);
+  color: inherit;
+  text-decoration: none;
+}
+.detail-cover--expense {
+  background: #344d45;
+}
+.detail-cover--expense.is-voided {
+  opacity: 0.7;
+}
+.expense-total {
+  display: grid;
+  gap: 0.25rem;
+  justify-items: end;
+}
+.expense-total strong {
+  font-size: 1.8rem;
+}
+.detail-list > div {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.65rem 0;
+  border-bottom: 1px solid var(--color-line);
+}
+.detail-list dt {
+  color: var(--color-muted);
+}
+.split-preview > div {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.4rem 0;
+}
+.receipt-panel {
+  margin-top: 1.25rem;
+}
+.upload-progress {
+  position: relative;
+  overflow: hidden;
+  min-height: 2rem;
+  margin-top: 0.75rem;
+  border: 1px solid var(--color-line);
+  border-radius: 8px;
+}
+.upload-progress > span {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: #dce9df;
+  transition: width 0.2s;
+}
+.upload-progress small {
+  position: relative;
+  display: block;
+  padding: 0.4rem 0.7rem;
+}
+.page-actions {
+  margin: 1rem 0;
+}
+.expense-edit-form {
+  max-width: 58rem;
+  margin-inline: auto;
+}
+.expense-indicators {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.3rem;
+}
+.expense-indicators > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.15rem 0.4rem;
+  border-radius: 999px;
+  background: var(--color-paper-deep);
+  font-size: 0.72rem;
+}
+.expense-indicators svg {
+  width: 12px;
+}
+
+@media (max-width: 700px) {
+  .copy-row,
+  .add-row,
+  .transfer-row,
+  .page-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .copy-row .button,
+  .add-row .button,
+  .transfer-row .button,
+  .page-actions .button {
+    width: 100%;
+  }
+  .expense-list > a {
+    grid-template-columns: auto 1fr;
+  }
+  .expense-list > a > div:last-child {
+    grid-column: 2;
+  }
+  .row-actions {
+    align-items: flex-end;
+    flex-direction: column;
+  }
+}
+
 * {
   box-sizing: border-box;
 }

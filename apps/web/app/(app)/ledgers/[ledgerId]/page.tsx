@@ -19,6 +19,13 @@ import { useState } from 'react';
 import { ErrorState, LoadingState } from '@/components/ui/states';
 import { useLedgerDetailData } from '@/features/data/hooks';
 import { useAuth } from '@/features/auth/auth-provider';
+import { ActivityFeed } from '@/features/activity/activity-feed';
+import {
+  LedgerMembersPanel,
+  LedgerSettingsPanel,
+} from '@/features/ledgers/ledger-management';
+import { activitySentence } from '@/lib/activity';
+import { ExpenseIndicators } from '@/features/expenses/expense-indicators';
 import { formatMoneyFromMinor } from '@/lib/format';
 
 const tabs = [
@@ -34,7 +41,7 @@ export default function LedgerDetailPage() {
   const { ledgerId } = useParams<{ ledgerId: string }>();
   const [activeTab, setActiveTab] = useState<Tab>('general');
   const { user } = useAuth();
-  const { ledger, plans, members, balance, activity, expenses } =
+  const { ledger, plans, members, balance, activity, expenses, incomes } =
     useLedgerDetailData(ledgerId);
 
   if (ledger.isLoading) return <LoadingState label="Defter açılıyor…" />;
@@ -139,9 +146,7 @@ export default function LedgerDetailPage() {
                     <span />
                     <div>
                       <strong>{item.actor?.displayName ?? 'Sistem'}</strong>
-                      <p>
-                        {item.entityType} · {item.action}
-                      </p>
+                      <p>{activitySentence(item)}</p>
                     </div>
                     <time>
                       {new Date(item.createdAt).toLocaleDateString('tr-TR')}
@@ -172,7 +177,7 @@ export default function LedgerDetailPage() {
             {expenses.data?.length ? (
               <div className="expense-list">
                 {expenses.data.slice(0, 6).map((expense) => (
-                  <article key={expense.id}>
+                  <Link href={`/expenses/${expense.id}`} key={expense.id}>
                     <span>
                       <ReceiptText />
                     </span>
@@ -182,6 +187,7 @@ export default function LedgerDetailPage() {
                         {expense.payer.displayName} ödedi ·{' '}
                         {expense.splits.length} kişi paylaştı
                       </small>
+                      <ExpenseIndicators expense={expense} />
                     </div>
                     <div>
                       <strong>
@@ -196,7 +202,7 @@ export default function LedgerDetailPage() {
                         )}
                       </small>
                     </div>
-                  </article>
+                  </Link>
                 ))}
               </div>
             ) : (
@@ -223,28 +229,74 @@ export default function LedgerDetailPage() {
               </div>
             )}
           </section>
+          <div className="detail-grid">
+            <section className="paper-section">
+              <div className="section-heading">
+                <div>
+                  <span className="eyebrow">Bağlı notlar</span>
+                  <h2>Planlar</h2>
+                </div>
+                {!data.archivedAt ? (
+                  <Link
+                    className="button button--quiet button--small"
+                    href={`/plans?create=1&ledgerId=${ledgerId}`}
+                  >
+                    <Plus /> Plan ekle
+                  </Link>
+                ) : null}
+              </div>
+              <div className="simple-list">
+                {(plans.data ?? []).slice(0, 5).map((plan) => (
+                  <Link href={`/plans/${plan.id}`} key={plan.id}>
+                    <strong>{plan.name}</strong>
+                    <small>
+                      {plan.status} · {plan.participantCount} katılımcı
+                    </small>
+                  </Link>
+                ))}
+                {!plans.data?.length ? (
+                  <p className="muted-copy">Bu Deftere bağlı Plan yok.</p>
+                ) : null}
+              </div>
+            </section>
+            <section className="paper-section">
+              <div className="section-heading">
+                <div>
+                  <span className="eyebrow">Gelen para</span>
+                  <h2>Son gelirler</h2>
+                </div>
+                {!data.archivedAt ? (
+                  <Link
+                    className="button button--quiet button--small"
+                    href={`/incomes/new?ledgerId=${ledgerId}`}
+                  >
+                    <Plus /> Gelir ekle
+                  </Link>
+                ) : null}
+              </div>
+              <div className="simple-list">
+                {(incomes.data ?? []).slice(0, 5).map((income) => (
+                  <div key={income.id}>
+                    <strong>{income.title}</strong>
+                    <small>
+                      {formatMoneyFromMinor(
+                        income.amountMinor,
+                        income.currency,
+                      )}{' '}
+                      ·{' '}
+                      {new Date(income.incomeDate).toLocaleDateString('tr-TR')}
+                    </small>
+                  </div>
+                ))}
+                {!incomes.data?.length ? (
+                  <p className="muted-copy">Henüz gelir kaydı yok.</p>
+                ) : null}
+              </div>
+            </section>
+          </div>
         </>
       ) : null}
-      {activeTab === 'activity' ? (
-        <section className="paper-section detail-full">
-          <span className="eyebrow">Kayıt sırası</span>
-          <h2>Tüm son hareketler</h2>
-          <ol className="compact-activity">
-            {(activity.data?.items ?? []).map((item) => (
-              <li key={item.id}>
-                <span />
-                <div>
-                  <strong>{item.actor?.displayName ?? 'Sistem'}</strong>
-                  <p>
-                    {item.entityType} kaydında {item.action}
-                  </p>
-                </div>
-                <time>{new Date(item.createdAt).toLocaleString('tr-TR')}</time>
-              </li>
-            ))}
-          </ol>
-        </section>
-      ) : null}
+      {activeTab === 'activity' ? <ActivityFeed ledgerId={ledgerId} /> : null}
       {activeTab === 'balances' ? (
         <section className="paper-section detail-full">
           <span className="eyebrow">Anlık hesap</span>
@@ -281,33 +333,10 @@ export default function LedgerDetailPage() {
         </section>
       ) : null}
       {activeTab === 'members' ? (
-        <section className="paper-section detail-full">
-          <span className="eyebrow">Defter çevresi</span>
-          <h2>Aktif üyeler</h2>
-          <div className="people-grid">
-            {(members.data ?? []).map((member) => (
-              <article key={member.user.id}>
-                <span className="avatar avatar--paper">
-                  {member.user.displayName[0]}
-                </span>
-                <div>
-                  <strong>{member.user.displayName}</strong>
-                  <small>{member.role}</small>
-                </div>
-              </article>
-            ))}
-          </div>
-        </section>
+        <LedgerMembersPanel ledger={data} members={members.data ?? []} />
       ) : null}
       {activeTab === 'settings' ? (
-        <section className="paper-section detail-full">
-          <span className="eyebrow">Yapı taşı</span>
-          <h2>Defter ayarları için hazır alan</h2>
-          <p className="muted-copy">
-            Ad, açıklama, üyelik ve arşiv yönetimi sonraki özellik katmanlarında
-            bu bölümde yaşayacak.
-          </p>
-        </section>
+        <LedgerSettingsPanel ledger={data} members={members.data ?? []} />
       ) : null}
     </>
   );

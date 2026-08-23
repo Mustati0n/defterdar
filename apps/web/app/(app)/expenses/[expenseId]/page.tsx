@@ -1,0 +1,171 @@
+'use client';
+
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { ArrowLeft, Ban, Gift, Pencil, ReceiptText } from 'lucide-react';
+import Link from 'next/link';
+import { useParams } from 'next/navigation';
+import { useState } from 'react';
+import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
+import { ErrorState, LoadingState } from '@/components/ui/states';
+import { useToast } from '@/components/ui/toast';
+import { useAuth } from '@/features/auth/auth-provider';
+import { queryKeys, useExpense, useLedger } from '@/features/data/hooks';
+import { ReceiptPanel } from '@/features/expenses/receipt-panel';
+import { api, ApiError } from '@/lib/api-client';
+import { formatMoneyFromMinor } from '@/lib/format';
+
+export default function ExpenseDetailPage() {
+  const { expenseId } = useParams<{ expenseId: string }>();
+  const expense = useExpense(expenseId);
+  const ledger = useLedger(expense.data?.ledgerId ?? '');
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const toast = useToast();
+  const [confirmVoid, setConfirmVoid] = useState(false);
+  const voidMutation = useMutation({
+    mutationFn: () => api.expenses.void(expenseId),
+    onSuccess: async (data) => {
+      setConfirmVoid(false);
+      queryClient.setQueryData(queryKeys.expense(expenseId), data);
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: ['expenses', data.ledgerId],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.activity(data.ledgerId),
+        }),
+      ]);
+      toast('Harcama iptal edildi; kayıt geçmişte görünmeye devam edecek.');
+    },
+    onError: (error) =>
+      toast(
+        error instanceof ApiError ? error.message : 'Harcama iptal edilemedi.',
+        'error',
+      ),
+  });
+  if (expense.isLoading) return <LoadingState label="Harcama açılıyor…" />;
+  if (expense.isError || !expense.data)
+    return (
+      <ErrorState
+        message="Bu harcamaya erişilemiyor."
+        onRetry={() => void expense.refetch()}
+      />
+    );
+  const data = expense.data;
+  const canManage =
+    ledger.data?.role === 'OWNER' ||
+    ledger.data?.role === 'ADMIN' ||
+    data.createdById === user?.id;
+  return (
+    <>
+      <Link className="back-link" href={`/ledgers/${data.ledgerId}`}>
+        <ArrowLeft /> Deftere dön
+      </Link>
+      <section
+        className={`detail-cover detail-cover--expense${data.voidedAt ? ' is-voided' : ''}`}
+      >
+        <div>
+          <span className="eyebrow eyebrow--light">
+            {data.isGift ? 'Ismarla' : 'Harcama'} ·{' '}
+            {data.category?.name ?? 'Kategorisiz'}
+          </span>
+          <h1>{data.title}</h1>
+          <p>{data.description || 'Bu harcama için not girilmedi.'}</p>
+        </div>
+        <div className="expense-total">
+          <ReceiptText />
+          <strong>
+            {formatMoneyFromMinor(data.amountMinor, data.currency)}
+          </strong>
+          <small>
+            {new Date(data.expenseDate).toLocaleDateString('tr-TR')}
+          </small>
+        </div>
+      </section>
+      {data.voidedAt ? (
+        <div className="status-banner">
+          <Ban /> Bu harcama iptal edildi. Okunabilir, ancak değiştirilemez.
+        </div>
+      ) : null}
+      <div className="detail-grid">
+        <section className="paper-section">
+          <span className="eyebrow">Ödeme</span>
+          <h2>{data.payer.displayName} ödedi</h2>
+          <dl className="detail-list">
+            <div>
+              <dt>Paylaştırma</dt>
+              <dd>{data.splitMethod}</dd>
+            </div>
+            <div>
+              <dt>Plan</dt>
+              <dd>{data.planId ? 'Plana bağlı' : 'Defter geneli'}</dd>
+            </div>
+            <div>
+              <dt>Sürüm</dt>
+              <dd>{data.version}</dd>
+            </div>
+          </dl>
+          {data.isGift ? (
+            <div className="gift-note">
+              <Gift /> Tüm paylar Ismarla olarak geri ödemesizdir.
+            </div>
+          ) : null}
+        </section>
+        <section className="paper-section">
+          <span className="eyebrow">Paylar</span>
+          <h2>Kim ne kadar paylaştı?</h2>
+          <div className="split-detail-list">
+            {data.splits.map((split) => (
+              <div key={split.id}>
+                <span>
+                  <strong>{split.user.displayName}</strong>
+                  <small>
+                    {split.isReimbursable ? 'Geri ödenebilir' : 'Geri ödemesiz'}
+                    {BigInt(split.offsetAppliedMinor) > 0n
+                      ? ` · Borçtan düş: ${formatMoneyFromMinor(split.offsetAppliedMinor, data.currency)}`
+                      : ''}
+                  </small>
+                </span>
+                <strong>
+                  {formatMoneyFromMinor(split.amountMinor, data.currency)}
+                </strong>
+              </div>
+            ))}
+          </div>
+        </section>
+      </div>
+      {canManage && !data.voidedAt ? (
+        <div className="page-actions">
+          <Link
+            className="button button--primary"
+            href={`/expenses/${expenseId}/edit`}
+          >
+            <Pencil /> Harcamayı düzenle
+          </Link>
+          <button
+            className="button button--danger"
+            type="button"
+            onClick={() => setConfirmVoid(true)}
+          >
+            <Ban /> Harcamayı iptal et
+          </button>
+        </div>
+      ) : null}
+      <ReceiptPanel
+        expenseId={expenseId}
+        canManage={Boolean(canManage)}
+        disabled={Boolean(data.voidedAt || ledger.data?.archivedAt)}
+      />
+      <ConfirmationDialog
+        open={confirmVoid}
+        title="Harcama iptal edilsin mi?"
+        description="Kayıt silinmez; iptal edilmiş olarak geçmişte kalır ve bakiyeler yeniden hesaplanır."
+        confirmLabel="Harcamayı iptal et"
+        danger
+        pending={voidMutation.isPending}
+        onCancel={() => setConfirmVoid(false)}
+        onConfirm={() => voidMutation.mutate()}
+      />
+    </>
+  );
+}

@@ -17,6 +17,17 @@ import { useParams } from 'next/navigation';
 import { useState } from 'react';
 import { ErrorState, LoadingState } from '@/components/ui/states';
 import { usePlanDetailData } from '@/features/data/hooks';
+import { useLedger, useLedgers } from '@/features/data/hooks';
+import { useAuth } from '@/features/auth/auth-provider';
+import { api } from '@/lib/api-client';
+import { useQuery } from '@tanstack/react-query';
+import { queryKeys } from '@/features/data/hooks';
+import {
+  PlanParticipantsPanel,
+  PlanSettingsPanel,
+} from '@/features/plans/plan-management';
+import { ActivityFeed } from '@/features/activity/activity-feed';
+import { ExpenseIndicators } from '@/features/expenses/expense-indicators';
 import { formatDate, formatMoneyFromMinor } from '@/lib/format';
 
 const tabs = [
@@ -32,6 +43,14 @@ export default function PlanDetailPage() {
   const { planId } = useParams<{ planId: string }>();
   const [activeTab, setActiveTab] = useState<Tab>('general');
   const { plan, participants, balance, expenses } = usePlanDetailData(planId);
+  const { user } = useAuth();
+  const ledgers = useLedgers();
+  const ledger = useLedger(plan.data?.ledgerId ?? '');
+  const members = useQuery({
+    queryKey: queryKeys.members(plan.data?.ledgerId ?? ''),
+    queryFn: () => api.ledgers.members(plan.data?.ledgerId ?? ''),
+    enabled: Boolean(plan.data?.ledgerId),
+  });
 
   if (plan.isLoading) return <LoadingState label="Plan notu açılıyor…" />;
   if (plan.isError || !plan.data)
@@ -42,6 +61,11 @@ export default function PlanDetailPage() {
       />
     );
   const data = plan.data;
+  const canAdmin =
+    ledger.data?.role === 'OWNER' || ledger.data?.role === 'ADMIN';
+  const canEdit =
+    canAdmin ||
+    (data.createdById === user?.id && ledger.data?.role === 'MEMBER');
 
   return (
     <>
@@ -143,7 +167,7 @@ export default function PlanDetailPage() {
             {expenses.data?.length ? (
               <div className="expense-list">
                 {expenses.data.slice(0, 6).map((expense) => (
-                  <article key={expense.id}>
+                  <Link href={`/expenses/${expense.id}`} key={expense.id}>
                     <span>
                       <ReceiptText />
                     </span>
@@ -153,6 +177,7 @@ export default function PlanDetailPage() {
                         {expense.payer.displayName} ödedi ·{' '}
                         {expense.splits.length} kişi paylaştı
                       </small>
+                      <ExpenseIndicators expense={expense} />
                     </div>
                     <div>
                       <strong>
@@ -167,7 +192,7 @@ export default function PlanDetailPage() {
                         )}
                       </small>
                     </div>
-                  </article>
+                  </Link>
                 ))}
               </div>
             ) : (
@@ -197,14 +222,7 @@ export default function PlanDetailPage() {
         </>
       ) : null}
       {activeTab === 'activity' ? (
-        <section className="paper-section detail-full">
-          <span className="eyebrow">Yapı taşı</span>
-          <h2>Plan hareketleri için hazır alan</h2>
-          <p className="muted-copy">
-            Plan bağlantılı hareketler, sonraki özellik katmanında bu
-            kronolojiye bağlanacak.
-          </p>
-        </section>
+        <ActivityFeed ledgerId={data.ledgerId} />
       ) : null}
       {activeTab === 'balances' ? (
         <section className="paper-section detail-full">
@@ -242,32 +260,20 @@ export default function PlanDetailPage() {
         </section>
       ) : null}
       {activeTab === 'participants' ? (
-        <section className="paper-section detail-full">
-          <span className="eyebrow">Bu plandaki insanlar</span>
-          <h2>Katılımcılar</h2>
-          <div className="people-grid">
-            {(participants.data ?? []).map((participant) => (
-              <article key={participant.user.id}>
-                <span className="avatar avatar--paper">
-                  {participant.user.displayName[0]}
-                </span>
-                <div>
-                  <strong>{participant.user.displayName}</strong>
-                  <small>Katılımcı</small>
-                </div>
-              </article>
-            ))}
-          </div>
-        </section>
+        <PlanParticipantsPanel
+          plan={data}
+          participants={participants.data ?? []}
+          members={members.data ?? []}
+          canManage={Boolean(canEdit)}
+        />
       ) : null}
       {activeTab === 'settings' ? (
-        <section className="paper-section detail-full">
-          <span className="eyebrow">Yapı taşı</span>
-          <h2>Plan ayarları için hazır alan</h2>
-          <p className="muted-copy">
-            Plan adı, tarihler, durum ve bağlı defter yönetimi burada yaşayacak.
-          </p>
-        </section>
+        <PlanSettingsPanel
+          plan={data}
+          ledgers={ledgers.data ?? []}
+          canEdit={Boolean(canEdit)}
+          canAdmin={Boolean(canAdmin)}
+        />
       ) : null}
     </>
   );

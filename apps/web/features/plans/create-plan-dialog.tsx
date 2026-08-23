@@ -3,6 +3,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { CalendarPlus, X } from 'lucide-react';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { useToast } from '@/components/ui/toast';
@@ -40,6 +41,7 @@ export function CreatePlanDialog({
   const [open, setOpen] = useState(defaultOpen);
   const mutation = useCreatePlan();
   const toast = useToast();
+  const router = useRouter();
   const activeLedgers = ledgers.filter((ledger) => !ledger.archivedAt);
   const {
     register,
@@ -53,7 +55,7 @@ export function CreatePlanDialog({
 
   async function onSubmit(values: Values) {
     try {
-      await mutation.mutateAsync({
+      const plan = await mutation.mutateAsync({
         ledgerId: values.ledgerId,
         input: {
           name: values.name,
@@ -69,6 +71,7 @@ export function CreatePlanDialog({
       toast('Yeni plan deftere iliştirildi.');
       reset();
       setOpen(false);
+      router.push(`/plans/${plan.id}`);
     } catch (error) {
       toast(
         error instanceof ApiError ? error.message : 'Plan oluşturulamadı.',
@@ -115,16 +118,28 @@ export function CreatePlanDialog({
             <form onSubmit={handleSubmit(onSubmit)} className="stack-form">
               <label className="field">
                 <span>Bağlı defter</span>
-                <select className="input" {...register('ledgerId')}>
-                  <option value="" disabled>
-                    Defter seç
-                  </option>
-                  {activeLedgers.map((ledger) => (
-                    <option value={ledger.id} key={ledger.id}>
-                      {ledger.name}
+                {initialLedgerId ? (
+                  <input type="hidden" {...register('ledgerId')} />
+                ) : (
+                  <select className="input" {...register('ledgerId')}>
+                    <option value="" disabled>
+                      Defter seç
                     </option>
-                  ))}
-                </select>
+                    {activeLedgers.map((ledger) => (
+                      <option value={ledger.id} key={ledger.id}>
+                        {ledger.name}
+                      </option>
+                    ))}
+                  </select>
+                )}
+                {initialLedgerId ? (
+                  <div className="context-note">
+                    {activeLedgers.find(
+                      (ledger) => ledger.id === initialLedgerId,
+                    )?.name ?? 'Seçili Defter'}{' '}
+                    içinde oluşturulacak.
+                  </div>
+                ) : null}
                 {errors.ledgerId ? (
                   <small>{errors.ledgerId.message}</small>
                 ) : null}

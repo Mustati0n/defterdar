@@ -3,6 +3,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { BookPlus, X } from 'lucide-react';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { useToast } from '@/components/ui/toast';
@@ -28,6 +29,7 @@ export function CreateLedgerDialog({
   const [open, setOpen] = useState(defaultOpen);
   const mutation = useCreateLedger();
   const toast = useToast();
+  const router = useRouter();
   const {
     register,
     handleSubmit,
@@ -40,13 +42,14 @@ export function CreateLedgerDialog({
 
   async function onSubmit(values: Values) {
     try {
-      await mutation.mutateAsync({
+      const ledger = await mutation.mutateAsync({
         ...values,
         description: values.description || null,
       });
       toast('Yeni defter masaya eklendi.');
       reset({ name: '', description: '', currency: 'TRY' });
       setOpen(false);
+      router.push(`/ledgers/${ledger.id}`);
     } catch (error) {
       toast(
         error instanceof ApiError ? error.message : 'Defter oluşturulamadı.',

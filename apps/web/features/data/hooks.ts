@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  useInfiniteQuery,
   useMutation,
   useQueries,
   useQuery,
@@ -9,6 +10,7 @@ import {
 import { api } from '@/lib/api-client';
 import type { CreateLedgerInput, CreatePlanInput, Ledger } from '@/lib/types';
 import type { CreateExpenseInput, CreateIncomeInput } from '@/lib/types';
+import type { UpdateExpenseInput } from '@/lib/types';
 
 export const queryKeys = {
   me: ['me'] as const,
@@ -28,6 +30,12 @@ export const queryKeys = {
   planAnalytics: (planId: string) => ['plan-analytics', planId] as const,
   expenses: (ledgerId: string, planId?: string) =>
     ['expenses', ledgerId, { planId }] as const,
+  expense: (expenseId: string) => ['expense', expenseId] as const,
+  attachments: (expenseId: string) => ['attachments', expenseId] as const,
+  categories: (ledgerId: string) => ['categories', ledgerId] as const,
+  incomes: (ledgerId: string, planId?: string) =>
+    ['incomes', ledgerId, { planId }] as const,
+  invitations: (ledgerId: string) => ['invitations', ledgerId] as const,
 };
 
 export function useLedgers(includeArchived = false) {
@@ -141,8 +149,9 @@ export function useLedgerDetailData(ledgerId: string) {
     enabled: Boolean(ledgerId),
   });
   const expenses = useExpenses(ledgerId);
+  const incomes = useIncomes(ledgerId);
 
-  return { ledger, plans, members, balance, activity, expenses };
+  return { ledger, plans, members, balance, activity, expenses, incomes };
 }
 
 export function usePlanDetailData(planId: string) {
@@ -203,6 +212,67 @@ export function useCreateExpense() {
   });
 }
 
+export function useExpense(expenseId: string) {
+  return useQuery({
+    queryKey: queryKeys.expense(expenseId),
+    queryFn: () => api.expenses.get(expenseId),
+    enabled: Boolean(expenseId),
+  });
+}
+
+export function useUpdateExpense(expenseId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: UpdateExpenseInput) =>
+      api.expenses.update(expenseId, input),
+    onSuccess: async (expense) => {
+      queryClient.setQueryData(queryKeys.expense(expenseId), expense);
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: ['expenses', expense.ledgerId],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.activity(expense.ledgerId),
+        }),
+      ]);
+    },
+  });
+}
+
+export function useExpenseAttachments(expenseId: string) {
+  return useQuery({
+    queryKey: queryKeys.attachments(expenseId),
+    queryFn: () => api.expenses.attachments(expenseId),
+    enabled: Boolean(expenseId),
+  });
+}
+
+export function useCategories(ledgerId: string) {
+  return useQuery({
+    queryKey: queryKeys.categories(ledgerId),
+    queryFn: () => api.categories.list(ledgerId),
+    enabled: Boolean(ledgerId),
+  });
+}
+
+export function useIncomes(ledgerId: string, planId?: string) {
+  return useQuery({
+    queryKey: queryKeys.incomes(ledgerId, planId),
+    queryFn: () => api.incomes.list(ledgerId, planId),
+    enabled: Boolean(ledgerId),
+  });
+}
+
+export function useActivityFeed(ledgerId: string) {
+  return useInfiniteQuery({
+    queryKey: queryKeys.activity(ledgerId),
+    queryFn: ({ pageParam }) => api.ledgers.activity(ledgerId, 20, pageParam),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (page) => page.nextCursor ?? undefined,
+    enabled: Boolean(ledgerId),
+  });
+}
+
 export function useCreateIncome() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -215,6 +285,9 @@ export function useCreateIncome() {
     }) => api.incomes.create(ledgerId, input),
     onSuccess: async (_, variables) => {
       await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: ['incomes', variables.ledgerId],
+        }),
         queryClient.invalidateQueries({
           queryKey: queryKeys.activity(variables.ledgerId),
         }),

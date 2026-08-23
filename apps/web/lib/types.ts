@@ -74,6 +74,20 @@ export interface LedgerMember {
   joinedAt: string;
 }
 
+export interface LedgerInvitation {
+  id: string;
+  invitedEmail: string | null;
+  expiresAt: string;
+  acceptedAt: string | null;
+  revokedAt: string | null;
+  createdAt: string;
+}
+
+export interface CreatedLedgerInvitation {
+  token: string;
+  expiresAt: string;
+}
+
 export interface PlanParticipant {
   user: Pick<User, 'id' | 'displayName'>;
   createdAt: string;
@@ -143,6 +157,7 @@ export interface Expense {
   ledgerId: string;
   planId: string | null;
   categoryId: string | null;
+  category: Category | null;
   createdById: string;
   payerId: string;
   payer: Pick<User, 'id' | 'displayName'>;
@@ -156,6 +171,32 @@ export interface Expense {
   voidedAt: string | null;
   version: number;
   splits: ExpenseSplit[];
+}
+
+export type CategoryKind = 'EXPENSE' | 'INCOME' | 'BOTH';
+
+export interface Category {
+  id: string;
+  ledgerId: string;
+  name: string;
+  kind: CategoryKind;
+  createdById: string;
+  createdAt: string;
+  updatedAt: string;
+  archivedAt: string | null;
+}
+
+export interface ExpenseAttachment {
+  id: string;
+  expenseId: string;
+  originalFileName: string;
+  mimeType: string;
+  sizeBytes: number;
+  status: 'PENDING' | 'READY';
+  createdById: string;
+  createdAt: string;
+  completedAt: string | null;
+  deletedAt: string | null;
 }
 
 export interface CreateExpenseInput {
@@ -179,10 +220,16 @@ export interface CreateExpenseInput {
   };
 }
 
+export type UpdateExpenseInput = Partial<CreateExpenseInput> & {
+  expectedVersion: number;
+};
+
 export interface Income {
   id: string;
   ledgerId: string;
   planId: string | null;
+  categoryId: string | null;
+  category: Category | null;
   createdById: string;
   title: string;
   description: string | null;

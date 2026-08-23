@@ -29,23 +29,39 @@ export class ExpenseAttachmentsService {
     this.maxBytes = config.get('ATTACHMENT_MAX_BYTES', { infer: true });
   }
 
-  async create(expenseId: string, actorId: string, dto: CreateExpenseAttachmentDto) {
+  async create(
+    expenseId: string,
+    actorId: string,
+    dto: CreateExpenseAttachmentDto,
+  ) {
     if (dto.sizeBytes > this.maxBytes)
-      throw new BadRequestException(`Attachment exceeds ${this.maxBytes} bytes`);
+      throw new BadRequestException(
+        `Attachment exceeds ${this.maxBytes} bytes`,
+      );
     const initial = await this.findExpense(expenseId);
-    const access = await this.authorization.requireMember(initial.ledgerId, actorId);
+    const access = await this.authorization.requireMember(
+      initial.ledgerId,
+      actorId,
+    );
     this.manage(initial, actorId, access.role);
     const storageKey = `ledgers/${initial.ledgerId}/expenses/${expenseId}/${randomUUID()}`;
     const attachmentId = await this.prisma.$transaction(async (tx) => {
       await tx.$queryRaw(
         Prisma.sql`SELECT "id" FROM "Expense" WHERE "id" = CAST(${expenseId} AS uuid) FOR UPDATE`,
       );
-      const expense = await tx.expense.findUnique({ where: { id: expenseId }, include: { ledger: true } });
+      const expense = await tx.expense.findUnique({
+        where: { id: expenseId },
+        include: { ledger: true },
+      });
       if (!expense) throw new NotFoundException('Expense not found');
       if (expense.voidedAt) throw new ConflictException('Expense is voided');
-      if (expense.ledger.archivedAt) throw new ConflictException('Ledger is archived');
-      const activeCount = await tx.expenseAttachment.count({ where: { expenseId, deletedAt: null } });
-      if (activeCount >= 5) throw new ConflictException('Expense already has 5 active attachments');
+      if (expense.ledger.archivedAt)
+        throw new ConflictException('Ledger is archived');
+      const activeCount = await tx.expenseAttachment.count({
+        where: { expenseId, deletedAt: null },
+      });
+      if (activeCount >= 5)
+        throw new ConflictException('Expense already has 5 active attachments');
       const created = await tx.expenseAttachment.create({
         data: {
           expenseId,
@@ -64,31 +80,65 @@ export class ExpenseAttachmentsService {
           entityType: 'ExpenseAttachment',
           entityId: created.id,
           action: 'attachment.added',
-          metadata: { expenseId, mimeType: dto.mimeType, sizeBytes: dto.sizeBytes },
+          metadata: {
+            expenseId,
+            mimeType: dto.mimeType,
+            sizeBytes: dto.sizeBytes,
+          },
         },
         tx,
       );
       return created.id;
     });
     try {
-      const signed = await this.storage.createUploadUrl(storageKey, dto.mimeType, dto.sizeBytes);
-      return { attachmentId, uploadUrl: signed.url, expiresAt: signed.expiresAt };
+      const signed = await this.storage.createUploadUrl(
+        storageKey,
+        dto.mimeType,
+        dto.sizeBytes,
+      );
+      return {
+        attachmentId,
+        uploadUrl: signed.url,
+        expiresAt: signed.expiresAt,
+      };
     } catch (error: unknown) {
-      await this.prisma.expenseAttachment.update({ where: { id: attachmentId }, data: { deletedAt: new Date() } });
+      await this.prisma.expenseAttachment.update({
+        where: { id: attachmentId },
+        data: { deletedAt: new Date() },
+      });
       throw error;
     }
   }
 
+  async list(expenseId: string, actorId: string) {
+    const expense = await this.findExpense(expenseId);
+    await this.authorization.requireMember(expense.ledgerId, actorId);
+    const attachments = await this.prisma.expenseAttachment.findMany({
+      where: { expenseId, deletedAt: null },
+      orderBy: { createdAt: 'asc' },
+    });
+    return attachments.map((attachment) => this.response(attachment));
+  }
+
   async complete(id: string, actorId: string) {
     const attachment = await this.find(id);
-    const access = await this.authorization.requireMember(attachment.expense.ledgerId, actorId);
+    const access = await this.authorization.requireMember(
+      attachment.expense.ledgerId,
+      actorId,
+    );
     this.manage(attachment.expense, actorId, access.role);
-    if (attachment.deletedAt) throw new NotFoundException('Attachment not found');
+    if (attachment.deletedAt)
+      throw new NotFoundException('Attachment not found');
     if (attachment.status === 'READY') return this.response(attachment);
     const object = await this.storage.head(attachment.storageKey);
     if (!object) throw new ConflictException('Uploaded object was not found');
-    if (object.sizeBytes !== attachment.sizeBytes || object.mimeType !== attachment.mimeType)
-      throw new ConflictException('Uploaded object metadata does not match request');
+    if (
+      object.sizeBytes !== attachment.sizeBytes ||
+      object.mimeType !== attachment.mimeType
+    )
+      throw new ConflictException(
+        'Uploaded object metadata does not match request',
+      );
     const completed = await this.prisma.expenseAttachment.update({
       where: { id },
       data: { status: 'READY', completedAt: new Date() },
@@ -99,7 +149,10 @@ export class ExpenseAttachmentsService {
 
   async url(id: string, actorId: string) {
     const attachment = await this.find(id);
-    await this.authorization.requireMember(attachment.expense.ledgerId, actorId);
+    await this.authorization.requireMember(
+      attachment.expense.ledgerId,
+      actorId,
+    );
     if (attachment.deletedAt || attachment.status !== 'READY')
       throw new NotFoundException('Attachment not found');
     return this.storage.createDownloadUrl(attachment.storageKey);
@@ -107,11 +160,17 @@ export class ExpenseAttachmentsService {
 
   async remove(id: string, actorId: string) {
     const attachment = await this.find(id);
-    const access = await this.authorization.requireMember(attachment.expense.ledgerId, actorId);
+    const access = await this.authorization.requireMember(
+      attachment.expense.ledgerId,
+      actorId,
+    );
     this.manage(attachment.expense, actorId, access.role);
     if (!attachment.deletedAt)
       await this.prisma.$transaction(async (tx) => {
-        await tx.expenseAttachment.update({ where: { id }, data: { deletedAt: new Date() } });
+        await tx.expenseAttachment.update({
+          where: { id },
+          data: { deletedAt: new Date() },
+        });
         await this.activity.record(
           {
             ledgerId: attachment.expense.ledgerId,
@@ -131,10 +190,12 @@ export class ExpenseAttachmentsService {
   }
 
   private findExpense(id: string) {
-    return this.prisma.expense.findUnique({ where: { id }, include: { ledger: true } }).then((expense) => {
-      if (!expense) throw new NotFoundException('Expense not found');
-      return expense;
-    });
+    return this.prisma.expense
+      .findUnique({ where: { id }, include: { ledger: true } })
+      .then((expense) => {
+        if (!expense) throw new NotFoundException('Expense not found');
+        return expense;
+      });
   }
 
   private async find(id: string) {
@@ -146,8 +207,13 @@ export class ExpenseAttachmentsService {
     return attachment;
   }
 
-  private manage(expense: { createdById: string }, actorId: string, role: string) {
-    if (role === 'OWNER' || role === 'ADMIN' || expense.createdById === actorId) return;
+  private manage(
+    expense: { createdById: string },
+    actorId: string,
+    role: string,
+  ) {
+    if (role === 'OWNER' || role === 'ADMIN' || expense.createdById === actorId)
+      return;
     throw new ForbiddenException('Insufficient attachment permissions');
   }
 
