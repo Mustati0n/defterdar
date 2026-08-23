@@ -6,4 +6,4 @@ EQUAL, EXACT, PERCENTAGE (10.000 basis point) ve SHARES split yöntemleri destek
 
 Expense para birimini bağlı Ledger'dan snapshot alır. Payer aktif Ledger üyesi olmalıdır; Plan Expense'ta payer ve tüm split kullanıcıları aktif Plan participant olmalıdır. Gift/Ismarla harcamada tüm splitler non-reimbursable'dır; normal harcamada payer'ın kendi split'i non-reimbursable'dır.
 
-Expense silinmez, `voidedAt` ile void edilir. Balance, Settlement ve Borçtan Düş hesaplamaları Phase 5 kapsamındadır.
+Expense silinmez, `voidedAt` ile void edilir. Aktif Borçtan düş kaydı finansal alanların (`amountMinor`, payer, Plan, Gift ve split) değiştirilmesini engeller; metadata değişebilir. Expense void işlemi bağlı aktif offset'leri aynı transaction içinde void eder. Split response'u aktif `offsetAppliedMinor` ve `remainingReimbursableMinor` değerlerini taşır.

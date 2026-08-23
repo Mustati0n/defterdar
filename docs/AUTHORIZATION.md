@@ -33,3 +33,9 @@ Plan taşıma yalnız source Ledger OWNER'ına açıktır ve actor target Ledger
 ## Expense yetkilendirmesi
 
 Aktif Ledger üyesi Expense oluşturabilir ve okuyabilir. Update/void yalnız OWNER, ADMIN veya Expense creator'a açıktır; payer olmak tek başına bu izni vermez. Non-member Expense kimlikleri `404` ile gizlenir.
+
+## Settlement ve Borçtan düş
+
+Settlement create OWNER, ADMIN veya işlemin `fromUser`/`toUser` tarafına; void OWNER, ADMIN veya Settlement creator'a açıktır. Unrelated MEMBER `403`, non-member `404` alır.
+
+Offset availability aktif üyelerce okunabilir. Offset create OWNER, ADMIN, Expense creator veya payer'a; void bunlara ek olarak offset creator'a açıktır. Split user olmak tek başına mutation izni vermez.

@@ -5,6 +5,7 @@ class SafeExpenseUserDto {
   @ApiProperty() displayName!: string;
 }
 export class ExpenseSplitResponseDto {
+  @ApiProperty({ format: 'uuid' }) id!: string;
   @ApiProperty({ type: SafeExpenseUserDto }) user!: SafeExpenseUserDto;
   @ApiProperty({
     type: String,
@@ -15,6 +16,8 @@ export class ExpenseSplitResponseDto {
     description: 'False for gifts and the payer’s own normal split',
   })
   isReimbursable!: boolean;
+  @ApiProperty({ type: String }) offsetAppliedMinor!: string;
+  @ApiProperty({ type: String }) remainingReimbursableMinor!: string;
   @ApiProperty() createdAt!: Date;
 }
 export class ExpenseResponseDto {

@@ -14,3 +14,5 @@ Ledger e2e suite aynı güvenlik yaklaşımıyla ayrı `ledger_e2e` şemasını 
 Plan e2e suite ayrı `plan_e2e` şemasında Plan–Ledger hiyerarşisini, creator participant transaction'ını, tarihlerin nihai state doğrulamasını, lifecycle yetkilerini, participant duplicate/aktif üyelik kurallarını, `404` enumeration davranışını ve participant uyumluluğu ile atomik Plan taşımasını doğrular.
 
 Expense coverage, deterministic split calculator ve gerçek PostgreSQL API akışlarında currency snapshot, authorization, Gift reimbursement state, atomic invalid update ve void yaşam döngüsünü doğrular.
+
+Phase 5 coverage settlement balance etkisi, partial/full/overpayment, completed Plan scope'u, idempotent void, resource enumeration ve aynı borca eşzamanlı ödeme yarışını; offset coverage eligibility, partial/concurrent apply, no-double-count, authorization, financial update protection ve Expense void cleanup davranışını gerçek PostgreSQL Serializable transaction'larıyla doğrular.

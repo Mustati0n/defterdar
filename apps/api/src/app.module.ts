@@ -7,8 +7,11 @@ import { HealthModule } from './health/health.module.js';
 import { LedgersModule } from './ledgers/ledgers.module.js';
 import { PlansModule } from './plans/plans.module.js';
 import { ExpensesModule } from './expenses/expenses.module.js';
+import { BalancesModule } from './balances/balances.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { UsersModule } from './users/users.module.js';
+import { SettlementsModule } from './settlements/settlements.module.js';
+import { ExpenseSplitOffsetsModule } from './offsets/expense-split-offsets.module.js';
 
 @Module({
   imports: [
@@ -26,6 +29,9 @@ import { UsersModule } from './users/users.module.js';
     LedgersModule,
     PlansModule,
     ExpensesModule,
+    BalancesModule,
+    SettlementsModule,
+    ExpenseSplitOffsetsModule,
   ],
 })
 export class AppModule {}

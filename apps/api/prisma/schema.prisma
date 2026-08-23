@@ -37,22 +37,26 @@ enum UserStatus {
 }
 
 model User {
-  id             String             @id @default(uuid()) @db.Uuid
-  email          String             @unique
-  passwordHash   String
-  displayName    String
-  status         UserStatus         @default(ACTIVE)
-  createdAt      DateTime           @default(now()) @db.Timestamptz(3)
-  updatedAt      DateTime           @updatedAt @db.Timestamptz(3)
-  ownedLedgers   Ledger[]           @relation("LedgerOwner")
-  memberships    LedgerMembership[]
-  createdPlans   Plan[]             @relation("PlanCreator")
-  createdExpenses Expense[]         @relation("ExpenseCreator")
-  paidExpenses Expense[]            @relation("ExpensePayer")
-  expenseSplits ExpenseSplit[]
-  participations PlanParticipant[]
-  authSessions   AuthSession[]
-  createdLedgerInvitations LedgerInvitation[] @relation("InvitationCreator")
+  id                         String               @id @default(uuid()) @db.Uuid
+  email                      String               @unique
+  passwordHash               String
+  displayName                String
+  status                     UserStatus           @default(ACTIVE)
+  createdAt                  DateTime             @default(now()) @db.Timestamptz(3)
+  updatedAt                  DateTime             @updatedAt @db.Timestamptz(3)
+  ownedLedgers               Ledger[]             @relation("LedgerOwner")
+  memberships                LedgerMembership[]
+  createdPlans               Plan[]               @relation("PlanCreator")
+  createdExpenses            Expense[]            @relation("ExpenseCreator")
+  paidExpenses               Expense[]            @relation("ExpensePayer")
+  expenseSplits              ExpenseSplit[]
+  settlementsFrom            Settlement[]         @relation("SettlementFrom")
+  settlementsTo              Settlement[]         @relation("SettlementTo")
+  createdSettlements         Settlement[]         @relation("SettlementCreator")
+  createdExpenseSplitOffsets ExpenseSplitOffset[] @relation("OffsetCreator")
+  participations             PlanParticipant[]
+  authSessions               AuthSession[]
+  createdLedgerInvitations   LedgerInvitation[]   @relation("InvitationCreator")
 }
 
 model AuthSession {
@@ -85,6 +89,7 @@ model Ledger {
   plans       Plan[]
   invitations LedgerInvitation[]
   expenses    Expense[]
+  settlements Settlement[]
 
   @@index([ownerId])
 }
@@ -104,18 +109,18 @@ model LedgerMembership {
 }
 
 model LedgerInvitation {
-  id             String     @id @default(uuid()) @db.Uuid
-  ledgerId       String     @db.Uuid
-  createdById    String     @db.Uuid
-  tokenHash      String     @unique @db.Char(64)
-  invitedEmail   String?
-  role           LedgerRole @default(MEMBER)
-  expiresAt      DateTime   @db.Timestamptz(3)
-  acceptedAt     DateTime?  @db.Timestamptz(3)
-  revokedAt      DateTime?  @db.Timestamptz(3)
-  createdAt      DateTime   @default(now()) @db.Timestamptz(3)
-  ledger         Ledger     @relation(fields: [ledgerId], references: [id], onDelete: Restrict)
-  createdBy      User       @relation("InvitationCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  id           String     @id @default(uuid()) @db.Uuid
+  ledgerId     String     @db.Uuid
+  createdById  String     @db.Uuid
+  tokenHash    String     @unique @db.Char(64)
+  invitedEmail String?
+  role         LedgerRole @default(MEMBER)
+  expiresAt    DateTime   @db.Timestamptz(3)
+  acceptedAt   DateTime?  @db.Timestamptz(3)
+  revokedAt    DateTime?  @db.Timestamptz(3)
+  createdAt    DateTime   @default(now()) @db.Timestamptz(3)
+  ledger       Ledger     @relation(fields: [ledgerId], references: [id], onDelete: Restrict)
+  createdBy    User       @relation("InvitationCreator", fields: [createdById], references: [id], onDelete: Restrict)
 
   @@index([ledgerId])
   @@index([createdById])
@@ -138,6 +143,7 @@ model Plan {
   createdBy    User              @relation("PlanCreator", fields: [createdById], references: [id], onDelete: Restrict)
   participants PlanParticipant[]
   expenses     Expense[]
+  settlements  Settlement[]
 
   @@index([ledgerId])
   @@index([createdById])
@@ -172,17 +178,57 @@ model Expense {
 }
 
 model ExpenseSplit {
-  id              String   @id @default(uuid()) @db.Uuid
-  expenseId       String   @db.Uuid
-  userId          String   @db.Uuid
-  amountMinor     BigInt
-  isReimbursable  Boolean
-  createdAt       DateTime @default(now()) @db.Timestamptz(3)
-  expense         Expense  @relation(fields: [expenseId], references: [id], onDelete: Restrict)
-  user            User     @relation(fields: [userId], references: [id], onDelete: Restrict)
+  id             String               @id @default(uuid()) @db.Uuid
+  expenseId      String               @db.Uuid
+  userId         String               @db.Uuid
+  amountMinor    BigInt
+  isReimbursable Boolean
+  createdAt      DateTime             @default(now()) @db.Timestamptz(3)
+  expense        Expense              @relation(fields: [expenseId], references: [id], onDelete: Restrict)
+  user           User                 @relation(fields: [userId], references: [id], onDelete: Restrict)
+  offsets        ExpenseSplitOffset[]
 
   @@unique([expenseId, userId])
   @@index([userId])
+}
+
+model Settlement {
+  id          String    @id @default(uuid()) @db.Uuid
+  ledgerId    String    @db.Uuid
+  planId      String?   @db.Uuid
+  fromUserId  String    @db.Uuid
+  toUserId    String    @db.Uuid
+  amountMinor BigInt
+  currency    String    @db.VarChar(3)
+  note        String?
+  settledAt   DateTime  @db.Timestamptz(3)
+  createdById String    @db.Uuid
+  createdAt   DateTime  @default(now()) @db.Timestamptz(3)
+  voidedAt    DateTime? @db.Timestamptz(3)
+  ledger      Ledger    @relation(fields: [ledgerId], references: [id], onDelete: Restrict)
+  plan        Plan?     @relation(fields: [planId], references: [id], onDelete: Restrict)
+  fromUser    User      @relation("SettlementFrom", fields: [fromUserId], references: [id], onDelete: Restrict)
+  toUser      User      @relation("SettlementTo", fields: [toUserId], references: [id], onDelete: Restrict)
+  createdBy   User      @relation("SettlementCreator", fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@index([ledgerId])
+  @@index([planId])
+  @@index([fromUserId])
+  @@index([toUserId])
+}
+
+model ExpenseSplitOffset {
+  id             String       @id @default(uuid()) @db.Uuid
+  expenseSplitId String       @db.Uuid
+  amountMinor    BigInt
+  createdById    String       @db.Uuid
+  createdAt      DateTime     @default(now()) @db.Timestamptz(3)
+  voidedAt       DateTime?    @db.Timestamptz(3)
+  expenseSplit   ExpenseSplit @relation(fields: [expenseSplitId], references: [id], onDelete: Restrict)
+  createdBy      User         @relation("OffsetCreator", fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@index([expenseSplitId])
+  @@index([createdById])
 }
 
 model PlanParticipant {

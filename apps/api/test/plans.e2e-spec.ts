@@ -451,6 +451,275 @@ describe('Plan lifecycle and participant API', () => {
     ).toBe(409);
   });
 
+  it('projects isolated Plan and aggregate Ledger balances with suggestions', async () => {
+    const planId = await createPlan('owner', sourceLedgerId, 'Balance Planı');
+    expect(
+      (
+        await api('owner')
+          .post(`/plans/${planId}/participants`)
+          .send({ userId: identity('admin').id })
+      ).status,
+    ).toBe(201);
+    const created = await api('owner')
+      .post(`/ledgers/${sourceLedgerId}/expenses`)
+      .send({
+        title: 'Plan borcu',
+        amountMinor: 30_000,
+        payerUserId: identity('owner').id,
+        planId,
+        expenseDate: '2026-08-23T12:00:00.000Z',
+        isGift: false,
+        split: {
+          method: 'EXACT',
+          entries: [{ userId: identity('admin').id, amountMinor: 30_000 }],
+        },
+      });
+    expect(created.status).toBe(201);
+    const planBalance = await api('admin').get(`/plans/${planId}/balances`);
+    expect(planBalance.status).toBe(200);
+    expect(planBalance.body.positions).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          user: expect.objectContaining({ id: identity('owner').id }),
+          netMinor: 30_000,
+        }),
+        expect.objectContaining({
+          user: expect.objectContaining({ id: identity('admin').id }),
+          netMinor: -30_000,
+        }),
+      ]),
+    );
+    expect(planBalance.body.suggestions).toEqual([
+      {
+        fromUserId: identity('admin').id,
+        toUserId: identity('owner').id,
+        amountMinor: 30_000,
+      },
+    ]);
+    const ledgerBalance = await api('member').get(
+      `/ledgers/${sourceLedgerId}/balances`,
+    );
+    expect(ledgerBalance.status).toBe(200);
+    expect(
+      (await api('outsider').get(`/ledgers/${sourceLedgerId}/balances`)).status,
+    ).toBe(404);
+    expect(
+      (await api('outsider').get(`/plans/${planId}/balances`)).status,
+    ).toBe(404);
+  });
+
+  it('records partial/full settlements, rejects overpayment, and voids safely', async () => {
+    const ledgerId = await createLedger('owner', 'Settlement Defteri');
+    await inviteTo(ledgerId, 'admin');
+    await inviteTo(ledgerId, 'member');
+    const expense = await api('owner')
+      .post(`/ledgers/${ledgerId}/expenses`)
+      .send({
+        title: 'Settlement debt',
+        amountMinor: 10_000,
+        payerUserId: identity('owner').id,
+        expenseDate: '2026-08-23T13:00:00.000Z',
+        isGift: false,
+        split: {
+          method: 'EXACT',
+          entries: [{ userId: identity('admin').id, amountMinor: 10_000 }],
+        },
+      });
+    expect(expense.status).toBe(201);
+    const unauthorized = await api('member')
+      .post(`/ledgers/${ledgerId}/settlements`)
+      .send({
+        fromUserId: identity('admin').id,
+        toUserId: identity('owner').id,
+        amountMinor: 1_000,
+        settledAt: '2026-08-23T14:00:00.000Z',
+      });
+    expect(unauthorized.status).toBe(403);
+    const partial = await api('admin')
+      .post(`/ledgers/${ledgerId}/settlements`)
+      .send({
+        fromUserId: identity('admin').id,
+        toUserId: identity('owner').id,
+        amountMinor: 4_000,
+        settledAt: '2026-08-23T14:00:00.000Z',
+      });
+    expect(partial.status).toBe(201);
+    expect(partial.body.currency).toBe('TRY');
+    const afterPartial = await api('owner').get(`/ledgers/${ledgerId}/balances`);
+    expect(afterPartial.body.suggestions[0].amountMinor).toBe(6_000);
+    expect(
+      (
+        await api('admin')
+          .post(`/ledgers/${ledgerId}/settlements`)
+          .send({
+            fromUserId: identity('admin').id,
+            toUserId: identity('owner').id,
+            amountMinor: 6_001,
+            settledAt: '2026-08-23T15:00:00.000Z',
+          })
+      ).status,
+    ).toBe(409);
+    const full = await api('owner')
+      .post(`/ledgers/${ledgerId}/settlements`)
+      .send({
+        fromUserId: identity('admin').id,
+        toUserId: identity('owner').id,
+        amountMinor: 6_000,
+        settledAt: '2026-08-23T15:00:00.000Z',
+      });
+    expect(full.status).toBe(201);
+    expect((await api('owner').get(`/ledgers/${ledgerId}/balances`)).body.positions).toEqual([]);
+    expect((await api('owner').post(`/settlements/${full.body.id}/void`)).status).toBe(201);
+    expect((await api('owner').post(`/settlements/${full.body.id}/void`)).status).toBe(201);
+    expect((await api('owner').get(`/ledgers/${ledgerId}/balances`)).body.suggestions[0].amountMinor).toBe(6_000);
+    expect((await api('outsider').get(`/settlements/${partial.body.id}`)).status).toBe(404);
+  });
+
+  it('serializes concurrent settlements so accepted payments never overpay', async () => {
+    const ledgerId = await createLedger('owner', 'Settlement Yarışı');
+    await inviteTo(ledgerId, 'admin');
+    expect(
+      (
+        await api('owner')
+          .post(`/ledgers/${ledgerId}/expenses`)
+          .send({
+            title: 'Concurrent debt',
+            amountMinor: 10_000,
+            payerUserId: identity('owner').id,
+            expenseDate: '2026-08-23T13:00:00.000Z',
+            isGift: false,
+            split: { method: 'EXACT', entries: [{ userId: identity('admin').id, amountMinor: 10_000 }] },
+          })
+      ).status,
+    ).toBe(201);
+    const payload = {
+      fromUserId: identity('admin').id,
+      toUserId: identity('owner').id,
+      amountMinor: 8_000,
+      settledAt: '2026-08-23T16:00:00.000Z',
+    };
+    const results = await Promise.all([
+      api('admin').post(`/ledgers/${ledgerId}/settlements`).send(payload),
+      api('admin').post(`/ledgers/${ledgerId}/settlements`).send(payload),
+    ]);
+    expect(results.map((result) => result.status).sort()).toEqual([201, 409]);
+    const list = await api('owner').get(`/ledgers/${ledgerId}/settlements`);
+    expect(list.body.filter((item: { voidedAt: string | null }) => !item.voidedAt)).toHaveLength(1);
+  });
+
+  it('allows scoped settlements on completed plans but rejects archived plans', async () => {
+    const ledgerId = await createLedger('owner', 'Plan Settlement Defteri');
+    await inviteTo(ledgerId, 'admin');
+    const planId = await createPlan('owner', ledgerId, 'Completed Settlement Plan');
+    expect(
+      (
+        await api('owner')
+          .post(`/plans/${planId}/participants`)
+          .send({ userId: identity('admin').id })
+      ).status,
+    ).toBe(201);
+    expect(
+      (
+        await api('owner')
+          .post(`/ledgers/${ledgerId}/expenses`)
+          .send({
+            title: 'Plan debt',
+            amountMinor: 5_000,
+            payerUserId: identity('owner').id,
+            planId,
+            expenseDate: '2026-08-23T13:00:00.000Z',
+            isGift: false,
+            split: { method: 'EXACT', entries: [{ userId: identity('admin').id, amountMinor: 5_000 }] },
+          })
+      ).status,
+    ).toBe(201);
+    expect((await api('owner').post(`/plans/${planId}/complete`)).status).toBe(201);
+    const settled = await api('admin')
+      .post(`/ledgers/${ledgerId}/settlements`)
+      .send({
+        planId,
+        fromUserId: identity('admin').id,
+        toUserId: identity('owner').id,
+        amountMinor: 5_000,
+        settledAt: '2026-08-23T15:00:00.000Z',
+      });
+    expect(settled.status).toBe(201);
+    expect((await api('owner').get(`/plans/${planId}/balances`)).body.positions).toEqual([]);
+    expect((await api('owner').get(`/ledgers/${ledgerId}/settlements?planId=${planId}`)).body).toHaveLength(1);
+    expect((await api('owner').post(`/plans/${planId}/archive`)).status).toBe(201);
+    expect(
+      (
+        await api('admin')
+          .post(`/ledgers/${ledgerId}/settlements`)
+          .send({
+            planId,
+            fromUserId: identity('admin').id,
+            toUserId: identity('owner').id,
+            amountMinor: 1,
+            settledAt: '2026-08-23T16:00:00.000Z',
+          })
+      ).status,
+    ).toBe(409);
+  });
+
+  it('tracks Borçtan düş metadata without double-counting and protects expense finance', async () => {
+    const ledgerId = await createLedger('owner', 'Offset Defteri');
+    await inviteTo(ledgerId, 'admin');
+    expect(
+      (
+        await api('admin')
+          .post(`/ledgers/${ledgerId}/expenses`)
+          .send({
+            title: 'Prior reverse debt',
+            amountMinor: 10_000,
+            payerUserId: identity('admin').id,
+            expenseDate: '2026-08-23T10:00:00.000Z',
+            isGift: false,
+            split: { method: 'EXACT', entries: [{ userId: identity('owner').id, amountMinor: 10_000 }] },
+          })
+      ).status,
+    ).toBe(201);
+    const target = await api('owner')
+      .post(`/ledgers/${ledgerId}/expenses`)
+      .send({
+        title: 'Target expense',
+        amountMinor: 8_000,
+        payerUserId: identity('owner').id,
+        expenseDate: '2026-08-23T11:00:00.000Z',
+        isGift: false,
+        split: { method: 'EXACT', entries: [{ userId: identity('admin').id, amountMinor: 8_000 }] },
+      });
+    expect(target.status).toBe(201);
+    const splitId = target.body.splits[0].id as string;
+    const before = (await api('owner').get(`/ledgers/${ledgerId}/balances`)).body;
+    const availability = await api('owner').get(`/expense-splits/${splitId}/offset-availability`);
+    expect(availability.status).toBe(200);
+    expect(availability.body.maxOffsetMinor).toBe('8000');
+    const concurrent = await Promise.all([
+      api('owner').post(`/expense-splits/${splitId}/offsets`).send({ amountMinor: 6_000 }),
+      api('owner').post(`/expense-splits/${splitId}/offsets`).send({ amountMinor: 6_000 }),
+    ]);
+    expect(concurrent.map((result) => result.status).sort()).toEqual([201, 409]);
+    const active = concurrent.find((result) => result.status === 201)!;
+    const after = (await api('owner').get(`/ledgers/${ledgerId}/balances`)).body;
+    expect(after).toEqual(before);
+    expect(
+      (
+        await api('owner')
+          .patch(`/expenses/${target.body.id}`)
+          .send({ amountMinor: 9_000, split: { method: 'EXACT', entries: [{ userId: identity('admin').id, amountMinor: 9_000 }] } })
+      ).status,
+    ).toBe(409);
+    expect((await api('owner').patch(`/expenses/${target.body.id}`).send({ title: 'Metadata ok' })).status).toBe(200);
+    expect((await api('admin').post(`/expense-split-offsets/${active.body.id}/void`)).status).toBe(403);
+    expect((await api('owner').post(`/expense-split-offsets/${active.body.id}/void`)).status).toBe(201);
+    const reapplied = await api('owner').post(`/expense-splits/${splitId}/offsets`).send({});
+    expect(reapplied.status).toBe(201);
+    expect((await api('owner').post(`/expenses/${target.body.id}/void`)).status).toBe(201);
+    expect((await api('owner').get(`/expenses/${target.body.id}`)).body.splits[0].remainingReimbursableMinor).toBe('0');
+    expect((await api('owner').post(`/expense-split-offsets/${reapplied.body.id}/void`)).status).toBe(201);
+  });
+
   async function register(name: string): Promise<Identity> {
     const response = await request(API_URL)
       .post('/auth/register')

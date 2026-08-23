@@ -1,0 +1,10 @@
+# Backend MVP v1 Checklist
+
+- [x] A — Finish Phase 5 financial reconciliation
+- [ ] B — Categories + Income
+- [ ] C — Receipt/Object Storage
+- [ ] D — Audit trail
+- [ ] E — Idempotency + concurrency hardening
+- [ ] F — Analytics API
+- [ ] G — Backend hardening + final docs
+- [ ] H — Full regression + Git push

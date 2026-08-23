@@ -7,7 +7,7 @@
 5. Para JavaScript floating-point değeriyle tutulmaz. Tutarlar para biriminin minor unit'i olarak güvenli tamsayı biçiminde işlenir (`125,50 TRY = 12550`). Para birimi her finansal olayda açıkça bulunur.
 6. `Expense` finansal olaydır; `ExpenseSplit` ise katılımcının bu olaydan doğan payıdır. Bunlar aynı nesne değildir.
 7. `Settlement`, bir kişinin diğerine yaptığı gerçek borç ödemesidir; gelir veya harcama olarak modellenmez.
-8. “Borçtan düş” geçmiş olayları düzenlemez veya silmez. Yeni ve eski ters yönlü yükümlülükler korunur, net bakiye bu olaylardan hesaplanır.
+8. “Borçtan düş” geçmiş olayları düzenlemez veya silmez ve Balance'a ikinci bir etki yapmaz. Eligibility hedef Expense hariç scope projection'ından hesaplanır; yeni ve eski ters yönlü yükümlülükler korunur.
 9. “Ismarlama” geçmişte görünür bir harcama olabilir fakat seçilen kişiler için geri ödeme borcu üretmez. Finans şeması eklenmeden önce bu davranış açık bir alanla temsil edilecektir; belirsiz bir expense type yan etkisine dönüştürülmeyecektir.
 10. Bir Expense en fazla 5 attachment alabilir. PostgreSQL yalnızca metadata (`storageKey`, MIME type, boyut) tutar; dosyanın kendisi object storage'da yer alır.
 11. Finansal kayıtlarda hard delete varsayılan değildir. Expense ve Settlement gibi olaylar `voidedAt`; çalışma alanları ise gerektiğinde `archivedAt` ile etkisizleştirilir. Değişiklikler audit/activity kaydıyla izlenebilir olmalıdır.
@@ -31,6 +31,6 @@
 29. Plan yalnız source Ledger OWNER'ı tarafından taşınabilir; actor target Ledgerde OWNER veya ADMIN olmalıdır. Tüm mevcut participant'lar target'ın aktif üyesi değilse taşıma atomik olarak reddedilir.
 30. ExpenseSplit ile referanslanan geçmiş participant ilişkileri, ileride finansal geçmişi bozacak biçimde silinemez.
 31. Expense gerçek finansal olay, ExpenseSplit ise dağılımıdır; bunlar aynı kayıt değildir. Expense ve split toplamları minor-unit integer olarak eşit olmalıdır.
-32. Gift/Ismarla Settlement veya Borçtan düş değildir: harcama geçmişte kalır, tüm splitler non-reimbursable olur. Balance, Settlement, Borçtan düş ve debt simplification Phase 5'e bırakılmıştır.
-
-Bu fazda Expense, ExpenseSplit, Settlement, Category, Attachment ve ActivityLog tabloları oluşturulmamıştır. Kurallar sonraki şema değişikliklerinin sınırıdır; finans motoru uygulanırken migration ile ekleneceklerdir.
+32. Gift/Ismarla Settlement veya Borçtan düş değildir: harcama geçmişte kalır, tüm splitler non-reimbursable olur.
+33. Settlement gerçek bir debtor→creditor ödemesidir. Scope net pozisyonları üzerinden doğrulanır; Income veya Expense değildir. ACTIVE ve COMPLETED Plan settlement kabul eder, ARCHIVED Plan etmez.
+34. Settlement ve ExpenseSplitOffset yarışları PostgreSQL Serializable transaction ve bounded retry ile korunur. Overpayment ve over-apply conflict üretir.

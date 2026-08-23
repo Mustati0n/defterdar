@@ -79,7 +79,10 @@ export class ExpensesService {
         ledger: true,
         payer: { select: { id: true, displayName: true } },
         splits: {
-          include: { user: { select: { id: true, displayName: true } } },
+          include: {
+            user: { select: { id: true, displayName: true } },
+            offsets: { where: { voidedAt: null }, select: { amountMinor: true } },
+          },
         },
       },
     });
@@ -89,9 +92,17 @@ export class ExpensesService {
       ...e,
       amountMinor: e.amountMinor.toString(),
       splits: e.splits.map((s) => ({
+        id: s.id,
         user: s.user,
         amountMinor: s.amountMinor.toString(),
         isReimbursable: s.isReimbursable,
+        offsetAppliedMinor: s.offsets
+          .reduce((sum, offset) => sum + offset.amountMinor, 0n)
+          .toString(),
+        remainingReimbursableMinor: (s.isReimbursable && !e.voidedAt
+          ? s.amountMinor - s.offsets.reduce((sum, offset) => sum + offset.amountMinor, 0n)
+          : 0n
+        ).toString(),
         createdAt: s.createdAt,
       })),
     };
@@ -99,6 +110,19 @@ export class ExpensesService {
   async update(id: string, userId: string, dto: UpdateExpenseDto) {
     const old = await this.findMutable(id, userId);
     this.manage(old, userId);
+    const changesFinancialFields =
+      dto.amountMinor !== undefined ||
+      dto.payerUserId !== undefined ||
+      dto.planId !== undefined ||
+      dto.isGift !== undefined ||
+      dto.split !== undefined;
+    if (changesFinancialFields) {
+      const activeOffsets = await this.prisma.expenseSplitOffset.count({
+        where: { expenseSplit: { expenseId: id }, voidedAt: null },
+      });
+      if (activeOffsets > 0)
+        throw new ConflictException('Active offsets block financial expense updates');
+    }
     if (dto.amountMinor !== undefined && !dto.split) {
       throw new BadRequestException(
         'A split is required when amountMinor changes',
@@ -172,11 +196,19 @@ export class ExpensesService {
   async void(id: string, userId: string) {
     const e = await this.findMutable(id, userId, true, true);
     this.manage(e, userId);
-    if (!e.voidedAt)
-      await this.prisma.expense.update({
-        where: { id },
-        data: { voidedAt: new Date() },
+    if (!e.voidedAt) {
+      const voidedAt = new Date();
+      await this.prisma.$transaction(async (tx) => {
+        await tx.expenseSplitOffset.updateMany({
+          where: { expenseSplit: { expenseId: id }, voidedAt: null },
+          data: { voidedAt },
+        });
+        await tx.expense.update({
+          where: { id },
+          data: { voidedAt },
+        });
       });
+    }
     return this.get(id, userId);
   }
   private async findMutable(
