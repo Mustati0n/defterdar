@@ -15,6 +15,7 @@ import { ExpenseSplitOffsetsModule } from './offsets/expense-split-offsets.modul
 import { CategoriesModule } from './categories/categories.module.js';
 import { IncomesModule } from './incomes/incomes.module.js';
 import { ExpenseAttachmentsModule } from './attachments/expense-attachments.module.js';
+import { ActivityModule } from './activity/activity.module.js';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { ExpenseAttachmentsModule } from './attachments/expense-attachments.modu
     CategoriesModule,
     IncomesModule,
     ExpenseAttachmentsModule,
+    ActivityModule,
   ],
 })
 export class AppModule {}

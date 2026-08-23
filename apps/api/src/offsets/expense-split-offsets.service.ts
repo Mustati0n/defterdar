@@ -9,6 +9,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { LedgerAuthorizationService } from '../ledgers/ledger-authorization.service.js';
 import { FinancialProjectionService } from '../balances/financial-projection.service.js';
 import type { CreateExpenseSplitOffsetDto } from './dto/create-expense-split-offset.dto.js';
+import { ActivityLogService } from '../activity/activity-log.service.js';
 
 type OffsetTarget = Awaited<ReturnType<ExpenseSplitOffsetsService['target']>>;
 
@@ -18,6 +19,7 @@ export class ExpenseSplitOffsetsService {
     private readonly prisma: PrismaService,
     private readonly authorization: LedgerAuthorizationService,
     private readonly projection: FinancialProjectionService,
+    private readonly activity: ActivityLogService,
   ) {}
 
   async availability(expenseSplitId: string, actorId: string) {
@@ -52,6 +54,17 @@ export class ExpenseSplitOffsetsService {
         data: { expenseSplitId, amountMinor: requested, createdById: actorId },
         select: { id: true },
       });
+      await this.activity.record(
+        {
+          ledgerId: target.expense.ledgerId,
+          actorUserId: actorId,
+          entityType: 'ExpenseSplitOffset',
+          entityId: created.id,
+          action: 'offset.created',
+          metadata: { expenseSplitId },
+        },
+        tx,
+      );
       return created.id;
     });
     return this.response(id, actorId);
@@ -78,7 +91,19 @@ export class ExpenseSplitOffsetsService {
     )
       throw new ForbiddenException('Insufficient offset permissions');
     if (!offset.voidedAt)
-      await this.prisma.expenseSplitOffset.update({ where: { id }, data: { voidedAt: new Date() } });
+      await this.prisma.$transaction(async (tx) => {
+        await tx.expenseSplitOffset.update({ where: { id }, data: { voidedAt: new Date() } });
+        await this.activity.record(
+          {
+            ledgerId: expense.ledgerId,
+            actorUserId: actorId,
+            entityType: 'ExpenseSplitOffset',
+            entityId: id,
+            action: 'offset.voided',
+          },
+          tx,
+        );
+      });
     return this.response(id, actorId);
   }
 

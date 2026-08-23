@@ -3,20 +3,29 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { LedgerAuthorizationService } from '../ledgers/ledger-authorization.service.js';
 import type { CreateCategoryDto } from './dto/create-category.dto.js';
 import type { UpdateCategoryDto } from './dto/update-category.dto.js';
+import { ActivityLogService } from '../activity/activity-log.service.js';
 
 @Injectable()
 export class CategoriesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly authorization: LedgerAuthorizationService,
+    private readonly activity: ActivityLogService,
   ) {}
 
   async create(ledgerId: string, actorId: string, dto: CreateCategoryDto) {
     await this.authorization.requireRole(ledgerId, actorId, ['OWNER', 'ADMIN']);
     await this.ensureNameAvailable(ledgerId, dto.name);
     try {
-      return await this.prisma.category.create({
-        data: { ledgerId, createdById: actorId, name: dto.name.trim(), kind: dto.kind },
+      return await this.prisma.$transaction(async (tx) => {
+        const created = await tx.category.create({
+          data: { ledgerId, createdById: actorId, name: dto.name.trim(), kind: dto.kind },
+        });
+        await this.activity.record(
+          { ledgerId, actorUserId: actorId, entityType: 'Category', entityId: created.id, action: 'category.created' },
+          tx,
+        );
+        return created;
       });
     } catch (error: unknown) {
       this.rethrowDuplicate(error);
@@ -35,9 +44,16 @@ export class CategoriesService {
     if (dto.name !== undefined)
       await this.ensureNameAvailable(category.ledgerId, dto.name, id);
     try {
-      return await this.prisma.category.update({
-        where: { id },
-        data: { name: dto.name?.trim(), kind: dto.kind },
+      return await this.prisma.$transaction(async (tx) => {
+        const updated = await tx.category.update({
+          where: { id },
+          data: { name: dto.name?.trim(), kind: dto.kind },
+        });
+        await this.activity.record(
+          { ledgerId: category.ledgerId, actorUserId: actorId, entityType: 'Category', entityId: id, action: 'category.updated' },
+          tx,
+        );
+        return updated;
       });
     } catch (error: unknown) {
       this.rethrowDuplicate(error);
@@ -48,7 +64,14 @@ export class CategoriesService {
   async archive(id: string, actorId: string) {
     const category = await this.find(id, actorId, true);
     if (!category.archivedAt)
-      return this.prisma.category.update({ where: { id }, data: { archivedAt: new Date() } });
+      return this.prisma.$transaction(async (tx) => {
+        const archived = await tx.category.update({ where: { id }, data: { archivedAt: new Date() } });
+        await this.activity.record(
+          { ledgerId: category.ledgerId, actorUserId: actorId, entityType: 'Category', entityId: id, action: 'category.archived' },
+          tx,
+        );
+        return archived;
+      });
     return category;
   }
 

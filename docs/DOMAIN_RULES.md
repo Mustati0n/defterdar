@@ -37,3 +37,4 @@
 35. Category Ledger-scoped, case-insensitive benzersiz isimli ve archive-only referans verisidir. Finans geçmişinde kullanılan Category silinmez.
 36. Income pozitif cashflow kaydıdır; Ledger currency snapshot'ı taşır fakat interpersonal Balance veya Settlement hesabına girmez.
 37. Receipt binary'si PostgreSQL'de tutulmaz. Server-generated key, allowlist MIME, configurable size ve Expense başına beş aktif attachment limiti uygulanır.
+38. ActivityLog append-only'dir. Kritik mutation ile aynı transaction'da yazılır; update/delete endpoint'i yoktur ve database trigger'ı değişikliği reddeder.

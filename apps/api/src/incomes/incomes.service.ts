@@ -9,12 +9,14 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { LedgerAuthorizationService } from '../ledgers/ledger-authorization.service.js';
 import type { CreateIncomeDto } from './dto/create-income.dto.js';
 import type { UpdateIncomeDto } from './dto/update-income.dto.js';
+import { ActivityLogService } from '../activity/activity-log.service.js';
 
 @Injectable()
 export class IncomesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly authorization: LedgerAuthorizationService,
+    private readonly activity: ActivityLogService,
   ) {}
 
   async create(ledgerId: string, actorId: string, dto: CreateIncomeDto) {
@@ -22,19 +24,26 @@ export class IncomesService {
     if (access.ledger.archivedAt) throw new ConflictException('Ledger is archived');
     await this.validatePlan(ledgerId, dto.planId ?? null);
     await this.validateCategory(ledgerId, dto.categoryId ?? null);
-    const income = await this.prisma.income.create({
-      data: {
-        ledgerId,
-        planId: dto.planId ?? null,
-        createdById: actorId,
-        title: dto.title.trim(),
-        description: dto.description?.trim() || null,
-        amountMinor: BigInt(dto.amountMinor),
-        currency: access.ledger.currency,
-        categoryId: dto.categoryId ?? null,
-        incomeDate: dto.incomeDate,
-      },
-      select: { id: true },
+    const income = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.income.create({
+        data: {
+          ledgerId,
+          planId: dto.planId ?? null,
+          createdById: actorId,
+          title: dto.title.trim(),
+          description: dto.description?.trim() || null,
+          amountMinor: BigInt(dto.amountMinor),
+          currency: access.ledger.currency,
+          categoryId: dto.categoryId ?? null,
+          incomeDate: dto.incomeDate,
+        },
+        select: { id: true },
+      });
+      await this.activity.record(
+        { ledgerId, actorUserId: actorId, entityType: 'Income', entityId: created.id, action: 'income.created' },
+        tx,
+      );
+      return created;
     });
     return this.get(income.id, actorId);
   }
@@ -67,16 +76,22 @@ export class IncomesService {
     const categoryId = dto.categoryId === undefined ? income.categoryId : dto.categoryId;
     await this.validatePlan(income.ledgerId, planId);
     await this.validateCategory(income.ledgerId, categoryId);
-    await this.prisma.income.update({
-      where: { id },
-      data: {
-        title: dto.title?.trim(),
-        description: dto.description === undefined ? undefined : dto.description?.trim() || null,
-        amountMinor: dto.amountMinor === undefined ? undefined : BigInt(dto.amountMinor),
-        planId,
-        categoryId,
-        incomeDate: dto.incomeDate,
-      },
+    await this.prisma.$transaction(async (tx) => {
+      await tx.income.update({
+        where: { id },
+        data: {
+          title: dto.title?.trim(),
+          description: dto.description === undefined ? undefined : dto.description?.trim() || null,
+          amountMinor: dto.amountMinor === undefined ? undefined : BigInt(dto.amountMinor),
+          planId,
+          categoryId,
+          incomeDate: dto.incomeDate,
+        },
+      });
+      await this.activity.record(
+        { ledgerId: income.ledgerId, actorUserId: actorId, entityType: 'Income', entityId: id, action: 'income.updated' },
+        tx,
+      );
     });
     return this.get(id, actorId);
   }
@@ -85,7 +100,13 @@ export class IncomesService {
     const income = await this.mutable(id, actorId, true, true);
     this.manage(income, actorId);
     if (!income.voidedAt)
-      await this.prisma.income.update({ where: { id }, data: { voidedAt: new Date() } });
+      await this.prisma.$transaction(async (tx) => {
+        await tx.income.update({ where: { id }, data: { voidedAt: new Date() } });
+        await this.activity.record(
+          { ledgerId: income.ledgerId, actorUserId: actorId, entityType: 'Income', entityId: id, action: 'income.voided' },
+          tx,
+        );
+      });
     return this.get(id, actorId);
   }
 

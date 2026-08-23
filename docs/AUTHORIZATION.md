@@ -47,3 +47,7 @@ Category create/update/archive OWNER ve ADMIN'e, listeleme aktif üyelere açık
 ## Receipt attachment
 
 Expense'ı okuyabilen aktif Ledger üyesi READY receipt URL'si alabilir. Reservation, complete ve remove OWNER, ADMIN veya Expense creator'a açıktır. Voided Expense ve archived Ledger yeni reservation kabul etmez.
+
+## Activity
+
+Aktif Ledger üyesi bounded, cursor-paginated activity stream'ini okuyabilir; archived Ledger read desteklenir. Activity için create/update/delete public endpoint'i yoktur.

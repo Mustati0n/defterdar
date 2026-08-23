@@ -10,6 +10,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { LedgerAuthorizationService } from '../ledgers/ledger-authorization.service.js';
 import { FinancialProjectionService } from '../balances/financial-projection.service.js';
 import type { CreateSettlementDto } from './dto/create-settlement.dto.js';
+import { ActivityLogService } from '../activity/activity-log.service.js';
 
 @Injectable()
 export class SettlementsService {
@@ -17,6 +18,7 @@ export class SettlementsService {
     private readonly prisma: PrismaService,
     private readonly authorization: LedgerAuthorizationService,
     private readonly projection: FinancialProjectionService,
+    private readonly activity: ActivityLogService,
   ) {}
 
   async create(ledgerId: string, actorId: string, dto: CreateSettlementDto) {
@@ -65,6 +67,10 @@ export class SettlementsService {
         },
         select: { id: true },
       });
+      await this.activity.record(
+        { ledgerId, actorUserId: actorId, entityType: 'Settlement', entityId: created.id, action: 'settlement.created' },
+        tx,
+      );
       return created.id;
     });
     return this.get(id, actorId);
@@ -111,7 +117,13 @@ export class SettlementsService {
     )
       throw new ForbiddenException('Insufficient settlement permissions');
     if (!settlement.voidedAt)
-      await this.prisma.settlement.update({ where: { id }, data: { voidedAt: new Date() } });
+      await this.prisma.$transaction(async (tx) => {
+        await tx.settlement.update({ where: { id }, data: { voidedAt: new Date() } });
+        await this.activity.record(
+          { ledgerId: settlement.ledgerId, actorUserId: actorId, entityType: 'Settlement', entityId: id, action: 'settlement.voided' },
+          tx,
+        );
+      });
     return this.get(id, actorId);
   }
 

@@ -8,12 +8,14 @@ import {
   type LedgerAccessContext,
   type LedgerRoleName,
 } from './ledger-authorization.service.js';
+import { ActivityLogService } from '../activity/activity-log.service.js';
 
 @Injectable()
 export class LedgersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly authorization: LedgerAuthorizationService,
+    private readonly activity: ActivityLogService,
   ) {}
 
   async list(
@@ -59,6 +61,10 @@ export class LedgersService {
       await transaction.ledgerMembership.create({
         data: { ledgerId: created.id, role: 'OWNER', userId },
       });
+      await this.activity.record(
+        { ledgerId: created.id, actorUserId: userId, entityType: 'Ledger', entityId: created.id, action: 'ledger.created' },
+        transaction,
+      );
       return created;
     });
 
@@ -78,14 +84,19 @@ export class LedgersService {
       throw new BadRequestException('At least one profile field is required');
     }
 
-    const ledger = await this.prisma.ledger.update({
-      where: { id: ledgerId },
-      data: {
-        ...(input.name !== undefined ? { name: input.name } : {}),
-        ...(input.description !== undefined
-          ? { description: input.description }
-          : {}),
-      },
+    const ledger = await this.prisma.$transaction(async (tx) => {
+      const updated = await tx.ledger.update({
+        where: { id: ledgerId },
+        data: {
+          ...(input.name !== undefined ? { name: input.name } : {}),
+          ...(input.description !== undefined ? { description: input.description } : {}),
+        },
+      });
+      await this.activity.record(
+        { ledgerId, actorUserId: userId, entityType: 'Ledger', entityId: ledgerId, action: 'ledger.updated' },
+        tx,
+      );
+      return updated;
     });
     return { ...ledger, role: context.role };
   }
@@ -104,9 +115,13 @@ export class LedgersService {
       return this.toResponse(context);
     }
 
-    const ledger = await this.prisma.ledger.update({
-      where: { id: ledgerId },
-      data: { archivedAt: new Date() },
+    const ledger = await this.prisma.$transaction(async (tx) => {
+      const updated = await tx.ledger.update({ where: { id: ledgerId }, data: { archivedAt: new Date() } });
+      await this.activity.record(
+        { ledgerId, actorUserId: userId, entityType: 'Ledger', entityId: ledgerId, action: 'ledger.archived' },
+        tx,
+      );
+      return updated;
     });
     return { ...ledger, role: context.role };
   }
@@ -128,9 +143,13 @@ export class LedgersService {
       return this.toResponse(context);
     }
 
-    const ledger = await this.prisma.ledger.update({
-      where: { id: ledgerId },
-      data: { archivedAt: null },
+    const ledger = await this.prisma.$transaction(async (tx) => {
+      const updated = await tx.ledger.update({ where: { id: ledgerId }, data: { archivedAt: null } });
+      await this.activity.record(
+        { ledgerId, actorUserId: userId, entityType: 'Ledger', entityId: ledgerId, action: 'ledger.unarchived' },
+        tx,
+      );
+      return updated;
     });
     return { ...ledger, role: context.role };
   }

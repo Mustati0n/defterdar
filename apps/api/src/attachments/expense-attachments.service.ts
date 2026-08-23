@@ -13,6 +13,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { LedgerAuthorizationService } from '../ledgers/ledger-authorization.service.js';
 import { ObjectStorageService } from '../storage/object-storage.service.js';
 import type { CreateExpenseAttachmentDto } from './dto/create-expense-attachment.dto.js';
+import { ActivityLogService } from '../activity/activity-log.service.js';
 
 @Injectable()
 export class ExpenseAttachmentsService {
@@ -22,6 +23,7 @@ export class ExpenseAttachmentsService {
     private readonly prisma: PrismaService,
     private readonly authorization: LedgerAuthorizationService,
     private readonly storage: ObjectStorageService,
+    private readonly activity: ActivityLogService,
     config: ConfigService<Environment, true>,
   ) {
     this.maxBytes = config.get('ATTACHMENT_MAX_BYTES', { infer: true });
@@ -55,6 +57,17 @@ export class ExpenseAttachmentsService {
         },
         select: { id: true },
       });
+      await this.activity.record(
+        {
+          ledgerId: initial.ledgerId,
+          actorUserId: actorId,
+          entityType: 'ExpenseAttachment',
+          entityId: created.id,
+          action: 'attachment.added',
+          metadata: { expenseId, mimeType: dto.mimeType, sizeBytes: dto.sizeBytes },
+        },
+        tx,
+      );
       return created.id;
     });
     try {
@@ -97,7 +110,19 @@ export class ExpenseAttachmentsService {
     const access = await this.authorization.requireMember(attachment.expense.ledgerId, actorId);
     this.manage(attachment.expense, actorId, access.role);
     if (!attachment.deletedAt)
-      await this.prisma.expenseAttachment.update({ where: { id }, data: { deletedAt: new Date() } });
+      await this.prisma.$transaction(async (tx) => {
+        await tx.expenseAttachment.update({ where: { id }, data: { deletedAt: new Date() } });
+        await this.activity.record(
+          {
+            ledgerId: attachment.expense.ledgerId,
+            actorUserId: actorId,
+            entityType: 'ExpenseAttachment',
+            entityId: id,
+            action: 'attachment.removed',
+          },
+          tx,
+        );
+      });
     try {
       await this.storage.delete(attachment.storageKey);
     } catch {

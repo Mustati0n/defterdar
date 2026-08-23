@@ -11,6 +11,7 @@ import type { MemberResponseDto } from './dto/member-response.dto.js';
 import type { OwnershipTransferResponseDto } from './dto/ledger-response.dto.js';
 import type { TransferOwnershipDto } from './dto/transfer-ownership.dto.js';
 import { LedgerAuthorizationService } from './ledger-authorization.service.js';
+import { ActivityLogService } from '../activity/activity-log.service.js';
 
 const MEMBER_SELECT = {
   joinedAt: true,
@@ -23,6 +24,7 @@ export class LedgerMembershipsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly authorization: LedgerAuthorizationService,
+    private readonly activity: ActivityLogService,
   ) {}
 
   async list(ledgerId: string, actorId: string): Promise<MemberResponseDto[]> {
@@ -49,10 +51,24 @@ export class LedgerMembershipsService {
       throw new BadRequestException('OWNER role requires ownership transfer');
     }
 
-    return this.prisma.ledgerMembership.update({
-      where: { id: target.id },
-      data: { role: input.role },
-      select: MEMBER_SELECT,
+    return this.prisma.$transaction(async (tx) => {
+      const updated = await tx.ledgerMembership.update({
+        where: { id: target.id },
+        data: { role: input.role },
+        select: MEMBER_SELECT,
+      });
+      await this.activity.record(
+        {
+          ledgerId,
+          actorUserId: actorId,
+          entityType: 'LedgerMembership',
+          entityId: target.id,
+          action: 'membership.role_changed',
+          metadata: { targetUserId, role: input.role },
+        },
+        tx,
+      );
+      return updated;
     });
   }
 
@@ -70,9 +86,19 @@ export class LedgerMembershipsService {
       throw new BadRequestException('OWNER cannot be removed');
     }
 
-    await this.prisma.ledgerMembership.update({
-      where: { id: target.id },
-      data: { leftAt: new Date() },
+    await this.prisma.$transaction(async (tx) => {
+      await tx.ledgerMembership.update({ where: { id: target.id }, data: { leftAt: new Date() } });
+      await this.activity.record(
+        {
+          ledgerId,
+          actorUserId: actorId,
+          entityType: 'LedgerMembership',
+          entityId: target.id,
+          action: 'membership.removed',
+          metadata: { targetUserId },
+        },
+        tx,
+      );
     });
   }
 
@@ -86,9 +112,18 @@ export class LedgerMembershipsService {
       throw new BadRequestException('Transfer ownership before leaving');
     }
 
-    await this.prisma.ledgerMembership.update({
-      where: { id: context.membershipId },
-      data: { leftAt: new Date() },
+    await this.prisma.$transaction(async (tx) => {
+      await tx.ledgerMembership.update({ where: { id: context.membershipId }, data: { leftAt: new Date() } });
+      await this.activity.record(
+        {
+          ledgerId,
+          actorUserId: actorId,
+          entityType: 'LedgerMembership',
+          entityId: context.membershipId,
+          action: 'membership.left',
+        },
+        tx,
+      );
     });
   }
 
@@ -137,6 +172,18 @@ export class LedgerMembershipsService {
             where: { id: context.membershipId },
             data: { role: 'ADMIN' },
           });
+
+          await this.activity.record(
+            {
+              ledgerId,
+              actorUserId: actorId,
+              entityType: 'Ledger',
+              entityId: ledgerId,
+              action: 'ledger.ownership_transferred',
+              metadata: { previousOwnerUserId: actorId, newOwnerUserId: input.newOwnerUserId },
+            },
+            transaction,
+          );
           await transaction.ledgerMembership.update({
             where: { id: target.id },
             data: { role: 'OWNER' },

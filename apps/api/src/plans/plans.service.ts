@@ -21,6 +21,7 @@ import type {
   PlanResponseDto,
 } from './dto/plan-response.dto.js';
 import type { UpdatePlanDto } from './dto/update-plan.dto.js';
+import { ActivityLogService } from '../activity/activity-log.service.js';
 
 const PLAN_SELECT = {
   archivedAt: true,
@@ -66,6 +67,7 @@ export class PlansService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly authorization: LedgerAuthorizationService,
+    private readonly activity: ActivityLogService,
   ) {}
 
   async create(
@@ -96,6 +98,10 @@ export class PlansService {
       await transaction.planParticipant.create({
         data: { planId: created.id, userId: user.id },
       });
+      await this.activity.record(
+        { ledgerId, actorUserId: user.id, entityType: 'Plan', entityId: created.id, action: 'plan.created' },
+        transaction,
+      );
       return transaction.plan.findUniqueOrThrow({
         where: { id: created.id },
         select: PLAN_SELECT,
@@ -146,19 +152,22 @@ export class PlansService {
       input.startsAt === undefined ? plan.startsAt : input.startsAt;
     const endsAt = input.endsAt === undefined ? plan.endsAt : input.endsAt;
     this.validateDates(startsAt, endsAt);
-    const updated = await this.prisma.plan.update({
-      where: { id: planId },
-      data: {
-        ...(input.name === undefined
-          ? {}
-          : { name: this.normalizeName(input.name) }),
-        ...(input.description === undefined
-          ? {}
-          : { description: this.normalizeNullableText(input.description) }),
-        ...(input.startsAt === undefined ? {} : { startsAt: input.startsAt }),
-        ...(input.endsAt === undefined ? {} : { endsAt: input.endsAt }),
-      },
-      select: PLAN_SELECT,
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const result = await tx.plan.update({
+        where: { id: planId },
+        data: {
+          ...(input.name === undefined ? {} : { name: this.normalizeName(input.name) }),
+          ...(input.description === undefined ? {} : { description: this.normalizeNullableText(input.description) }),
+          ...(input.startsAt === undefined ? {} : { startsAt: input.startsAt }),
+          ...(input.endsAt === undefined ? {} : { endsAt: input.endsAt }),
+        },
+        select: PLAN_SELECT,
+      });
+      await this.activity.record(
+        { ledgerId: plan.ledgerId, actorUserId: userId, entityType: 'Plan', entityId: planId, action: 'plan.updated' },
+        tx,
+      );
+      return result;
     });
     return this.toResponse(updated);
   }
@@ -167,11 +176,7 @@ export class PlansService {
     const plan = await this.requireMutablePlan(planId, userId);
     this.requireManagePermission(plan, userId, { allowCreatorMember: true });
     if (plan.status === 'COMPLETED') return this.toResponse(plan);
-    const updated = await this.prisma.plan.update({
-      where: { id: planId },
-      data: { status: 'COMPLETED' },
-      select: PLAN_SELECT,
-    });
+    const updated = await this.planStateChange(plan, userId, { status: 'COMPLETED' }, 'plan.completed');
     return this.toResponse(updated);
   }
 
@@ -179,11 +184,7 @@ export class PlansService {
     const plan = await this.requireMutablePlan(planId, userId);
     this.requireManagePermission(plan, userId, { allowCreatorMember: false });
     if (plan.status === 'ACTIVE') return this.toResponse(plan);
-    const updated = await this.prisma.plan.update({
-      where: { id: planId },
-      data: { status: 'ACTIVE' },
-      select: PLAN_SELECT,
-    });
+    const updated = await this.planStateChange(plan, userId, { status: 'ACTIVE' }, 'plan.reopened');
     return this.toResponse(updated);
   }
 
@@ -193,11 +194,7 @@ export class PlansService {
     this.requireManagePermission(plan, userId, { allowCreatorMember: false });
     if (plan.archivedAt) return this.toResponse(plan);
     const now = new Date();
-    const updated = await this.prisma.plan.update({
-      where: { id: planId },
-      data: { archivedAt: now, status: 'ARCHIVED' },
-      select: PLAN_SELECT,
-    });
+    const updated = await this.planStateChange(plan, userId, { archivedAt: now, status: 'ARCHIVED' }, 'plan.archived');
     return this.toResponse(updated);
   }
 
@@ -206,11 +203,7 @@ export class PlansService {
     this.requireLedgerOpen(plan);
     this.requireManagePermission(plan, userId, { allowCreatorMember: false });
     if (!plan.archivedAt) return this.toResponse(plan);
-    const updated = await this.prisma.plan.update({
-      where: { id: planId },
-      data: { archivedAt: null, status: 'ACTIVE' },
-      select: PLAN_SELECT,
-    });
+    const updated = await this.planStateChange(plan, userId, { archivedAt: null, status: 'ACTIVE' }, 'plan.reopened');
     return this.toResponse(updated);
   }
 
@@ -402,11 +395,34 @@ export class PlansService {
               userIds: missingUserIds,
             });
           }
-          return transaction.plan.update({
+          const updated = await transaction.plan.update({
             where: { id: planId },
             data: { ledgerId: input.targetLedgerId },
             select: PLAN_SELECT,
           });
+          await this.activity.record(
+            {
+              ledgerId: accessible.ledgerId,
+              actorUserId: actorId,
+              entityType: 'Plan',
+              entityId: planId,
+              action: 'plan.moved_out',
+              metadata: { targetLedgerId: input.targetLedgerId },
+            },
+            transaction,
+          );
+          await this.activity.record(
+            {
+              ledgerId: input.targetLedgerId,
+              actorUserId: actorId,
+              entityType: 'Plan',
+              entityId: planId,
+              action: 'plan.moved_in',
+              metadata: { sourceLedgerId: accessible.ledgerId },
+            },
+            transaction,
+          );
+          return updated;
         },
         { isolationLevel: 'Serializable' },
       );
@@ -429,6 +445,22 @@ export class PlansService {
       userId,
     );
     return { ...plan, ledger: access.ledger, role: access.role };
+  }
+
+  private async planStateChange(
+    plan: PlanRecord,
+    actorId: string,
+    data: { status: 'ACTIVE' | 'COMPLETED' | 'ARCHIVED'; archivedAt?: Date | null },
+    action: string,
+  ) {
+    return this.prisma.$transaction(async (tx) => {
+      const updated = await tx.plan.update({ where: { id: plan.id }, data, select: PLAN_SELECT });
+      await this.activity.record(
+        { ledgerId: plan.ledgerId, actorUserId: actorId, entityType: 'Plan', entityId: plan.id, action },
+        tx,
+      );
+      return updated;
+    });
   }
 
   private async requireMutablePlan(

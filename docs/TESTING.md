@@ -20,3 +20,5 @@ Phase 5 coverage settlement balance etkisi, partial/full/overpayment, completed 
 Category/Income e2e coverage PERSONAL ve SHARED Ledger, case-insensitive duplicate, kind/scope/archive kuralları, currency snapshot, Plan lifecycle, authorization/resource enumeration, void ve Income sonrası Balance'ın değişmemesini kapsar.
 
 Attachment e2e testleri in-memory `ObjectStorageService` ile presigned lifecycle, MIME/size, read/mutation authorization, soft remove, void protection ve aynı Expense'a concurrent beş reservation invariant'ını doğrular. MinIO yalnız development smoke için gerekir.
+
+Audit e2e coverage cursor pagination, member/non-member visibility, archived Ledger read, beklenen domain action'ları, secret/storage-key sızıntısı ve PostgreSQL immutable UPDATE trigger'ını kapsar.

@@ -67,6 +67,17 @@ export class AuthService {
           },
         });
 
+        await transaction.activityLog.create({
+          data: {
+            ledgerId: personalLedger.id,
+            actorUserId: createdUser.id,
+            entityType: 'Ledger',
+            entityId: personalLedger.id,
+            action: 'ledger.created',
+            metadata: { type: 'PERSONAL' },
+          },
+        });
+
         await transaction.authSession.create({
           data: {
             expiresAt: refreshToken.expiresAt,

@@ -10,6 +10,7 @@ import { LedgerAuthorizationService } from '../ledgers/ledger-authorization.serv
 import { ExpenseSplitCalculator } from './expense-split-calculator.js';
 import type { CreateExpenseDto, SplitDto } from './dto/create-expense.dto.js';
 import type { UpdateExpenseDto } from './dto/update-expense.dto.js';
+import { ActivityLogService } from '../activity/activity-log.service.js';
 
 @Injectable()
 export class ExpensesService {
@@ -17,6 +18,7 @@ export class ExpensesService {
     private readonly prisma: PrismaService,
     private readonly auth: LedgerAuthorizationService,
     private readonly calculator: ExpenseSplitCalculator,
+    private readonly activity: ActivityLogService,
   ) {}
 
   async create(ledgerId: string, userId: string, dto: CreateExpenseDto) {
@@ -58,6 +60,10 @@ export class ExpensesService {
           isReimbursable: !dto.isGift && x.userId !== dto.payerUserId,
         })),
       });
+      await this.activity.record(
+        { ledgerId, actorUserId: userId, entityType: 'Expense', entityId: created.id, action: 'expense.created' },
+        tx,
+      );
       return created.id;
     });
     return this.get(expense, userId);
@@ -196,6 +202,17 @@ export class ExpensesService {
           })),
         });
       }
+      await this.activity.record(
+        {
+          ledgerId: old.ledgerId,
+          actorUserId: userId,
+          entityType: 'Expense',
+          entityId: id,
+          action: 'expense.updated',
+          metadata: { financialFieldsChanged: changesFinancialFields },
+        },
+        tx,
+      );
     });
     return this.get(id, userId);
   }
@@ -213,6 +230,10 @@ export class ExpensesService {
           where: { id },
           data: { voidedAt },
         });
+        await this.activity.record(
+          { ledgerId: e.ledgerId, actorUserId: userId, entityType: 'Expense', entityId: id, action: 'expense.voided' },
+          tx,
+        );
       });
     }
     return this.get(id, userId);

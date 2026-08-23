@@ -61,3 +61,5 @@ Expense yazımı Expense ve ExpenseSplit kayıtlarını aynı PostgreSQL transac
 Category, Ledger kapsamlı referans verisidir. Income ayrı cashflow aggregate'ıdır ve projection katmanına bilinçli olarak dahil edilmez; böylece kişisel gelir takibi interpersonal borçtan ayrılır.
 
 Receipt binary'leri API ve PostgreSQL sınırının dışındadır. `ObjectStorageService` S3/MinIO presigned URL, HEAD ve delete işlemlerini soyutlar; test provider'ı aynı contract'ı in-memory uygular. PostgreSQL yalnız immutable server storage key'i ve dosya metadata'sını tutar.
+
+`ActivityLogService` önemli domain mutation'larına transaction-scoped immutable audit insert ekler. Activity stream event-sourcing veya generic event bus değildir; mevcut aggregate tabloları source of truth olmaya devam eder. PostgreSQL trigger'ları audit satırının sonradan update/delete edilmesini engeller.

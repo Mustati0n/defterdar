@@ -68,6 +68,7 @@ model User {
   createdCategories          Category[]           @relation("CategoryCreator")
   createdIncomes             Income[]             @relation("IncomeCreator")
   createdExpenseAttachments  ExpenseAttachment[]  @relation("AttachmentCreator")
+  activityLogs               ActivityLog[]        @relation("ActivityActor")
   participations             PlanParticipant[]
   authSessions               AuthSession[]
   createdLedgerInvitations   LedgerInvitation[]   @relation("InvitationCreator")
@@ -89,23 +90,24 @@ model AuthSession {
 }
 
 model Ledger {
-  id          String             @id @default(uuid()) @db.Uuid
-  name        String
-  description String?
-  type        LedgerType
-  currency    String             @db.VarChar(3)
-  ownerId     String             @db.Uuid
-  createdAt   DateTime           @default(now()) @db.Timestamptz(3)
-  updatedAt   DateTime           @updatedAt @db.Timestamptz(3)
-  archivedAt  DateTime?          @db.Timestamptz(3)
-  owner       User               @relation("LedgerOwner", fields: [ownerId], references: [id], onDelete: Restrict)
-  memberships LedgerMembership[]
-  plans       Plan[]
-  invitations LedgerInvitation[]
-  expenses    Expense[]
-  settlements Settlement[]
-  categories  Category[]
-  incomes     Income[]
+  id           String             @id @default(uuid()) @db.Uuid
+  name         String
+  description  String?
+  type         LedgerType
+  currency     String             @db.VarChar(3)
+  ownerId      String             @db.Uuid
+  createdAt    DateTime           @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime           @updatedAt @db.Timestamptz(3)
+  archivedAt   DateTime?          @db.Timestamptz(3)
+  owner        User               @relation("LedgerOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  memberships  LedgerMembership[]
+  plans        Plan[]
+  invitations  LedgerInvitation[]
+  expenses     Expense[]
+  settlements  Settlement[]
+  categories   Category[]
+  incomes      Income[]
+  activityLogs ActivityLog[]
 
   @@index([ownerId])
 }
@@ -263,6 +265,23 @@ model Income {
   @@index([categoryId])
   @@index([ledgerId, incomeDate])
   @@index([planId, incomeDate])
+}
+
+model ActivityLog {
+  id          String   @id @default(uuid()) @db.Uuid
+  ledgerId    String   @db.Uuid
+  actorUserId String?  @db.Uuid
+  entityType  String
+  entityId    String   @db.Uuid
+  action      String
+  metadata    Json
+  createdAt   DateTime @default(now()) @db.Timestamptz(3)
+  ledger      Ledger   @relation(fields: [ledgerId], references: [id], onDelete: Restrict)
+  actor       User?    @relation("ActivityActor", fields: [actorUserId], references: [id], onDelete: Restrict)
+
+  @@index([ledgerId, createdAt, id])
+  @@index([actorUserId])
+  @@index([entityType, entityId])
 }
 
 model ExpenseSplit {

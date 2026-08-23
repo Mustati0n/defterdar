@@ -876,6 +876,43 @@ describe('Plan lifecycle and participant API', () => {
     expect((await api('member').post(path).send(payload)).status).toBe(409);
   });
 
+  it('serves immutable cursor-paginated activity without leaking secrets', async () => {
+    const first = await api('member').get(`/ledgers/${sourceLedgerId}/activity?limit=2`);
+    expect(first.status).toBe(200);
+    expect(first.body.items).toHaveLength(2);
+    expect(first.body.nextCursor).toBeTruthy();
+    const second = await api('member').get(
+      `/ledgers/${sourceLedgerId}/activity?limit=2&cursor=${first.body.nextCursor}`,
+    );
+    expect(second.status).toBe(200);
+    expect(second.body.items[0]?.id).not.toBe(first.body.items[0]?.id);
+    expect(JSON.stringify(first.body)).not.toMatch(/passwordHash|refreshTokenHash|tokenHash|storageKey/i);
+    expect((await api('outsider').get(`/ledgers/${sourceLedgerId}/activity`)).status).toBe(404);
+
+    const actions = (
+      await api('owner').get(`/ledgers/${sourceLedgerId}/activity?limit=100`)
+    ).body.items.map((item: { action: string }) => item.action);
+    expect(actions).toEqual(
+      expect.arrayContaining([
+        'expense.created',
+        'income.created',
+        'category.created',
+        'attachment.added',
+      ]),
+    );
+    const activityId = first.body.items[0].id as string;
+    await expect(
+      database.query(`UPDATE "${TEST_SCHEMA}"."ActivityLog" SET "action" = $1 WHERE "id" = $2`, [
+        'tampered',
+        activityId,
+      ]),
+    ).rejects.toThrow(/immutable/);
+
+    const archivedLedger = await createLedger('owner', 'Archived activity');
+    expect((await api('owner').post(`/ledgers/${archivedLedger}/archive`)).status).toBe(201);
+    expect((await api('owner').get(`/ledgers/${archivedLedger}/activity`)).status).toBe(200);
+  });
+
   async function register(name: string): Promise<Identity> {
     const response = await request(API_URL)
       .post('/auth/register')
