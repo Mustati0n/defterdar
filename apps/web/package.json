@@ -21,6 +21,8 @@
   },
   "devDependencies": {
     "@defterdar/tsconfig": "workspace:*",
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.2",
     "@types/jest": "30.0.0",
     "@types/node": "24.10.1",
     "@types/react": "19.2.18",
@@ -28,6 +30,7 @@
     "eslint": "9.39.5",
     "eslint-config-next": "16.3.2",
     "jest": "30.4.2",
+    "jest-environment-jsdom": "^30.4.1",
     "typescript": "5.9.3"
   }
 }

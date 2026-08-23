@@ -6,6 +6,9 @@ import {
   CheckSquare2,
   Clock3,
   Settings,
+  Plus,
+  ReceiptText,
+  CheckCircle2,
   UsersRound,
   WalletCards,
 } from 'lucide-react';
@@ -28,7 +31,7 @@ type Tab = (typeof tabs)[number]['id'];
 export default function PlanDetailPage() {
   const { planId } = useParams<{ planId: string }>();
   const [activeTab, setActiveTab] = useState<Tab>('general');
-  const { plan, participants, balance } = usePlanDetailData(planId);
+  const { plan, participants, balance, expenses } = usePlanDetailData(planId);
 
   if (plan.isLoading) return <LoadingState label="Plan notu açılıyor…" />;
   if (plan.isError || !plan.data)
@@ -77,50 +80,121 @@ export default function PlanDetailPage() {
       </nav>
 
       {activeTab === 'general' ? (
-        <div className="detail-grid">
-          <section className="paper-section">
-            <span className="eyebrow">Plan künyesi</span>
-            <h2>Takvim ve katılım</h2>
-            <div className="summary-list">
-              <div>
-                <UsersRound />
-                <span>
-                  <small>Katılımcılar</small>
-                  <strong>{data.participantCount}</strong>
-                </span>
+        <>
+          <div className="detail-grid">
+            <section className="paper-section">
+              <span className="eyebrow">Plan künyesi</span>
+              <h2>Takvim ve katılım</h2>
+              <div className="summary-list">
+                <div>
+                  <UsersRound />
+                  <span>
+                    <small>Katılımcılar</small>
+                    <strong>{data.participantCount}</strong>
+                  </span>
+                </div>
+                <div>
+                  <CalendarDays />
+                  <span>
+                    <small>Bitiş</small>
+                    <strong>{formatDate(data.endsAt, 'Açık')}</strong>
+                  </span>
+                </div>
+                <div>
+                  <CheckSquare2 />
+                  <span>
+                    <small>Durum</small>
+                    <strong>{data.status}</strong>
+                  </span>
+                </div>
               </div>
+            </section>
+            <section className="lined-section">
+              <span className="eyebrow">Plan notu</span>
+              <h2>Sıradaki adım</h2>
+              <ul className="placeholder-checklist">
+                <li>
+                  <span /> Katılımcıları netleştir
+                </li>
+                <li>
+                  <span /> İlk ortak harcamayı ekle
+                </li>
+                <li>
+                  <span /> Bittiğinde hesabı kapat
+                </li>
+              </ul>
+            </section>
+          </div>
+          <section className="paper-section expense-section">
+            <div className="section-heading">
               <div>
-                <CalendarDays />
-                <span>
-                  <small>Bitiş</small>
-                  <strong>{formatDate(data.endsAt, 'Açık')}</strong>
-                </span>
+                <span className="eyebrow">Plan harcamaları</span>
+                <h2>Birlikte ödenenler</h2>
               </div>
-              <div>
-                <CheckSquare2 />
-                <span>
-                  <small>Durum</small>
-                  <strong>{data.status}</strong>
-                </span>
-              </div>
+              {expenses.data?.length && data.status === 'ACTIVE' ? (
+                <Link
+                  className="button button--primary button--small"
+                  href={`/expenses/new?ledgerId=${data.ledgerId}&planId=${planId}`}
+                >
+                  <Plus /> Harcama ekle
+                </Link>
+              ) : null}
             </div>
+            {expenses.data?.length ? (
+              <div className="expense-list">
+                {expenses.data.slice(0, 6).map((expense) => (
+                  <article key={expense.id}>
+                    <span>
+                      <ReceiptText />
+                    </span>
+                    <div>
+                      <strong>{expense.title}</strong>
+                      <small>
+                        {expense.payer.displayName} ödedi ·{' '}
+                        {expense.splits.length} kişi paylaştı
+                      </small>
+                    </div>
+                    <div>
+                      <strong>
+                        {formatMoneyFromMinor(
+                          expense.amountMinor,
+                          expense.currency,
+                        )}
+                      </strong>
+                      <small>
+                        {new Date(expense.expenseDate).toLocaleDateString(
+                          'tr-TR',
+                        )}
+                      </small>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <div className="smart-empty smart-empty--expense">
+                <span>
+                  <ReceiptText />
+                </span>
+                <div>
+                  <h3>Bu Plan henüz tertemiz.</h3>
+                  <p>
+                    {data.status === 'ACTIVE'
+                      ? 'İlk harcamayı eklediğinde Planın payları ve bakiyeleri burada oluşacak.'
+                      : 'Bu Plan tamamlandığı için yeni harcama eklenemez; mevcut kayıtlar okunmaya devam eder.'}
+                  </p>
+                </div>
+                {data.status === 'ACTIVE' ? (
+                  <Link
+                    className="button button--primary"
+                    href={`/expenses/new?ledgerId=${data.ledgerId}&planId=${planId}`}
+                  >
+                    <Plus /> İlk harcamayı ekle
+                  </Link>
+                ) : null}
+              </div>
+            )}
           </section>
-          <section className="lined-section">
-            <span className="eyebrow">Kısa liste</span>
-            <h2>Plan çalışma alanı</h2>
-            <ul className="placeholder-checklist">
-              <li>
-                <span /> Harcamalar ve gelirler burada özetlenecek
-              </li>
-              <li>
-                <span /> Katılımcı hesapları burada karşılaştırılacak
-              </li>
-              <li>
-                <span /> Plan akışı burada izlenecek
-              </li>
-            </ul>
-          </section>
-        </div>
+        </>
       ) : null}
       {activeTab === 'activity' ? (
         <section className="paper-section detail-full">
@@ -156,7 +230,13 @@ export default function PlanDetailPage() {
               </div>
             ))}
             {!balance.data?.positions.length ? (
-              <p className="muted-copy">Henüz hesaplanacak bir bakiye yok.</p>
+              <div className="closed-balance">
+                <CheckCircle2 />
+                <div>
+                  <strong>Hesaplar kapalı</strong>
+                  <p>Şu anda kimsenin kimseye ödemesi yok.</p>
+                </div>
+              </div>
             ) : null}
           </div>
         </section>

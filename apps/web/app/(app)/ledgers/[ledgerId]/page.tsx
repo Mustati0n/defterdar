@@ -6,6 +6,9 @@ import {
   CircleDollarSign,
   Clock3,
   Crown,
+  CheckCircle2,
+  Plus,
+  ReceiptText,
   Settings,
   UsersRound,
   WalletCards,
@@ -15,6 +18,7 @@ import { useParams } from 'next/navigation';
 import { useState } from 'react';
 import { ErrorState, LoadingState } from '@/components/ui/states';
 import { useLedgerDetailData } from '@/features/data/hooks';
+import { useAuth } from '@/features/auth/auth-provider';
 import { formatMoneyFromMinor } from '@/lib/format';
 
 const tabs = [
@@ -29,7 +33,8 @@ type Tab = (typeof tabs)[number]['id'];
 export default function LedgerDetailPage() {
   const { ledgerId } = useParams<{ ledgerId: string }>();
   const [activeTab, setActiveTab] = useState<Tab>('general');
-  const { ledger, plans, members, balance, activity } =
+  const { user } = useAuth();
+  const { ledger, plans, members, balance, activity, expenses } =
     useLedgerDetailData(ledgerId);
 
   if (ledger.isLoading) return <LoadingState label="Defter açılıyor…" />;
@@ -43,7 +48,7 @@ export default function LedgerDetailPage() {
 
   const data = ledger.data;
   const myPosition = balance.data?.positions.find(
-    (position) => position.user.id === data.ownerId,
+    (position) => position.user.id === user?.id,
   );
 
   return (
@@ -89,62 +94,136 @@ export default function LedgerDetailPage() {
       </nav>
 
       {activeTab === 'general' ? (
-        <div className="detail-grid">
-          <section className="paper-section">
-            <span className="eyebrow">Defter özeti</span>
-            <h2>Masadaki durum</h2>
-            <div className="summary-list">
-              <div>
-                <UsersRound />
-                <span>
-                  <small>Aktif üyeler</small>
-                  <strong>{members.data?.length ?? '—'}</strong>
-                </span>
+        <>
+          <div className="detail-grid">
+            <section className="paper-section">
+              <span className="eyebrow">Defter özeti</span>
+              <h2>Masadaki durum</h2>
+              <div className="summary-list">
+                <div>
+                  <UsersRound />
+                  <span>
+                    <small>Aktif üyeler</small>
+                    <strong>{members.data?.length ?? '—'}</strong>
+                  </span>
+                </div>
+                <div>
+                  <BookOpenText />
+                  <span>
+                    <small>Bağlı planlar</small>
+                    <strong>{plans.data?.length ?? '—'}</strong>
+                  </span>
+                </div>
+                <div>
+                  <CircleDollarSign />
+                  <span>
+                    <small>Konum</small>
+                    <strong>
+                      {myPosition
+                        ? formatMoneyFromMinor(
+                            myPosition.netMinor,
+                            data.currency,
+                          )
+                        : '—'}
+                    </strong>
+                  </span>
+                </div>
               </div>
+            </section>
+            <section className="lined-section">
+              <span className="eyebrow">Son kayıtlar</span>
+              <h2>Yakın hareketler</h2>
+              <ol className="compact-activity">
+                {(activity.data?.items ?? []).slice(0, 5).map((item) => (
+                  <li key={item.id}>
+                    <span />
+                    <div>
+                      <strong>{item.actor?.displayName ?? 'Sistem'}</strong>
+                      <p>
+                        {item.entityType} · {item.action}
+                      </p>
+                    </div>
+                    <time>
+                      {new Date(item.createdAt).toLocaleDateString('tr-TR')}
+                    </time>
+                  </li>
+                ))}
+                {!activity.data?.items.length ? (
+                  <li className="muted-copy">Henüz hareket kaydı yok.</li>
+                ) : null}
+              </ol>
+            </section>
+          </div>
+          <section className="paper-section expense-section">
+            <div className="section-heading">
               <div>
-                <BookOpenText />
-                <span>
-                  <small>Bağlı planlar</small>
-                  <strong>{plans.data?.length ?? '—'}</strong>
-                </span>
+                <span className="eyebrow">Defter hareketleri</span>
+                <h2>Son harcamalar</h2>
               </div>
-              <div>
-                <CircleDollarSign />
-                <span>
-                  <small>Konum</small>
-                  <strong>
-                    {myPosition
-                      ? formatMoneyFromMinor(myPosition.netMinor, data.currency)
-                      : '—'}
-                  </strong>
-                </span>
-              </div>
-            </div>
-          </section>
-          <section className="lined-section">
-            <span className="eyebrow">Son kayıtlar</span>
-            <h2>Yakın hareketler</h2>
-            <ol className="compact-activity">
-              {(activity.data?.items ?? []).slice(0, 5).map((item) => (
-                <li key={item.id}>
-                  <span />
-                  <div>
-                    <strong>{item.actor?.displayName ?? 'Sistem'}</strong>
-                    <p>
-                      {item.entityType} · {item.action}
-                    </p>
-                  </div>
-                  <time>
-                    {new Date(item.createdAt).toLocaleDateString('tr-TR')}
-                  </time>
-                </li>
-              ))}
-              {!activity.data?.items.length ? (
-                <li className="muted-copy">Henüz hareket kaydı yok.</li>
+              {expenses.data?.length && !data.archivedAt ? (
+                <Link
+                  className="button button--primary button--small"
+                  href={`/expenses/new?ledgerId=${ledgerId}`}
+                >
+                  <Plus /> Harcama ekle
+                </Link>
               ) : null}
-            </ol>
+            </div>
+            {expenses.data?.length ? (
+              <div className="expense-list">
+                {expenses.data.slice(0, 6).map((expense) => (
+                  <article key={expense.id}>
+                    <span>
+                      <ReceiptText />
+                    </span>
+                    <div>
+                      <strong>{expense.title}</strong>
+                      <small>
+                        {expense.payer.displayName} ödedi ·{' '}
+                        {expense.splits.length} kişi paylaştı
+                      </small>
+                    </div>
+                    <div>
+                      <strong>
+                        {formatMoneyFromMinor(
+                          expense.amountMinor,
+                          expense.currency,
+                        )}
+                      </strong>
+                      <small>
+                        {new Date(expense.expenseDate).toLocaleDateString(
+                          'tr-TR',
+                        )}
+                      </small>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <div className="smart-empty smart-empty--expense">
+                <span>
+                  <ReceiptText />
+                </span>
+                <div>
+                  <h3>Bu Defter henüz tertemiz.</h3>
+                  <p>
+                    {!data.archivedAt
+                      ? 'İlk harcamayı eklediğinde Defterdar payları ve bakiyeleri hesaplamaya başlayacak.'
+                      : 'Bu Defter arşivde olduğu için yeni harcama eklenemez; mevcut kayıtlar okunmaya devam eder.'}
+                  </p>
+                </div>
+                {!data.archivedAt ? (
+                  <Link
+                    className="button button--primary"
+                    href={`/expenses/new?ledgerId=${ledgerId}`}
+                  >
+                    <Plus /> İlk harcamayı ekle
+                  </Link>
+                ) : null}
+              </div>
+            )}
           </section>
-        </div>
+        </>
       ) : null}
       {activeTab === 'activity' ? (
         <section className="paper-section detail-full">
@@ -190,7 +269,13 @@ export default function LedgerDetailPage() {
               </div>
             ))}
             {!balance.data?.positions.length ? (
-              <p className="muted-copy">Henüz hesaplanacak bir bakiye yok.</p>
+              <div className="closed-balance">
+                <CheckCircle2 />
+                <div>
+                  <strong>Hesaplar kapalı</strong>
+                  <p>Şu anda kimsenin kimseye ödemesi yok.</p>
+                </div>
+              </div>
             ) : null}
           </div>
         </section>

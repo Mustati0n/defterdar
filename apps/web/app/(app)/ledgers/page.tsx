@@ -1,16 +1,19 @@
 'use client';
 
 import { Archive, BookOpenCheck, Search, Sparkles } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { Suspense, useMemo, useState } from 'react';
 import { CreateLedgerDialog } from '@/features/ledgers/create-ledger-dialog';
 import { LedgerCard } from '@/components/ledger-card';
 import { PageHeading } from '@/components/page-heading';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/states';
 import { useLedgers } from '@/features/data/hooks';
+import { LedgerEmptyState } from '@/features/empty-states/collection-empty-states';
 
 type Filter = 'recent' | 'mine' | 'archived';
 
-export default function LedgersPage() {
+function LedgersContent() {
+  const searchParams = useSearchParams();
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<Filter>('recent');
   const ledgers = useLedgers(true);
@@ -36,7 +39,12 @@ export default function LedgersPage() {
         eyebrow="Defterlik"
         title="Her hesabın bir hikâyesi var."
         description="Ortak masrafları ayrı defterlerde tut; neyin nereye ait olduğu karışmasın."
-        action={<CreateLedgerDialog />}
+        action={
+          <CreateLedgerDialog
+            key={searchParams.get('create') ?? 'closed'}
+            defaultOpen={searchParams.get('create') === '1'}
+          />
+        }
       />
       <section className="collection-toolbar" aria-label="Defter filtreleri">
         <label className="search-box">
@@ -84,7 +92,19 @@ export default function LedgersPage() {
           ))}
         </section>
       ) : null}
-      {!ledgers.isLoading && !ledgers.isError && !filtered.length ? (
+      {!ledgers.isLoading &&
+      !ledgers.isError &&
+      !search &&
+      filter === 'recent' &&
+      !(ledgers.data ?? []).some(
+        (ledger) => ledger.type === 'SHARED' && !ledger.archivedAt,
+      ) ? (
+        <LedgerEmptyState />
+      ) : null}
+      {!ledgers.isLoading &&
+      !ledgers.isError &&
+      !filtered.length &&
+      (Boolean(search) || filter === 'archived') ? (
         <EmptyState
           title={search ? 'Bu notu bulamadık' : 'Bu rafta defter yok'}
           description={
@@ -92,13 +112,16 @@ export default function LedgersPage() {
               ? 'Başka bir ad ya da kapak notu deneyin.'
               : 'Yeni bir defter açarak ilk kaydı düşebilirsiniz.'
           }
-          action={
-            !search && filter !== 'archived' ? (
-              <CreateLedgerDialog />
-            ) : undefined
-          }
         />
       ) : null}
     </>
+  );
+}
+
+export default function LedgersPage() {
+  return (
+    <Suspense fallback={<LoadingState label="Defterlik açılıyor…" />}>
+      <LedgersContent />
+    </Suspense>
   );
 }

@@ -20,8 +20,12 @@ const schema = z.object({
 });
 type Values = z.infer<typeof schema>;
 
-export function CreateLedgerDialog() {
-  const [open, setOpen] = useState(false);
+export function CreateLedgerDialog({
+  defaultOpen = false,
+}: {
+  defaultOpen?: boolean;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
   const mutation = useCreateLedger();
   const toast = useToast();
   const {

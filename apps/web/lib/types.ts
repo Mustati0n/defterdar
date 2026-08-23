@@ -126,6 +126,83 @@ export interface AnalyticsSummary {
   currentBalances: BalanceResponse;
 }
 
+export type SplitMethod = 'EQUAL' | 'EXACT' | 'PERCENTAGE' | 'SHARES';
+
+export interface ExpenseSplit {
+  id: string;
+  user: Pick<User, 'id' | 'displayName'>;
+  amountMinor: string;
+  isReimbursable: boolean;
+  offsetAppliedMinor: string;
+  remainingReimbursableMinor: string;
+  createdAt: string;
+}
+
+export interface Expense {
+  id: string;
+  ledgerId: string;
+  planId: string | null;
+  categoryId: string | null;
+  createdById: string;
+  payerId: string;
+  payer: Pick<User, 'id' | 'displayName'>;
+  title: string;
+  description: string | null;
+  amountMinor: string;
+  currency: string;
+  splitMethod: SplitMethod;
+  isGift: boolean;
+  expenseDate: string;
+  voidedAt: string | null;
+  version: number;
+  splits: ExpenseSplit[];
+}
+
+export interface CreateExpenseInput {
+  title: string;
+  description?: string | null;
+  amountMinor: number;
+  payerUserId: string;
+  planId?: string | null;
+  categoryId?: string | null;
+  isGift: boolean;
+  expenseDate: string;
+  split: {
+    method: SplitMethod;
+    participantUserIds?: string[];
+    entries?: Array<{
+      userId: string;
+      amountMinor?: number;
+      percentageBps?: number;
+      shares?: number;
+    }>;
+  };
+}
+
+export interface Income {
+  id: string;
+  ledgerId: string;
+  planId: string | null;
+  createdById: string;
+  title: string;
+  description: string | null;
+  amountMinor: string;
+  currency: string;
+  incomeDate: string;
+  createdAt: string;
+  updatedAt: string;
+  voidedAt: string | null;
+}
+
+export interface CreateIncomeInput {
+  title: string;
+  description?: string | null;
+  amountMinor: number;
+  planId?: string | null;
+  categoryId?: string | null;
+  incomeDate: string;
+}
+
 export interface ApiErrorBody {
   statusCode?: number;
   message?: string | string[];

@@ -1,12 +1,16 @@
 'use client';
 
-import { Bell, KeyRound, Palette, UserRound } from 'lucide-react';
+import { Bell, KeyRound, Palette, RotateCcw, UserRound } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { PageHeading } from '@/components/page-heading';
 import { useAuth } from '@/features/auth/auth-provider';
 import { initials } from '@/lib/format';
+import { useOnboarding } from '@/features/onboarding/use-onboarding';
 
 export default function SettingsPage() {
   const { user } = useAuth();
+  const router = useRouter();
+  const { replay } = useOnboarding(user?.id);
   return (
     <>
       <PageHeading
@@ -26,6 +30,25 @@ export default function SettingsPage() {
           </div>
         </section>
         <section className="settings-list">
+          <article className="settings-list__action">
+            <span>
+              <RotateCcw />
+            </span>
+            <div>
+              <strong>Tanıtımı tekrar göster</strong>
+              <p>Defter, Plan, Ismarla ve bakiye turunu yeniden aç.</p>
+            </div>
+            <button
+              className="button button--quiet button--small"
+              type="button"
+              onClick={() => {
+                replay();
+                router.push('/overview');
+              }}
+            >
+              Tekrar başlat
+            </button>
+          </article>
           <article>
             <span>
               <UserRound />

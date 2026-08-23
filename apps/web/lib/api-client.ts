@@ -13,7 +13,11 @@ import type {
   AuthResponse,
   BalanceResponse,
   CreateLedgerInput,
+  CreateExpenseInput,
+  CreateIncomeInput,
   CreatePlanInput,
+  Expense,
+  Income,
   Ledger,
   LedgerMember,
   LoginInput,
@@ -36,8 +40,32 @@ export class ApiError extends Error {
 }
 
 function getErrorMessage(body: ApiErrorBody | null, status: number): string {
-  if (Array.isArray(body?.message)) return body.message.join(' ');
-  if (body?.message) return body.message;
+  const rawMessage = Array.isArray(body?.message)
+    ? body.message.join(' ')
+    : body?.message;
+  const normalized = rawMessage?.toLocaleLowerCase('en-US') ?? '';
+
+  if (normalized.includes('invalid credentials')) {
+    return 'E-posta veya şifre doğru görünmüyor.';
+  }
+  if (normalized.includes('email is already registered')) {
+    return 'Bu e-posta ile daha önce bir hesap açılmış.';
+  }
+  if (normalized.includes('offset') && normalized.includes('mutation')) {
+    return 'Bu harcamada Borçtan düş işlemi olduğu için paylaşımı şu anda değiştiremezsin. Önce ilgili Borçtan düş kaydını geri al.';
+  }
+  if (normalized.includes('archived') && normalized.includes('ledger')) {
+    return 'Arşivdeki bir Deftere yeni kayıt eklenemez. Önce Defteri yeniden aç.';
+  }
+  if (normalized.includes('completed') && normalized.includes('plan')) {
+    return 'Tamamlanmış bir Plana yeni kayıt eklenemez. Önce Planı yeniden aç.';
+  }
+  if (status === 409) {
+    return 'Bu işlem mevcut kayıtlarla çakışıyor. Sayfayı yenileyip tekrar dene.';
+  }
+  if (rawMessage && status < 500 && status !== 400) return rawMessage;
+  if (status === 400)
+    return 'Bilgilerden biri eksik veya hatalı. İşaretli alanları kontrol et.';
   if (status === 401) return 'Oturumunuz sona erdi. Lütfen tekrar giriş yapın.';
   if (status === 403) return 'Bu işlem için yetkiniz bulunmuyor.';
   if (status === 404) return 'Aradığınız kayıt bulunamadı.';
@@ -186,5 +214,25 @@ export const api = {
       apiRequest<BalanceResponse>(`/plans/${planId}/balances`),
     analytics: (planId: string) =>
       apiRequest<AnalyticsSummary>(`/plans/${planId}/analytics/summary`),
+  },
+  expenses: {
+    list: (ledgerId: string, planId?: string) =>
+      apiRequest<Expense[]>(
+        `/ledgers/${ledgerId}/expenses${planId ? `?planId=${planId}` : ''}`,
+      ),
+    create: (ledgerId: string, input: CreateExpenseInput) =>
+      apiRequest<Expense>(`/ledgers/${ledgerId}/expenses`, {
+        method: 'POST',
+        body: input,
+        headers: { 'Idempotency-Key': crypto.randomUUID() },
+      }),
+  },
+  incomes: {
+    create: (ledgerId: string, input: CreateIncomeInput) =>
+      apiRequest<Income>(`/ledgers/${ledgerId}/incomes`, {
+        method: 'POST',
+        body: input,
+        headers: { 'Idempotency-Key': crypto.randomUUID() },
+      }),
   },
 };

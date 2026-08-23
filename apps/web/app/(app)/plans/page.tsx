@@ -1,15 +1,18 @@
 'use client';
 
 import { Archive, CheckCircle2, Clock3, Search } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { Suspense, useMemo, useState } from 'react';
 import { PageHeading } from '@/components/page-heading';
 import { PlanCard } from '@/components/plan-card';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/states';
 import { useAllPlans, useLedgers } from '@/features/data/hooks';
 import { CreatePlanDialog } from '@/features/plans/create-plan-dialog';
 import type { PlanStatus } from '@/lib/types';
+import { PlanEmptyState } from '@/features/empty-states/collection-empty-states';
 
-export default function PlansPage() {
+function PlansContent() {
+  const searchParams = useSearchParams();
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<PlanStatus>('ACTIVE');
   const ledgers = useLedgers();
@@ -33,7 +36,14 @@ export default function PlansPage() {
         eyebrow="İliştirilmiş notlar"
         title="Plan yap, hesabı plana bırak."
         description="Geziler, kutlamalar ve kısa süreli ortaklıklar; bağlı oldukları defterle birlikte."
-        action={<CreatePlanDialog ledgers={ledgers.data ?? []} />}
+        action={
+          <CreatePlanDialog
+            key={`${searchParams.get('create')}:${searchParams.get('ledgerId')}`}
+            ledgers={ledgers.data ?? []}
+            defaultOpen={searchParams.get('create') === '1'}
+            initialLedgerId={searchParams.get('ledgerId') ?? ''}
+          />
+        }
       />
       <section className="collection-toolbar" aria-label="Plan filtreleri">
         <label className="search-box">
@@ -103,7 +113,21 @@ export default function PlansPage() {
       !allPlans.isLoading &&
       !ledgers.isError &&
       !allPlans.isError &&
+      !search &&
+      filter === 'ACTIVE' &&
       !filtered.length ? (
+        <PlanEmptyState
+          ledgerId={
+            ledgers.data?.find((ledger) => ledger.type === 'PERSONAL')?.id
+          }
+        />
+      ) : null}
+      {!ledgers.isLoading &&
+      !allPlans.isLoading &&
+      !ledgers.isError &&
+      !allPlans.isError &&
+      !filtered.length &&
+      (Boolean(search) || filter !== 'ACTIVE') ? (
         <EmptyState
           title="Bu panoda plan yok"
           description={
@@ -111,13 +135,16 @@ export default function PlansPage() {
               ? 'Arama kelimesini değiştirip tekrar deneyin.'
               : 'Yeni bir plan ekleyip defterine iliştirebilirsiniz.'
           }
-          action={
-            !search && filter === 'ACTIVE' ? (
-              <CreatePlanDialog ledgers={ledgers.data ?? []} />
-            ) : undefined
-          }
         />
       ) : null}
     </>
+  );
+}
+
+export default function PlansPage() {
+  return (
+    <Suspense fallback={<LoadingState label="Plan notları toplanıyor…" />}>
+      <PlansContent />
+    </Suspense>
   );
 }

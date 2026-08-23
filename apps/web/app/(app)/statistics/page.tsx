@@ -1,6 +1,13 @@
 'use client';
 
-import { BarChart3, CircleDollarSign, LineChart, PieChart } from 'lucide-react';
+import {
+  BarChart3,
+  CircleDollarSign,
+  LineChart,
+  PieChart,
+  Plus,
+} from 'lucide-react';
+import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { PageHeading } from '@/components/page-heading';
@@ -55,7 +62,27 @@ export default function StatisticsPage() {
       {analytics.isError ? (
         <ErrorState onRetry={() => void analytics.refetch()} />
       ) : null}
-      {data ? (
+      {data && data.expenseCount + data.incomeCount === 0 ? (
+        <div className="smart-empty smart-empty--analytics">
+          <span>
+            <PieChart />
+          </span>
+          <div>
+            <h3>Henüz analiz için yeterli hareket yok.</h3>
+            <p>
+              Birkaç harcamadan sonra burada harcama alışkanlıklarını
+              görebileceksin.
+            </p>
+          </div>
+          <Link
+            className="button button--primary"
+            href={`/expenses/new?ledgerId=${ledgerId}`}
+          >
+            <Plus /> İlk harcamayı ekle
+          </Link>
+        </div>
+      ) : null}
+      {data && data.expenseCount + data.incomeCount > 0 ? (
         <>
           <section className="stat-grid">
             <article className="stat-card">

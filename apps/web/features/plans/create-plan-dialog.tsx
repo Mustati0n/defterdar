@@ -28,8 +28,16 @@ const schema = z
   );
 type Values = z.infer<typeof schema>;
 
-export function CreatePlanDialog({ ledgers }: { ledgers: Ledger[] }) {
-  const [open, setOpen] = useState(false);
+export function CreatePlanDialog({
+  ledgers,
+  defaultOpen = false,
+  initialLedgerId = '',
+}: {
+  ledgers: Ledger[];
+  defaultOpen?: boolean;
+  initialLedgerId?: string;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
   const mutation = useCreatePlan();
   const toast = useToast();
   const activeLedgers = ledgers.filter((ledger) => !ledger.archivedAt);
@@ -38,7 +46,10 @@ export function CreatePlanDialog({ ledgers }: { ledgers: Ledger[] }) {
     handleSubmit,
     reset,
     formState: { errors },
-  } = useForm<Values>({ resolver: zodResolver(schema) });
+  } = useForm<Values>({
+    resolver: zodResolver(schema),
+    defaultValues: { ledgerId: initialLedgerId },
+  });
 
   async function onSubmit(values: Values) {
     try {
@@ -104,11 +115,7 @@ export function CreatePlanDialog({ ledgers }: { ledgers: Ledger[] }) {
             <form onSubmit={handleSubmit(onSubmit)} className="stack-form">
               <label className="field">
                 <span>Bağlı defter</span>
-                <select
-                  className="input"
-                  defaultValue=""
-                  {...register('ledgerId')}
-                >
+                <select className="input" {...register('ledgerId')}>
                   <option value="" disabled>
                     Defter seç
                   </option>

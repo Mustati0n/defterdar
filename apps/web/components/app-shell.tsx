@@ -15,11 +15,14 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect, useState, type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useAuth } from '@/features/auth/auth-provider';
 import { initials } from '@/lib/format';
 import { Brand } from './brand';
+import { QuickAdd } from './quick-add';
 import { SignatureLine } from './signature-line';
+import { OnboardingExperience } from '@/features/onboarding/onboarding-experience';
+import { useProtectedRoute } from '@/features/auth/use-protected-route';
 
 const navigation = [
   { href: '/overview', label: 'Özet', icon: LayoutDashboard },
@@ -35,18 +38,13 @@ function matchesPath(pathname: string, href: string) {
 
 export function AppShell({ children }: { children: ReactNode }) {
   const { user, isBootstrapping, logout } = useAuth();
+  const routeReady = useProtectedRoute();
   const pathname = usePathname();
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  useEffect(() => {
-    if (!isBootstrapping && !user) {
-      router.replace(`/login?next=${encodeURIComponent(pathname)}`);
-    }
-  }, [isBootstrapping, pathname, router, user]);
-
-  if (isBootstrapping || !user) {
+  if (!routeReady || isBootstrapping || !user) {
     return (
       <main className="session-loader" role="status">
         <Brand />
@@ -112,6 +110,8 @@ export function AppShell({ children }: { children: ReactNode }) {
           })}
         </nav>
 
+        <QuickAdd />
+
         <div className="sidebar__hint">
           <Sparkles />
           <div>
@@ -159,6 +159,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <SignatureLine />
         <div className="page-container">{children}</div>
       </main>
+      <OnboardingExperience />
     </div>
   );
 }

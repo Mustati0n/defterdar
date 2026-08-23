@@ -3,28 +3,40 @@
 import { useQuery } from '@tanstack/react-query';
 import {
   ArrowRight,
+  AlertCircle,
   BookOpenText,
   CircleDollarSign,
   Clock3,
   NotebookTabs,
   Sparkles,
   TrendingUp,
+  Plus,
+  ReceiptText,
+  WalletCards,
 } from 'lucide-react';
 import Link from 'next/link';
 import { LedgerCard } from '@/components/ledger-card';
 import { PageHeading } from '@/components/page-heading';
 import { PlanCard } from '@/components/plan-card';
 import { ErrorState, LoadingState } from '@/components/ui/states';
-import { useAllPlans, useLedgers, queryKeys } from '@/features/data/hooks';
+import {
+  useAllPlans,
+  useLedgerBalances,
+  useLedgers,
+  queryKeys,
+} from '@/features/data/hooks';
+import { useAuth } from '@/features/auth/auth-provider';
 import { api } from '@/lib/api-client';
 import { formatMoneyFromMinor } from '@/lib/format';
 
 export default function OverviewPage() {
+  const { user } = useAuth();
   const ledgersQuery = useLedgers();
   const activeLedgers = ledgersQuery.data?.filter(
     (ledger) => !ledger.archivedAt,
   );
   const allPlans = useAllPlans(activeLedgers);
+  const ledgerBalances = useLedgerBalances(activeLedgers);
   const firstLedgerId = activeLedgers?.[0]?.id ?? '';
   const analytics = useQuery({
     queryKey: queryKeys.ledgerAnalytics(firstLedgerId),
@@ -43,6 +55,14 @@ export default function OverviewPage() {
     return <ErrorState onRetry={() => void ledgersQuery.refetch()} />;
 
   const activePlans = allPlans.plans.filter((plan) => plan.status === 'ACTIVE');
+  const personalLedger = activeLedgers?.find(
+    (ledger) => ledger.type === 'PERSONAL',
+  );
+  const owedBalances = ledgerBalances.balances
+    .map((balance) =>
+      balance.positions.find((position) => position.user.id === user?.id),
+    )
+    .filter((position) => position && position.netMinor < 0);
   const currency =
     analytics.data?.currency ?? activeLedgers?.[0]?.currency ?? 'TRY';
 
@@ -53,6 +73,87 @@ export default function OverviewPage() {
         title="Merhaba, hesaplar yerli yerinde."
         description="Defterler, planlar ve son hareketler tek bakışta masanda."
       />
+
+      {owedBalances.length || activePlans.length ? (
+        <section className="attention-strip" aria-label="İlgilenmen gerekenler">
+          <div>
+            <AlertCircle />
+            <span>
+              <small>Bugün neye bakmalısın?</small>
+              <strong>Masanda açık kalanlar var.</strong>
+            </span>
+          </div>
+          <div className="attention-strip__items">
+            {owedBalances.length ? (
+              <Link href="/ledgers">
+                <WalletCards />
+                <span>
+                  <strong>{owedBalances.length} açık ödemen var</strong>
+                  <small>Defter bakiyelerini kontrol et</small>
+                </span>
+                <ArrowRight />
+              </Link>
+            ) : null}
+            {activePlans.length ? (
+              <Link href="/plans">
+                <NotebookTabs />
+                <span>
+                  <strong>{activePlans.length} Plan devam ediyor</strong>
+                  <small>Son hareketleri gözden geçir</small>
+                </span>
+                <ArrowRight />
+              </Link>
+            ) : null}
+          </div>
+        </section>
+      ) : null}
+
+      <section className="overview-quick" aria-label="Hızlı işlemler">
+        <div>
+          <span className="eyebrow">Tek tık uzağında</span>
+          <h2>Şimdi ne yapmak istersin?</h2>
+        </div>
+        <div className="overview-quick__actions">
+          <Link
+            href={`/expenses/new${personalLedger ? `?ledgerId=${personalLedger.id}` : ''}`}
+          >
+            <span>
+              <ReceiptText />
+            </span>
+            <strong>Harcama ekle</strong>
+            <small>Öde ve paylaştır</small>
+            <Plus />
+          </Link>
+          <Link
+            href={`/plans?create=1${personalLedger ? `&ledgerId=${personalLedger.id}` : ''}`}
+          >
+            <span>
+              <NotebookTabs />
+            </span>
+            <strong>Plan oluştur</strong>
+            <small>Etkinlik ekle</small>
+            <Plus />
+          </Link>
+          <Link href="/ledgers?create=1">
+            <span>
+              <BookOpenText />
+            </span>
+            <strong>Defter oluştur</strong>
+            <small>Ortak alan aç</small>
+            <Plus />
+          </Link>
+          <Link
+            href={`/incomes/new${personalLedger ? `?ledgerId=${personalLedger.id}` : ''}`}
+          >
+            <span>
+              <CircleDollarSign />
+            </span>
+            <strong>Gelir ekle</strong>
+            <small>Nakit akışını yaz</small>
+            <Plus />
+          </Link>
+        </div>
+      </section>
 
       <section className="overview-hero">
         <div className="overview-hero__copy">
