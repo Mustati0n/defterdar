@@ -1,0 +1,146 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum LedgerType {
+  PERSONAL
+  SHARED
+}
+
+enum LedgerRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+enum PlanStatus {
+  ACTIVE
+  COMPLETED
+  ARCHIVED
+}
+
+enum UserStatus {
+  ACTIVE
+  DISABLED
+}
+
+model User {
+  id             String             @id @default(uuid()) @db.Uuid
+  email          String             @unique
+  passwordHash   String
+  displayName    String
+  status         UserStatus         @default(ACTIVE)
+  createdAt      DateTime           @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime           @updatedAt @db.Timestamptz(3)
+  ownedLedgers   Ledger[]           @relation("LedgerOwner")
+  memberships    LedgerMembership[]
+  createdPlans   Plan[]             @relation("PlanCreator")
+  participations PlanParticipant[]
+  authSessions   AuthSession[]
+  createdLedgerInvitations LedgerInvitation[] @relation("InvitationCreator")
+}
+
+model AuthSession {
+  id               String    @id @default(uuid()) @db.Uuid
+  userId           String    @db.Uuid
+  refreshTokenHash String    @unique @db.Char(64)
+  expiresAt        DateTime  @db.Timestamptz(3)
+  revokedAt        DateTime? @db.Timestamptz(3)
+  lastUsedAt       DateTime? @db.Timestamptz(3)
+  createdAt        DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime  @updatedAt @db.Timestamptz(3)
+  user             User      @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model Ledger {
+  id          String             @id @default(uuid()) @db.Uuid
+  name        String
+  description String?
+  type        LedgerType
+  currency    String             @db.VarChar(3)
+  ownerId     String             @db.Uuid
+  createdAt   DateTime           @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime           @updatedAt @db.Timestamptz(3)
+  archivedAt  DateTime?          @db.Timestamptz(3)
+  owner       User               @relation("LedgerOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  memberships LedgerMembership[]
+  plans       Plan[]
+  invitations LedgerInvitation[]
+
+  @@index([ownerId])
+}
+
+model LedgerMembership {
+  id       String     @id @default(uuid()) @db.Uuid
+  ledgerId String     @db.Uuid
+  userId   String     @db.Uuid
+  role     LedgerRole
+  joinedAt DateTime   @default(now()) @db.Timestamptz(3)
+  leftAt   DateTime?  @db.Timestamptz(3)
+  ledger   Ledger     @relation(fields: [ledgerId], references: [id], onDelete: Restrict)
+  user     User       @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([ledgerId])
+  @@index([userId])
+}
+
+model LedgerInvitation {
+  id             String     @id @default(uuid()) @db.Uuid
+  ledgerId       String     @db.Uuid
+  createdById    String     @db.Uuid
+  tokenHash      String     @unique @db.Char(64)
+  invitedEmail   String?
+  role           LedgerRole @default(MEMBER)
+  expiresAt      DateTime   @db.Timestamptz(3)
+  acceptedAt     DateTime?  @db.Timestamptz(3)
+  revokedAt      DateTime?  @db.Timestamptz(3)
+  createdAt      DateTime   @default(now()) @db.Timestamptz(3)
+  ledger         Ledger     @relation(fields: [ledgerId], references: [id], onDelete: Restrict)
+  createdBy      User       @relation("InvitationCreator", fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@index([ledgerId])
+  @@index([createdById])
+  @@index([expiresAt])
+}
+
+model Plan {
+  id           String            @id @default(uuid()) @db.Uuid
+  ledgerId     String            @db.Uuid
+  name         String
+  description  String?
+  startsAt     DateTime?         @db.Timestamptz(3)
+  endsAt       DateTime?         @db.Timestamptz(3)
+  status       PlanStatus        @default(ACTIVE)
+  createdById  String            @db.Uuid
+  createdAt    DateTime          @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime          @updatedAt @db.Timestamptz(3)
+  archivedAt   DateTime?         @db.Timestamptz(3)
+  ledger       Ledger            @relation(fields: [ledgerId], references: [id], onDelete: Restrict)
+  createdBy    User              @relation("PlanCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  participants PlanParticipant[]
+
+  @@index([ledgerId])
+  @@index([createdById])
+}
+
+model PlanParticipant {
+  id        String   @id @default(uuid()) @db.Uuid
+  planId    String   @db.Uuid
+  userId    String?  @db.Uuid
+  guestName String?
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  plan      Plan     @relation(fields: [planId], references: [id], onDelete: Restrict)
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@unique([planId, userId])
+  @@index([planId])
+  @@index([userId])
+}

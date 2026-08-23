@@ -1,0 +1,26 @@
+{
+  "name": "defterdar",
+  "version": "0.0.0",
+  "private": true,
+  "packageManager": "pnpm@11.22.0",
+  "engines": {
+    "node": ">=20.19 <25"
+  },
+  "scripts": {
+    "build": "pnpm -r --if-present build",
+    "dev": "pnpm --parallel --filter @defterdar/api --filter @defterdar/web dev",
+    "dev:api": "pnpm --filter @defterdar/api dev",
+    "dev:web": "pnpm --filter @defterdar/web dev",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "pnpm -r --if-present lint",
+    "test": "pnpm -r --if-present test",
+    "db:generate": "pnpm --filter @defterdar/api prisma:generate",
+    "db:migrate": "pnpm --filter @defterdar/api prisma:migrate",
+    "db:deploy": "pnpm --filter @defterdar/api prisma:deploy",
+    "db:status": "pnpm --filter @defterdar/api prisma:status"
+  },
+  "devDependencies": {
+    "prettier": "3.9.6"
+  }
+}
