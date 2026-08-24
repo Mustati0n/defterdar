@@ -1,4 +1,4 @@
-import { BookHeart, Check, Feather } from 'lucide-react';
+import { Feather } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Brand } from './brand';
 
@@ -30,17 +30,6 @@ export function AuthLayout({
             Ortak harcamaları, planları ve kimde ne kaldığını tek bir sıcak
             defterde topla.
           </p>
-        </div>
-        <div className="auth-note" aria-hidden="true">
-          <span className="auth-note__clip" />
-          <BookHeart />
-          <div>
-            <strong>Bu ayın küçük notu</strong>
-            <p>Hesabı sonra değil, birlikteyken tut.</p>
-          </div>
-          <span>
-            <Check /> Kırgınlık yok
-          </span>
         </div>
       </section>
       <section className="auth-panel">

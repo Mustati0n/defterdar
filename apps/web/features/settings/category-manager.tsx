@@ -9,7 +9,7 @@ import { useToast } from '@/components/ui/toast';
 import { queryKeys, useCategories, useLedgers } from '@/features/data/hooks';
 import { invalidateFinancialData } from '@/features/data/financial-invalidation';
 import { api } from '@/lib/api-client';
-import type { Category, CategoryKind } from '@/lib/types';
+import type { Category, CategoryKind, Ledger } from '@/lib/types';
 
 export const categoryKindLabels: Record<CategoryKind, string> = {
   EXPENSE: 'Harcama',
@@ -30,11 +30,16 @@ function duplicateName(
   );
 }
 
-export function CategoryManager() {
+export function CategoryManager({
+  ledgerContext,
+}: {
+  ledgerContext?: Ledger;
+} = {}) {
   const ledgers = useLedgers();
   const [selectedId, setSelectedId] = useState('');
-  const ledgerId = selectedId || ledgers.data?.[0]?.id || '';
-  const ledger = ledgers.data?.find((item) => item.id === ledgerId);
+  const ledgerId = ledgerContext?.id || selectedId || ledgers.data?.[0]?.id || '';
+  const ledger =
+    ledgerContext ?? ledgers.data?.find((item) => item.id === ledgerId);
   const categories = useCategories(ledgerId);
   const queryClient = useQueryClient();
   const toast = useToast();
@@ -133,7 +138,7 @@ export function CategoryManager() {
           </span>
           <h2 id="categories-heading">Defter düzeni</h2>
         </div>
-        {ledgers.data?.length ? (
+        {!ledgerContext && ledgers.data?.length ? (
           <label className="field category-manager__picker">
             <span>Defter</span>
             <select
@@ -154,6 +159,12 @@ export function CategoryManager() {
           </label>
         ) : null}
       </div>
+      {ledgerContext ? (
+        <p className="context-note">
+          Bu kategoriler yalnızca {ledgerContext.name} içindeki kayıtlarda
+          kullanılır.
+        </p>
+      ) : null}
       {ledgers.isLoading || categories.isLoading ? (
         <LoadingState label="Kategoriler açılıyor…" />
       ) : null}

@@ -36,9 +36,9 @@ function LedgersContent() {
   return (
     <>
       <PageHeading
-        eyebrow="Defterlik"
-        title="Her hesabın bir hikâyesi var."
-        description="Ortak masrafları ayrı defterlerde tut; neyin nereye ait olduğu karışmasın."
+        eyebrow="Defterler"
+        title="Kişisel ve ortak hesapların"
+        description="Harcamaları ait oldukları Defterde düzenle."
         action={
           <CreateLedgerDialog
             key={searchParams.get('create') ?? 'closed'}
@@ -81,7 +81,7 @@ function LedgersContent() {
         </div>
         <span className="collection-count">{filtered.length} defter</span>
       </section>
-      {ledgers.isLoading ? <LoadingState label="Defterlik açılıyor…" /> : null}
+      {ledgers.isLoading ? <LoadingState label="Defterler açılıyor…" /> : null}
       {ledgers.isError ? (
         <ErrorState onRetry={() => void ledgers.refetch()} />
       ) : null}
@@ -146,7 +146,7 @@ function LedgersContent() {
           title={search ? 'Bu notu bulamadık' : 'Bu rafta defter yok'}
           description={
             search
-              ? 'Başka bir ad ya da kapak notu deneyin.'
+              ? 'Başka bir ad ya da açıklama deneyin.'
               : 'Yeni bir defter açarak ilk kaydı düşebilirsiniz.'
           }
         />
@@ -157,7 +157,7 @@ function LedgersContent() {
 
 export default function LedgersPage() {
   return (
-    <Suspense fallback={<LoadingState label="Defterlik açılıyor…" />}>
+    <Suspense fallback={<LoadingState label="Defterler açılıyor…" />}>
       <LedgersContent />
     </Suspense>
   );

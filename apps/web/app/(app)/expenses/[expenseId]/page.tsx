@@ -16,7 +16,7 @@ import {
 } from '@/features/data/hooks';
 import { ReceiptPanel } from '@/features/expenses/receipt-panel';
 import { ApiError } from '@/lib/api-client';
-import { formatMoneyFromMinor } from '@/lib/format';
+import { formatMoneyFromMinor, splitMethodLabel } from '@/lib/format';
 import { OffsetSplitCard } from '@/features/financial/offset-split-card';
 
 export default function ExpenseDetailPage() {
@@ -60,8 +60,13 @@ export default function ExpenseDetailPage() {
     data.createdById === user?.id;
   return (
     <>
-      <Link className="back-link" href={`/ledgers/${data.ledgerId}`}>
-        <ArrowLeft /> Deftere dön
+      <Link
+        className="back-link"
+        href={
+          data.planId ? `/plans/${data.planId}` : `/ledgers/${data.ledgerId}`
+        }
+      >
+        <ArrowLeft /> {data.planId ? "Plan'a dön" : 'Deftere dön'}
       </Link>
       <section
         className={`detail-cover detail-cover--expense${data.voidedAt ? ' is-voided' : ''}`}
@@ -72,7 +77,7 @@ export default function ExpenseDetailPage() {
             {data.category?.name ?? 'Kategorisiz'}
           </span>
           <h1>{data.title}</h1>
-          <p>{data.description || 'Bu harcama için not girilmedi.'}</p>
+          {data.description ? <p>{data.description}</p> : null}
         </div>
         <div className="expense-total">
           <ReceiptText />
@@ -96,7 +101,7 @@ export default function ExpenseDetailPage() {
           <dl className="detail-list">
             <div>
               <dt>Paylaştırma</dt>
-              <dd>{data.splitMethod}</dd>
+              <dd>{splitMethodLabel(data.splitMethod)}</dd>
             </div>
             <div>
               <dt>Plan</dt>

@@ -523,7 +523,7 @@ export function OnboardingExperience() {
                   </span>
                   <div>
                     <strong>Kendim keşfedeceğim</strong>
-                    <small>Çalışma masasına geç</small>
+                    <small>Özete geç</small>
                   </div>
                   <ArrowRight />
                 </button>

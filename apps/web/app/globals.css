@@ -1760,7 +1760,8 @@ h3 {
 }
 .detail-tabs {
   display: flex;
-  overflow-x: auto;
+  flex-wrap: wrap;
+  overflow: visible;
   gap: 0.4rem;
   margin: 1.2rem 0 2rem;
   padding: 0.55rem;
@@ -1768,7 +1769,9 @@ h3 {
   border-radius: var(--radius-pill);
   background: rgba(255, 253, 245, 0.72);
 }
-.detail-tabs button {
+.detail-tabs > a,
+.detail-tabs > button,
+.detail-tabs__more > summary {
   display: flex;
   min-height: 40px;
   flex: 1;
@@ -1784,10 +1787,53 @@ h3 {
   font-size: 0.77rem;
   font-weight: 750;
   white-space: nowrap;
+  text-decoration: none;
 }
-.detail-tabs button.is-active {
+.detail-tabs > a.is-active,
+.detail-tabs > button.is-active,
+.detail-tabs__more.is-active > summary {
   color: white;
   background: var(--color-wine);
+}
+.detail-tabs__more {
+  position: relative;
+  flex: 1;
+}
+.detail-tabs__more > summary {
+  list-style: none;
+}
+.detail-tabs__more > summary::-webkit-details-marker {
+  display: none;
+}
+.detail-tabs__more > div {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 0.65rem);
+  right: 0;
+  display: grid;
+  min-width: 190px;
+  gap: 0.25rem;
+  padding: 0.45rem;
+  border: 1px solid var(--color-line);
+  border-radius: 12px;
+  background: var(--color-paper);
+  box-shadow: var(--shadow-paper);
+}
+.detail-tabs__more > div a {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 0.75rem;
+  color: var(--color-muted);
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 750;
+  text-decoration: none;
+}
+.detail-tabs__more > div a:hover,
+.detail-tabs__more > div a.is-active {
+  color: var(--color-ink);
+  background: var(--color-paper-deep);
 }
 .detail-grid {
   display: grid;
@@ -2376,7 +2422,9 @@ h3 {
     justify-content: flex-start;
     border-radius: var(--radius-md);
   }
-  .detail-tabs button {
+  .detail-tabs > a,
+  .detail-tabs > button,
+  .detail-tabs__more {
     flex: 0 0 auto;
   }
   .detail-cover {

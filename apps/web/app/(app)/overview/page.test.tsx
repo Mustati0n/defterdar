@@ -38,7 +38,7 @@ const ledger = {
   updatedAt: '2026-08-24T10:00:00Z',
 };
 
-describe('Overview financial scope', () => {
+describe('Overview hierarchy', () => {
   beforeEach(() => {
     jest.mocked(useLedgers).mockReturnValue({
       data: [ledger],
@@ -61,37 +61,30 @@ describe('Overview financial scope', () => {
       entries: [],
       isLoading: false,
     });
-    jest.mocked(useQuery).mockImplementation((options) => {
-      const key = options.queryKey as readonly unknown[];
-      if (key[0] === 'ledger-analytics') {
-        return {
-          data: {
-            currency: 'TRY',
-            totalExpenseMinor: '12500',
-            totalIncomeMinor: '20000',
-            netCashflowMinor: '7500',
-            expenseCount: 2,
-            incomeCount: 1,
-            monthly: [],
-            byCategory: [],
-            paidByMember: [],
-            shareByMember: [],
-            currentBalances: { currency: 'TRY', positions: [], suggestions: [] },
-          },
-        } as ReturnType<typeof useQuery>;
-      }
-      return { data: { items: [], nextCursor: null } } as ReturnType<
+    jest.mocked(useQuery).mockReturnValue({
+      data: { items: [], nextCursor: null },
+    } as ReturnType<
         typeof useQuery
-      >;
-    });
+      >);
   });
 
-  it('labels first-Ledger metrics with the actual Ledger scope', () => {
+  it('keeps one primary heading and does not present first-Ledger metrics as a summary', () => {
     render(<OverviewPage />);
-    expect(
-      screen.getByRole('region', { name: 'Kişisel Defterim özeti' }),
-    ).toBeInTheDocument();
-    expect(screen.getByText('Kişisel Defterim harcaması')).toBeInTheDocument();
-    expect(screen.queryByText('İlk defter harcaması')).not.toBeInTheDocument();
+    expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
+    expect(screen.getByRole('heading', { name: 'Defterler' })).toBeInTheDocument();
+    expect(screen.queryByText('Kişisel Defterim harcaması')).not.toBeInTheDocument();
+    expect(screen.queryByText('Ortak hesabın hafızası burada.')).not.toBeInTheDocument();
+  });
+
+  it('does not render data sections when there is no data', () => {
+    jest.mocked(useLedgers).mockReturnValue({
+      data: [],
+      isLoading: false,
+      isError: false,
+      refetch: jest.fn(),
+    } as unknown as ReturnType<typeof useLedgers>);
+    render(<OverviewPage />);
+    expect(screen.queryByRole('heading', { name: 'Defterler' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Planlar' })).not.toBeInTheDocument();
   });
 });

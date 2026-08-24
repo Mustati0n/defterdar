@@ -37,7 +37,7 @@ export function PlanCard({
         </span>
       </div>
       <h3>{plan.name}</h3>
-      <p>{plan.description || 'Bu planın ilk notu henüz yazılmadı.'}</p>
+      {plan.description ? <p>{plan.description}</p> : null}
       <ul className="plan-card__list">
         <li>
           <CalendarDays /> {formatDate(plan.startsAt, 'Başlangıç serbest')}

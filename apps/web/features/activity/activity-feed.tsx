@@ -14,8 +14,8 @@ export function ActivityFeed({
   const items = activity.data?.pages.flatMap((page) => page.items) ?? [];
   return (
     <section className="paper-section detail-full">
-      <span className="eyebrow">Kayıt sırası</span>
-      <h2>Defter hareketleri</h2>
+      <span className="eyebrow">Kayıt geçmişi</span>
+      <h2>{planId ? 'Plan hareketleri' : 'Defter hareketleri'}</h2>
       <ol className="compact-activity">
         {items.map((item) => (
           <li key={item.id}>

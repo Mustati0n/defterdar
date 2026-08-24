@@ -40,5 +40,16 @@ export function planStatusLabel(status: 'ACTIVE' | 'COMPLETED' | 'ARCHIVED') {
 }
 
 export function ledgerRoleLabel(role: 'OWNER' | 'ADMIN' | 'MEMBER') {
-  return { OWNER: 'Defter sahibi', ADMIN: 'Yönetici', MEMBER: 'Üye' }[role];
+  return { OWNER: 'Sahip', ADMIN: 'Yönetici', MEMBER: 'Üye' }[role];
+}
+
+export function splitMethodLabel(
+  method: 'EQUAL' | 'EXACT' | 'PERCENTAGE' | 'SHARES',
+) {
+  return {
+    EQUAL: 'Eşit böl',
+    EXACT: 'Tutar gir',
+    PERCENTAGE: 'Yüzdeyle böl',
+    SHARES: 'Pay oranı',
+  }[method];
 }

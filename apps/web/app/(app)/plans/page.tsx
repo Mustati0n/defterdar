@@ -33,9 +33,9 @@ function PlansContent() {
   return (
     <>
       <PageHeading
-        eyebrow="İliştirilmiş notlar"
-        title="Plan yap, hesabı plana bırak."
-        description="Geziler, kutlamalar ve kısa süreli ortaklıklar; bağlı oldukları defterle birlikte."
+        eyebrow="Planlar"
+        title="Planlarını ve hesaplarını birlikte yönet"
+        description="Gezi, kutlama ve etkinlik harcamalarını ilgili Defterle birlikte tut."
         action={
           <CreatePlanDialog
             key={`${searchParams.get('create')}:${searchParams.get('ledgerId')}`}

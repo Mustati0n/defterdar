@@ -1,0 +1,96 @@
+import { render, screen } from '@testing-library/react';
+import { useLedgerDetailData } from '@/features/data/hooks';
+import LedgerDetailPage from './page';
+
+let view: string | null = null;
+
+jest.mock('next/navigation', () => ({
+  useParams: () => ({ ledgerId: 'ledger-1' }),
+  useSearchParams: () => ({ get: () => view }),
+}));
+jest.mock('@/features/data/hooks', () => ({
+  useLedgerDetailData: jest.fn(),
+}));
+jest.mock('@/features/auth/auth-provider', () => ({
+  useAuth: () => ({ user: { id: 'me' } }),
+}));
+jest.mock('@/features/activity/activity-feed', () => ({
+  ActivityFeed: () => <div>Tüm kayıt geçmişi</div>,
+}));
+jest.mock('@/features/financial/balance-experience', () => ({
+  BalanceExperience: () => <div>Ortak bakiye alanı</div>,
+}));
+jest.mock('@/features/analytics/analytics-experience', () => ({
+  AnalyticsExperience: () => <div>İstatistik alanı</div>,
+}));
+jest.mock('@/features/ledgers/ledger-management', () => ({
+  LedgerMembersPanel: () => <div>Üye yönetimi alanı</div>,
+  LedgerSettingsPanel: () => <div>Ayar alanı</div>,
+}));
+jest.mock('@/features/settings/category-manager', () => ({
+  CategoryManager: () => <div>Kategori alanı</div>,
+}));
+
+const ledger = {
+  id: 'ledger-1',
+  name: 'Günlük',
+  description: null,
+  type: 'PERSONAL' as const,
+  currency: 'TRY',
+  ownerId: 'me',
+  role: 'OWNER' as const,
+  archivedAt: null,
+  createdAt: '2026-01-01',
+  updatedAt: '2026-01-01',
+};
+
+function detailData(type: 'PERSONAL' | 'SHARED') {
+  return {
+    ledger: { data: { ...ledger, type }, isLoading: false, isError: false },
+    plans: { data: [] },
+    members: { data: [{ user: { id: 'me', displayName: 'Ece' }, role: 'OWNER' }] },
+    balance: { data: { currency: 'TRY', positions: [], suggestions: [] } },
+    activity: { data: { items: [], nextCursor: null } },
+    expenses: { data: [] },
+    incomes: { data: [] },
+  } as unknown as ReturnType<typeof useLedgerDetailData>;
+}
+
+describe('Ledger detail information architecture', () => {
+  beforeEach(() => {
+    view = null;
+    jest.mocked(useLedgerDetailData).mockReturnValue(detailData('PERSONAL'));
+  });
+
+  it('hides shared-only destinations and group language for PERSONAL Ledger', () => {
+    render(<LedgerDetailPage />);
+    expect(screen.getByRole('heading', { name: 'Kişisel özet' })).toBeInTheDocument();
+    expect(screen.queryByText('Aktif üyeler')).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /Bakiyeler/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /Üyeler/ })).not.toBeInTheDocument();
+  });
+
+  it('retains valid shared capabilities at secondary weight', () => {
+    jest.mocked(useLedgerDetailData).mockReturnValue(detailData('SHARED'));
+    render(<LedgerDetailPage />);
+    expect(screen.getByRole('link', { name: /^Bakiyeler$/ })).toHaveAttribute(
+      'href',
+      '/ledgers/ledger-1?view=balances',
+    );
+    expect(screen.getByRole('link', { name: /Üyeler/ })).toHaveAttribute(
+      'href',
+      '/ledgers/ledger-1?view=members',
+    );
+    expect(screen.getByText('Aktif üyeler')).toBeInTheDocument();
+  });
+
+  it('derives its rendered view from URL state on rerender and defaults invalid state', () => {
+    const rendered = render(<LedgerDetailPage />);
+    view = 'analytics';
+    rendered.rerender(<LedgerDetailPage />);
+    expect(screen.getByText('İstatistik alanı')).toBeInTheDocument();
+    view = 'invalid';
+    rendered.rerender(<LedgerDetailPage />);
+    expect(screen.getByRole('heading', { name: 'Kişisel özet' })).toBeInTheDocument();
+  });
+});

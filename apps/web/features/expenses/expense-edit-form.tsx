@@ -264,9 +264,9 @@ function LoadedExpenseEditForm({
             setMethod(event.target.value as SplitMethod);
           }}
         >
-          <option value="EQUAL">Eşit</option>
-          <option value="EXACT">Tam tutar</option>
-          <option value="PERCENTAGE">Yüzde</option>
+          <option value="EQUAL">Eşit böl</option>
+          <option value="EXACT">Tutar gir</option>
+          <option value="PERCENTAGE">Yüzdeyle böl</option>
           <option value="SHARES">Pay oranı</option>
         </select>
         <small>

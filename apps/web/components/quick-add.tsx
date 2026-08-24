@@ -28,7 +28,7 @@ const actions: Array<{
   {
     kind: 'expense',
     label: 'Harcama ekle',
-    help: 'Öde ve paylaştır',
+    help: 'Giderini kaydet',
     icon: ReceiptText,
   },
   {
@@ -40,13 +40,13 @@ const actions: Array<{
   {
     kind: 'plan',
     label: 'Plan oluştur',
-    help: 'Etkinliği deftere iliştir',
+    help: 'Etkinlik veya gezi ekle',
     icon: NotebookTabs,
   },
   {
     kind: 'ledger',
     label: 'Defter oluştur',
-    help: 'Yeni ortak alan aç',
+    help: 'Yeni kayıt alanı aç',
     icon: BookPlus,
   },
 ];
@@ -56,9 +56,9 @@ export function QuickAdd() {
   const [open, setOpen] = useState(false);
   const ledgerPathId = pathname.match(/^\/ledgers\/([^/]+)/)?.[1] ?? '';
   const planId = pathname.match(/^\/plans\/([^/]+)/)?.[1] ?? '';
-  const ledger = useLedger(ledgerPathId);
   const plan = usePlan(planId);
   const context = getQuickActionContext(pathname, plan.data?.ledgerId);
+  const ledger = useLedger(context.ledgerId ?? ledgerPathId);
   const financialEntryLocked = Boolean(
     (planId && plan.data?.status !== 'ACTIVE') || ledger.data?.archivedAt,
   );
@@ -69,6 +69,11 @@ export function QuickAdd() {
           : action.kind === 'plan' || action.kind === 'ledger',
       )
     : actions;
+  const contextualActions = availableActions.map((action) =>
+    ledger.data?.type === 'PERSONAL' && action.kind === 'expense'
+      ? { ...action, help: 'Kişisel giderini kaydet' }
+      : action,
+  );
   const contextLabel = context.planId
     ? 'Bu Plan için'
     : context.ledgerId
@@ -98,7 +103,7 @@ export function QuickAdd() {
           <span className="quick-add__caption">
             <NotebookPen /> Ne eklemek istersin?
           </span>
-          {availableActions.map((action) => {
+          {contextualActions.map((action) => {
             const Icon = action.icon;
             return (
               <Link

@@ -12,12 +12,7 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api-client';
 import { queryKeys } from '@/features/data/hooks';
 import type { Ledger } from '@/lib/types';
-
-const roleLabels = {
-  OWNER: 'Sahibi',
-  ADMIN: 'Yönetici',
-  MEMBER: 'Üye',
-} as const;
+import { ledgerRoleLabel } from '@/lib/format';
 
 export function LedgerCard({
   ledger,
@@ -29,6 +24,7 @@ export function LedgerCard({
   const members = useQuery({
     queryKey: queryKeys.members(ledger.id),
     queryFn: () => api.ledgers.members(ledger.id),
+    enabled: ledger.type === 'SHARED',
   });
   const plans = useQuery({
     queryKey: queryKeys.plans(ledger.id),
@@ -68,16 +64,16 @@ export function LedgerCard({
         )}
       </div>
       <h3>{ledger.name}</h3>
-      <p>
-        {ledger.description || 'Henüz bu deftere bir kapak notu düşülmedi.'}
-      </p>
+      {ledger.description ? <p>{ledger.description}</p> : null}
       <div className="ledger-card__rule" />
       <div className="ledger-card__meta">
         <span>
-          <RoleIcon /> {roleLabels[ledger.role]}
+          <RoleIcon /> {ledgerRoleLabel(ledger.role)}
         </span>
         <span>
-          {members.data?.length ?? '—'} üye ·{' '}
+          {ledger.type === 'SHARED'
+            ? `${members.data?.length ?? '—'} üye · `
+            : 'Kişisel · '}
           {plans.data?.filter((plan) => plan.status === 'ACTIVE').length ?? '—'}{' '}
           aktif Plan
         </span>

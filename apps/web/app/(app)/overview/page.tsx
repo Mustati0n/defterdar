@@ -6,16 +6,12 @@ import {
   AlertCircle,
   BookOpenText,
   CircleDollarSign,
-  Clock3,
   NotebookTabs,
-  Sparkles,
-  TrendingUp,
   Plus,
   ReceiptText,
   WalletCards,
 } from 'lucide-react';
 import Link from 'next/link';
-import { useMemo } from 'react';
 import { LedgerCard } from '@/components/ledger-card';
 import { PageHeading } from '@/components/page-heading';
 import { PlanCard } from '@/components/plan-card';
@@ -31,7 +27,6 @@ import { useAuth } from '@/features/auth/auth-provider';
 import { api } from '@/lib/api-client';
 import { formatMoneyFromMinor } from '@/lib/format';
 import { activitySentence } from '@/lib/activity';
-import { analyticsDateRange } from '@/features/analytics/analytics-date';
 
 export default function OverviewPage() {
   const { user } = useAuth();
@@ -44,21 +39,6 @@ export default function OverviewPage() {
   const activePlans = allPlans.plans.filter((plan) => plan.status === 'ACTIVE');
   const planBalances = usePlanBalances(activePlans);
   const firstLedgerId = activeLedgers?.[0]?.id ?? '';
-  const overviewRange = useMemo(() => analyticsDateRange('month'), []);
-  const analytics = useQuery({
-    queryKey: queryKeys.ledgerAnalytics(
-      firstLedgerId,
-      overviewRange.from,
-      overviewRange.to,
-    ),
-    queryFn: () =>
-      api.ledgers.analytics(
-        firstLedgerId,
-        overviewRange.from,
-        overviewRange.to,
-      ),
-    enabled: Boolean(firstLedgerId),
-  });
   const activity = useQuery({
     queryKey: queryKeys.activityPreview(firstLedgerId),
     queryFn: () => api.ledgers.activity(firstLedgerId, 5),
@@ -66,7 +46,7 @@ export default function OverviewPage() {
   });
 
   if (ledgersQuery.isLoading)
-    return <LoadingState label="Çalışma masası hazırlanıyor…" />;
+    return <LoadingState label="Özet hazırlanıyor…" />;
   if (ledgersQuery.isError)
     return <ErrorState onRetry={() => void ledgersQuery.refetch()} />;
 
@@ -89,18 +69,12 @@ export default function OverviewPage() {
       ? [{ plan, balance, position }]
       : [];
   });
-  const currency =
-    analytics.data?.currency ?? activeLedgers?.[0]?.currency ?? 'TRY';
-  const topCategory = analytics.data?.byCategory
-    .filter((item) => Number(item.expenseMinor) > 0)
-    .sort((a, b) => Number(b.expenseMinor) - Number(a.expenseMinor))[0];
-
   return (
     <>
       <PageHeading
-        eyebrow="Bugünün kaydı"
-        title="Merhaba, hesaplar yerli yerinde."
-        description="Defterler, planlar ve son hareketler tek bakışta masanda."
+        eyebrow="Özet"
+        title={`Merhaba${user?.displayName ? `, ${user.displayName}` : ''}.`}
+        description="İlgilenmen gereken hesaplara ve son kayıtlarına buradan ulaşabilirsin."
       />
 
       {owedBalances.length || openPlanAccounts.length ? (
@@ -109,12 +83,12 @@ export default function OverviewPage() {
             <AlertCircle />
             <span>
               <small>Bugün neye bakmalısın?</small>
-              <strong>Masanda açık kalanlar var.</strong>
+              <strong>Açık kalan hesapların var.</strong>
             </span>
           </div>
           <div className="attention-strip__items">
             {owedBalances.slice(0, 2).map(({ ledger, balance, position }) => (
-              <Link href={`/ledgers/${ledger.id}`} key={ledger.id}>
+              <Link href={`/ledgers/${ledger.id}?view=balances`} key={ledger.id}>
                 <WalletCards />
                 <span>
                   <strong>
@@ -131,7 +105,7 @@ export default function OverviewPage() {
               </Link>
             ))}
             {openPlanAccounts.slice(0, 2).map(({ plan, balance, position }) => (
-              <Link href={`/plans/${plan.id}`} key={plan.id}>
+              <Link href={`/plans/${plan.id}?view=balances`} key={plan.id}>
                 <NotebookTabs />
                 <span>
                   <strong>
@@ -164,7 +138,7 @@ export default function OverviewPage() {
               <ReceiptText />
             </span>
             <strong>Harcama ekle</strong>
-            <small>Öde ve paylaştır</small>
+            <small>Giderini kaydet</small>
             <Plus />
           </Link>
           <Link
@@ -182,7 +156,7 @@ export default function OverviewPage() {
               <BookOpenText />
             </span>
             <strong>Defter oluştur</strong>
-            <small>Ortak alan aç</small>
+            <small>Yeni kayıt alanı aç</small>
             <Plus />
           </Link>
           <Link
@@ -198,162 +172,31 @@ export default function OverviewPage() {
         </div>
       </section>
 
-      <section className="overview-hero">
-        <div className="overview-hero__copy">
-          <span>
-            <Sparkles /> Güncel özet
-          </span>
-          <h2>
-            Ortak hesabın
-            <br />
-            <em>hafızası burada.</em>
-          </h2>
-          <p>
-            Rakamları akılda tutmak yerine, kararları ve güzel planları hatırla.
-          </p>
-          <Link className="button button--paper" href="/ledgers">
-            Defterlere göz at <ArrowRight />
-          </Link>
-        </div>
-        <div className="overview-hero__notebook" aria-hidden="true">
-          <span className="overview-hero__tape" />
-          <small>MASA NOTU / {new Date().toLocaleDateString('tr-TR')}</small>
-          <strong>{activeLedgers?.length ?? 0} açık defter</strong>
-          <p>{activePlans.length} plan hâlâ masada</p>
-          <span className="handwritten">“yazıldıysa unutulmaz”</span>
-        </div>
-      </section>
-
-      <section
-        className="stat-grid"
-        aria-label={`${activeLedgers?.[0]?.name ?? 'Seçili Defter'} özeti`}
-      >
-        <article className="stat-card">
-          <span>
-            <BookOpenText />
-          </span>
-          <div>
-            <small>Aktif defter</small>
-            <strong>{activeLedgers?.length ?? 0}</strong>
-            <p>ortak kayıt alanı</p>
-          </div>
-        </article>
-        <article className="stat-card stat-card--wine">
-          <span>
-            <NotebookTabs />
-          </span>
-          <div>
-            <small>Aktif plan</small>
-            <strong>{activePlans.length}</strong>
-            <p>devam eden not</p>
-          </div>
-        </article>
-        <article className="stat-card">
-          <span>
-            <CircleDollarSign />
-          </span>
-          <div>
-            <small>{activeLedgers?.[0]?.name ?? 'Defter'} harcaması</small>
-            <strong>
-              {analytics.data
-                ? formatMoneyFromMinor(
-                    analytics.data.totalExpenseMinor,
-                    currency,
-                  )
-                : '—'}
-            </strong>
-            <p>{analytics.data?.expenseCount ?? 0} hareket</p>
-          </div>
-        </article>
-        <article className="stat-card stat-card--gold">
-          <span>
-            <TrendingUp />
-          </span>
-          <div>
-            <small>Net nakit akışı</small>
-            <strong>
-              {analytics.data
-                ? formatMoneyFromMinor(
-                    analytics.data.netCashflowMinor,
-                    currency,
-                  )
-                : '—'}
-            </strong>
-            <p>{activeLedgers?.[0]?.name ?? 'seçili Defter'}</p>
-          </div>
-        </article>
-      </section>
-
-      {topCategory ? (
-        <Link className="overview-insight" href="/statistics">
-          <Sparkles />
-          <span>
-            <small>Defterden kısa not</small>
-            <strong>
-              Bu ay en çok {topCategory.category?.name ?? 'Kategorisiz'} için
-              harcadın:{' '}
-              {formatMoneyFromMinor(topCategory.expenseMinor, currency)}.
-            </strong>
-          </span>
-          <ArrowRight />
-        </Link>
-      ) : null}
-
-      <div className="overview-columns">
+      {activeLedgers?.length ? (
         <section>
           <div className="section-heading">
             <div>
-              <span className="eyebrow">Masadaki defterler</span>
-              <h2>Yakın zamanda açılanlar</h2>
+              <span className="eyebrow">Aktif alanlar</span>
+              <h2>Defterler</h2>
             </div>
             <Link href="/ledgers">
               Tümünü gör <ArrowRight />
             </Link>
           </div>
           <div className="mini-card-grid">
-            {(activeLedgers ?? []).slice(0, 2).map((ledger, index) => (
+            {activeLedgers.slice(0, 2).map((ledger, index) => (
               <LedgerCard ledger={ledger} index={index} key={ledger.id} />
             ))}
-            {!activeLedgers?.length ? (
-              <div className="inline-note">
-                İlk defterini açtığında burada görünecek.
-              </div>
-            ) : null}
           </div>
         </section>
-        {activity.data?.items.length ? (
-          <section className="activity-paper">
-            <div className="section-heading">
-              <div>
-                <span className="eyebrow">Son kayıtlar</span>
-                <h2>Defter hareketleri</h2>
-              </div>
-              <Clock3 />
-            </div>
-            <ol className="activity-list">
-              {(activity.data?.items ?? []).map((item) => (
-                <li key={item.id}>
-                  <span />
-                  <div>
-                    <strong>{item.actor?.displayName ?? 'Defterdar'}</strong>
-                    <p>{activitySentence(item)}</p>
-                    <small>
-                      {new Date(item.createdAt).toLocaleString('tr-TR')}
-                    </small>
-                  </div>
-                </li>
-              ))}
-            </ol>
-          </section>
-        ) : null}
-      </div>
+      ) : null}
 
       {activePlans.length ? (
         <section className="overview-plans">
           <div className="section-heading">
             <div>
-              <span className="eyebrow">İliştirilmiş planlar</span>
-              <h2>Sırada ne var?</h2>
+              <span className="eyebrow">Aktif alanlar</span>
+              <h2>Planlar</h2>
             </div>
             <Link href="/plans">
               Tüm planlar <ArrowRight />
@@ -371,6 +214,34 @@ export default function OverviewPage() {
               />
             ))}
           </div>
+        </section>
+      ) : null}
+
+      {activity.data?.items.length ? (
+        <section className="activity-paper">
+          <div className="section-heading">
+            <div>
+              <span className="eyebrow">Son kayıtlar</span>
+              <h2>{activeLedgers?.[0]?.name} hareketleri</h2>
+            </div>
+            <Link href={`/ledgers/${firstLedgerId}?view=activity`}>
+              Tümünü gör <ArrowRight />
+            </Link>
+          </div>
+          <ol className="activity-list">
+            {(activity.data?.items ?? []).map((item) => (
+              <li key={item.id}>
+                <span />
+                <div>
+                  <strong>{item.actor?.displayName ?? 'Defterdar'}</strong>
+                  <p>{activitySentence(item)}</p>
+                  <small>
+                    {new Date(item.createdAt).toLocaleString('tr-TR')}
+                  </small>
+                </div>
+              </li>
+            ))}
+          </ol>
         </section>
       ) : null}
     </>

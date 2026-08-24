@@ -148,9 +148,7 @@ export function PlanSettingsPanel({
   const [startsAt, setStartsAt] = useState(plan.startsAt?.slice(0, 10) ?? '');
   const [endsAt, setEndsAt] = useState(plan.endsAt?.slice(0, 10) ?? '');
   const [targetLedgerId, setTargetLedgerId] = useState('');
-  const [confirm, setConfirm] = useState<
-    'complete' | 'archive' | 'move' | null
-  >(null);
+  const [confirm, setConfirm] = useState<'archive' | 'move' | null>(null);
   const mutation = useMutation({
     mutationFn: (operation: () => Promise<unknown>) => operation(),
     onSuccess: async () => {
@@ -168,12 +166,6 @@ export function PlanSettingsPanel({
       ),
   });
   const run = () => {
-    if (confirm === 'complete')
-      mutation.mutate(() =>
-        plan.status === 'COMPLETED'
-          ? api.plans.reopen(plan.id)
-          : api.plans.complete(plan.id),
-      );
     if (confirm === 'archive')
       mutation.mutate(() =>
         plan.status === 'ARCHIVED'
@@ -189,7 +181,7 @@ export function PlanSettingsPanel({
   return (
     <section className="paper-section detail-full">
       <span className="eyebrow">Plan ayarları</span>
-      <h2>Not ve yaşam döngüsü</h2>
+      <h2>Bilgiler ve yönetim</h2>
       <div className="stack-form settings-form">
         <label className="field">
           <span>Plan adı</span>
@@ -257,16 +249,6 @@ export function PlanSettingsPanel({
       </div>
       <div className="danger-zone">
         <h3>Plan durumu</h3>
-        {canEdit && plan.status !== 'ARCHIVED' ? (
-          <button
-            className="button button--quiet"
-            type="button"
-            onClick={() => setConfirm('complete')}
-          >
-            {plan.status === 'COMPLETED' ? <RefreshCw /> : <CheckCircle2 />}
-            {plan.status === 'COMPLETED' ? 'Planı yeniden aç' : 'Planı tamamla'}
-          </button>
-        ) : null}
         {canAdmin ? (
           <button
             className="button button--quiet"
@@ -327,5 +309,69 @@ export function PlanSettingsPanel({
         onConfirm={run}
       />
     </section>
+  );
+}
+
+export function PlanLifecycleAction({
+  plan,
+  canEdit,
+}: {
+  plan: Plan;
+  canEdit: boolean;
+}) {
+  const queryClient = useQueryClient();
+  const toast = useToast();
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const mutation = useMutation({
+    mutationFn: () =>
+      plan.status === 'COMPLETED'
+        ? api.plans.reopen(plan.id)
+        : api.plans.complete(plan.id),
+    onSuccess: async () => {
+      setConfirmOpen(false);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.plan(plan.id) }),
+        queryClient.invalidateQueries({ queryKey: ['plans'] }),
+      ]);
+      toast(
+        plan.status === 'COMPLETED'
+          ? 'Plan yeniden açıldı.'
+          : 'Plan tamamlandı.',
+      );
+    },
+    onError: (error) =>
+      toast(
+        error instanceof ApiError ? error.message : 'Plan güncellenemedi.',
+        'error',
+      ),
+  });
+
+  if (!canEdit || plan.status === 'ARCHIVED') return null;
+
+  const reopening = plan.status === 'COMPLETED';
+  return (
+    <>
+      <button
+        className="button button--quiet"
+        type="button"
+        onClick={() => setConfirmOpen(true)}
+      >
+        {reopening ? <RefreshCw /> : <CheckCircle2 />}
+        {reopening ? 'Planı yeniden aç' : 'Planı tamamla'}
+      </button>
+      <ConfirmationDialog
+        open={confirmOpen}
+        title={reopening ? 'Plan yeniden açılsın mı?' : 'Plan tamamlansın mı?'}
+        description={
+          reopening
+            ? 'Plan yeniden harcama ve katılımcı güncellemelerine açılacak.'
+            : 'Yeni harcama eklenemeyecek; mevcut hesap okunmaya devam edecek.'
+        }
+        confirmLabel={reopening ? 'Yeniden aç' : 'Planı tamamla'}
+        pending={mutation.isPending}
+        onCancel={() => setConfirmOpen(false)}
+        onConfirm={() => mutation.mutate()}
+      />
+    </>
   );
 }

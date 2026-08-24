@@ -13,8 +13,11 @@ import {
   WalletCards,
 } from 'lucide-react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
-import { useState } from 'react';
+import { useParams, useSearchParams } from 'next/navigation';
+import {
+  DetailNavigation,
+  resolveDetailView,
+} from '@/components/detail-navigation';
 import { ErrorState, LoadingState } from '@/components/ui/states';
 import { usePlanDetailData } from '@/features/data/hooks';
 import { useLedger, useLedgers } from '@/features/data/hooks';
@@ -24,6 +27,7 @@ import { useQuery } from '@tanstack/react-query';
 import { queryKeys } from '@/features/data/hooks';
 import {
   PlanParticipantsPanel,
+  PlanLifecycleAction,
   PlanSettingsPanel,
 } from '@/features/plans/plan-management';
 import { ActivityFeed } from '@/features/activity/activity-feed';
@@ -36,19 +40,33 @@ import {
 import { BalanceExperience } from '@/features/financial/balance-experience';
 import { AnalyticsExperience } from '@/features/analytics/analytics-experience';
 
-const tabs = [
+const primaryViews = [
   { id: 'general', label: 'Genel', icon: CheckSquare2 },
   { id: 'activity', label: 'Hareketler', icon: Clock3 },
-  { id: 'balances', label: 'Bakiyeler', icon: WalletCards },
+  { id: 'balances', label: 'Hesap', icon: WalletCards },
+] as const;
+const secondaryViews = [
   { id: 'analytics', label: 'İstatistikler', icon: BarChart3 },
   { id: 'participants', label: 'Katılımcılar', icon: UsersRound },
   { id: 'settings', label: 'Ayarlar', icon: Settings },
 ] as const;
-type Tab = (typeof tabs)[number]['id'];
+type PlanView = (typeof primaryViews)[number]['id'] | (typeof secondaryViews)[number]['id'];
+
+export function planNextStep(
+  status: 'ACTIVE' | 'COMPLETED' | 'ARCHIVED',
+  participantCount: number,
+  expenseCount: number,
+) {
+  if (status === 'ARCHIVED') return 'Bu Plan arşivde.';
+  if (status === 'COMPLETED') return 'Plan tamamlandı; hesabı kontrol edebilirsin.';
+  if (participantCount < 2) return 'Birlikte kullanacağın katılımcıları ekle.';
+  if (expenseCount === 0) return 'İlk harcamayı ekle.';
+  return 'Plan hazır olduğunda tamamlayabilirsin.';
+}
 
 export default function PlanDetailPage() {
   const { planId } = useParams<{ planId: string }>();
-  const [activeTab, setActiveTab] = useState<Tab>('general');
+  const searchParams = useSearchParams();
   const { plan, participants, balance, expenses } = usePlanDetailData(planId);
   const { user } = useAuth();
   const ledgers = useLedgers();
@@ -59,7 +77,7 @@ export default function PlanDetailPage() {
     enabled: Boolean(plan.data?.ledgerId),
   });
 
-  if (plan.isLoading) return <LoadingState label="Plan notu açılıyor…" />;
+  if (plan.isLoading) return <LoadingState label="Plan açılıyor…" />;
   if (plan.isError || !plan.data)
     return (
       <ErrorState
@@ -73,20 +91,28 @@ export default function PlanDetailPage() {
   const canEdit =
     canAdmin ||
     (data.createdById === user?.id && ledger.data?.role === 'MEMBER');
+  const allowedViews = [...primaryViews, ...secondaryViews].map(
+    (view) => view.id,
+  ) as PlanView[];
+  const activeView = resolveDetailView(
+    searchParams.get('view'),
+    allowedViews,
+    'general',
+  );
 
   return (
     <>
       <Link className="back-link" href="/plans">
-        <ArrowLeft /> Plan panosuna dön
+        <ArrowLeft /> Planlara dön
       </Link>
       <section className="detail-cover detail-cover--plan">
         <span className="detail-cover__pin" aria-hidden="true" />
         <div>
           <span className="eyebrow">
-            Plan notu · {planStatusLabel(data.status)}
+            Plan · {planStatusLabel(data.status)}
           </span>
           <h1>{data.name}</h1>
-          <p>{data.description || 'Bu planın açıklama notu henüz boş.'}</p>
+          {data.description ? <p>{data.description}</p> : null}
         </div>
         <div className="detail-cover__date">
           <CalendarDays />
@@ -96,24 +122,19 @@ export default function PlanDetailPage() {
           </span>
         </div>
       </section>
-      <nav className="detail-tabs" aria-label="Plan bölümleri">
-        {tabs.map((tab) => {
-          const Icon = tab.icon;
-          return (
-            <button
-              className={activeTab === tab.id ? 'is-active' : ''}
-              type="button"
-              onClick={() => setActiveTab(tab.id)}
-              key={tab.id}
-            >
-              <Icon /> {tab.label}
-            </button>
-          );
-        })}
-      </nav>
+      <DetailNavigation
+        label="Plan bölümleri"
+        basePath={`/plans/${planId}`}
+        activeView={activeView}
+        primary={primaryViews}
+        secondary={secondaryViews}
+      />
 
-      {activeTab === 'general' ? (
+      {activeView === 'general' ? (
         <>
+          <div className="page-actions">
+            <PlanLifecycleAction plan={data} canEdit={Boolean(canEdit)} />
+          </div>
           <div className="detail-grid">
             <section className="paper-section">
               <span className="eyebrow">Plan künyesi</span>
@@ -143,19 +164,15 @@ export default function PlanDetailPage() {
               </div>
             </section>
             <section className="lined-section">
-              <span className="eyebrow">Plan notu</span>
+              <span className="eyebrow">Sıradaki adım</span>
               <h2>Sıradaki adım</h2>
-              <ul className="placeholder-checklist">
-                <li>
-                  <span /> Katılımcıları netleştir
-                </li>
-                <li>
-                  <span /> İlk ortak harcamayı ekle
-                </li>
-                <li>
-                  <span /> Bittiğinde hesabı kapat
-                </li>
-              </ul>
+              <p className="context-note">
+                {planNextStep(
+                  data.status,
+                  data.participantCount,
+                  expenses.data?.length ?? 0,
+                )}
+              </p>
             </section>
           </div>
           <section className="paper-section expense-section">
@@ -210,7 +227,7 @@ export default function PlanDetailPage() {
                   <ReceiptText />
                 </span>
                 <div>
-                  <h3>Bu Plan henüz tertemiz.</h3>
+                  <h3>Henüz harcama yok.</h3>
                   <p>
                     {data.status === 'ACTIVE'
                       ? 'İlk harcamayı eklediğinde Planın payları ve bakiyeleri burada oluşacak.'
@@ -230,10 +247,10 @@ export default function PlanDetailPage() {
           </section>
         </>
       ) : null}
-      {activeTab === 'activity' ? (
+      {activeView === 'activity' ? (
         <ActivityFeed ledgerId={data.ledgerId} planId={planId} />
       ) : null}
-      {activeTab === 'balances' ? (
+      {activeView === 'balances' ? (
         <BalanceExperience
           scope="plan"
           ledgerId={data.ledgerId}
@@ -250,7 +267,7 @@ export default function PlanDetailPage() {
           planStatus={data.status}
         />
       ) : null}
-      {activeTab === 'analytics' ? (
+      {activeView === 'analytics' ? (
         <AnalyticsExperience
           scope="plan"
           resourceId={planId}
@@ -258,7 +275,7 @@ export default function PlanDetailPage() {
           participantCount={data.participantCount}
         />
       ) : null}
-      {activeTab === 'participants' ? (
+      {activeView === 'participants' ? (
         <PlanParticipantsPanel
           plan={data}
           participants={participants.data ?? []}
@@ -266,7 +283,7 @@ export default function PlanDetailPage() {
           canManage={Boolean(canEdit)}
         />
       ) : null}
-      {activeTab === 'settings' ? (
+      {activeView === 'settings' ? (
         <PlanSettingsPanel
           plan={data}
           ledgers={ledgers.data ?? []}

@@ -1,11 +1,10 @@
 'use client';
 
-import { BookOpenText, Info, RotateCcw, Sparkles } from 'lucide-react';
+import { RotateCcw } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { PageHeading } from '@/components/page-heading';
 import { useAuth } from '@/features/auth/auth-provider';
 import { useOnboarding } from '@/features/onboarding/use-onboarding';
-import { CategoryManager } from '@/features/settings/category-manager';
 import { ProfileForm } from '@/features/settings/profile-form';
 
 export default function SettingsPage() {
@@ -18,18 +17,15 @@ export default function SettingsPage() {
       <PageHeading
         eyebrow="Defter sahibi"
         title="Ayarlar"
-        description="Profilini, Defter kategorilerini ve ürün deneyimini tek yerden düzenle."
+        description="Profil bilgilerini ve ürün yardım seçeneklerini düzenle. Defter kategorileri ilgili Defterin Ayarlar bölümündedir."
       />
       <div className="settings-hub">
         <ProfileForm />
-        <CategoryManager />
         <section
           className="paper-section experience-settings"
           aria-labelledby="experience-heading"
         >
-          <span className="eyebrow">
-            <Sparkles /> Deneyim
-          </span>
+          <span className="eyebrow">Yardım</span>
           <h2 id="experience-heading">Tanıtım turu</h2>
           <div className="experience-settings__row">
             <span>
@@ -50,19 +46,6 @@ export default function SettingsPage() {
               Tekrar başlat
             </button>
           </div>
-        </section>
-        <section
-          className="paper-section about-settings"
-          aria-labelledby="about-heading"
-        >
-          <span className="eyebrow">
-            <Info /> Defterdar hakkında
-          </span>
-          <h2 id="about-heading">Hesabın akılda kalmasın.</h2>
-          <p>
-            <BookOpenText /> Defterdar, kişisel ve ortak harcamaları sakin,
-            anlaşılır bir Defter düzeninde tutar.
-          </p>
         </section>
       </div>
     </>

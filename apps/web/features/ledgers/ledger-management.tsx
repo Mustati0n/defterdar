@@ -16,6 +16,7 @@ import { useToast } from '@/components/ui/toast';
 import { queryKeys } from '@/features/data/hooks';
 import { api, ApiError } from '@/lib/api-client';
 import type { Ledger, LedgerMember } from '@/lib/types';
+import { ledgerRoleLabel } from '@/lib/format';
 
 function message(error: unknown) {
   return error instanceof ApiError ? error.message : 'İşlem tamamlanamadı.';
@@ -36,7 +37,7 @@ export function LedgerMembersPanel({
   const invitations = useQuery({
     queryKey: queryKeys.invitations(ledger.id),
     queryFn: () => api.ledgers.invitations(ledger.id),
-    enabled: ledger.role !== 'MEMBER',
+    enabled: ledger.type === 'SHARED' && ledger.role !== 'MEMBER',
   });
   const refresh = async () => {
     await Promise.all([
@@ -53,6 +54,8 @@ export function LedgerMembersPanel({
     onSuccess: refresh,
     onError: (error) => toast(message(error), 'error'),
   });
+
+  if (ledger.type === 'PERSONAL') return null;
 
   async function createInvite() {
     try {
@@ -133,7 +136,7 @@ export function LedgerMembersPanel({
             </span>
             <div>
               <strong>{member.user.displayName}</strong>
-              <small>{member.role}</small>
+              <small>{ledgerRoleLabel(member.role)}</small>
             </div>
             {ledger.role === 'OWNER' && member.role !== 'OWNER' ? (
               <div className="row-actions">
@@ -323,8 +326,9 @@ export function LedgerSettingsPanel({
           </p>
         )}
       </div>
-      <div className="danger-zone">
-        <h3>Üyelik ve yaşam döngüsü</h3>
+      {ledger.type === 'SHARED' || ledger.role !== 'OWNER' ? (
+        <div className="danger-zone">
+          <h3>Üyelik ve yaşam döngüsü</h3>
         {ledger.role === 'OWNER' && ledger.type !== 'PERSONAL' ? (
           <button
             className="button button--quiet"
@@ -370,7 +374,8 @@ export function LedgerSettingsPanel({
             </button>
           </div>
         ) : null}
-      </div>
+        </div>
+      ) : null}
       <ConfirmationDialog
         open={Boolean(confirm)}
         title={

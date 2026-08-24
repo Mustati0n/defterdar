@@ -14,9 +14,12 @@ import {
   WalletCards,
 } from 'lucide-react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
-import { useState } from 'react';
+import { useParams, useSearchParams } from 'next/navigation';
 import { ErrorState, LoadingState } from '@/components/ui/states';
+import {
+  DetailNavigation,
+  resolveDetailView,
+} from '@/components/detail-navigation';
 import { useLedgerDetailData } from '@/features/data/hooks';
 import { useAuth } from '@/features/auth/auth-provider';
 import { ActivityFeed } from '@/features/activity/activity-feed';
@@ -34,20 +37,37 @@ import {
   planStatusLabel,
 } from '@/lib/format';
 import { AnalyticsExperience } from '@/features/analytics/analytics-experience';
+import { CategoryManager } from '@/features/settings/category-manager';
 
-const tabs = [
+const primarySharedViews = [
   { id: 'general', label: 'Genel', icon: BookOpenText },
-  { id: 'activity', label: 'Hareketler', icon: Clock3 },
   { id: 'balances', label: 'Bakiyeler', icon: WalletCards },
   { id: 'analytics', label: 'İstatistikler', icon: BarChart3 },
+] as const;
+const primaryPersonalViews = [
+  { id: 'general', label: 'Genel', icon: BookOpenText },
+  { id: 'analytics', label: 'İstatistikler', icon: BarChart3 },
+] as const;
+const secondarySharedViews = [
+  { id: 'activity', label: 'Tüm hareketler', icon: Clock3 },
   { id: 'members', label: 'Üyeler', icon: UsersRound },
   { id: 'settings', label: 'Ayarlar', icon: Settings },
 ] as const;
-type Tab = (typeof tabs)[number]['id'];
+const secondaryPersonalViews = [
+  { id: 'activity', label: 'Tüm hareketler', icon: Clock3 },
+  { id: 'settings', label: 'Ayarlar', icon: Settings },
+] as const;
+type LedgerView =
+  | 'general'
+  | 'activity'
+  | 'balances'
+  | 'analytics'
+  | 'members'
+  | 'settings';
 
 export default function LedgerDetailPage() {
   const { ledgerId } = useParams<{ ledgerId: string }>();
-  const [activeTab, setActiveTab] = useState<Tab>('general');
+  const searchParams = useSearchParams();
   const { user } = useAuth();
   const { ledger, plans, members, balance, activity, expenses, incomes } =
     useLedgerDetailData(ledgerId);
@@ -62,6 +82,18 @@ export default function LedgerDetailPage() {
     );
 
   const data = ledger.data;
+  const primaryViews =
+    data.type === 'PERSONAL' ? primaryPersonalViews : primarySharedViews;
+  const secondaryViews =
+    data.type === 'PERSONAL' ? secondaryPersonalViews : secondarySharedViews;
+  const allowedViews = [...primaryViews, ...secondaryViews].map(
+    (view) => view.id,
+  ) as LedgerView[];
+  const activeView = resolveDetailView(
+    searchParams.get('view'),
+    allowedViews,
+    'general',
+  );
   const myPosition = balance.data?.positions.find(
     (position) => position.user.id === user?.id,
   );
@@ -70,7 +102,7 @@ export default function LedgerDetailPage() {
   return (
     <>
       <Link className="back-link" href="/ledgers">
-        <ArrowLeft /> Defterliğe dön
+        <ArrowLeft /> Defterlere dön
       </Link>
       <section className="detail-cover detail-cover--ledger">
         <span className="detail-cover__bookmark">
@@ -82,49 +114,49 @@ export default function LedgerDetailPage() {
             {data.currency}
           </span>
           <h1>{data.name}</h1>
-          <p>{data.description || 'Bu defterin kapak notu henüz boş.'}</p>
+          {data.description ? <p>{data.description}</p> : null}
         </div>
         <div className="detail-cover__stamp">
           <Crown />
           <span>
-            {data.role === 'OWNER'
-              ? 'Defter sahibi'
-              : data.role === 'ADMIN'
-                ? 'Yönetici'
-                : 'Defter üyesi'}
+            {ledgerRoleLabel(data.role)}
           </span>
         </div>
       </section>
-      <nav className="detail-tabs" aria-label="Defter bölümleri">
-        {tabs.map((tab) => {
-          const Icon = tab.icon;
-          return (
-            <button
-              className={activeTab === tab.id ? 'is-active' : ''}
-              type="button"
-              onClick={() => setActiveTab(tab.id)}
-              key={tab.id}
-            >
-              <Icon /> {tab.label}
-            </button>
-          );
-        })}
-      </nav>
+      <DetailNavigation
+        label="Defter bölümleri"
+        basePath={`/ledgers/${ledgerId}`}
+        activeView={activeView}
+        primary={primaryViews}
+        secondary={secondaryViews}
+      />
 
-      {activeTab === 'general' ? (
+      {activeView === 'general' ? (
         <>
           <div className="detail-grid">
             <section className="paper-section">
               <span className="eyebrow">Defter özeti</span>
-              <h2>Masadaki durum</h2>
+              <h2>
+                {data.type === 'PERSONAL' ? 'Kişisel özet' : 'Ortak hesap'}
+              </h2>
               <div className="summary-list">
-                <div>
-                  <UsersRound />
-                  <span>
-                    <small>Aktif üyeler</small>
-                    <strong>{members.data?.length ?? '—'}</strong>
-                  </span>
-                </div>
+                {data.type === 'SHARED' ? (
+                  <div>
+                    <UsersRound />
+                    <span>
+                      <small>Aktif üyeler</small>
+                      <strong>{members.data?.length ?? '—'}</strong>
+                    </span>
+                  </div>
+                ) : (
+                  <div>
+                    <ReceiptText />
+                    <span>
+                      <small>Harcamalar</small>
+                      <strong>{expenses.data?.length ?? '—'}</strong>
+                    </span>
+                  </div>
+                )}
                 <div>
                   <BookOpenText />
                   <span>
@@ -132,29 +164,47 @@ export default function LedgerDetailPage() {
                     <strong>{plans.data?.length ?? '—'}</strong>
                   </span>
                 </div>
-                <button
-                  className="summary-list__balance"
-                  type="button"
-                  onClick={() => setActiveTab('balances')}
-                >
-                  <CircleDollarSign />
-                  <span>
-                    <small>Bakiyen</small>
-                    <strong>
-                      {myBalanceState === 'receivable'
-                        ? `${formatMoneyFromMinor(Math.abs(myPosition?.netMinor ?? 0), data.currency)} alacağın var`
-                        : myBalanceState === 'payable'
-                          ? `${formatMoneyFromMinor(Math.abs(myPosition?.netMinor ?? 0), data.currency)} ödemen var`
-                          : 'Hesaplar kapalı'}
-                    </strong>
-                  </span>
-                  <span>Bakiyeleri gör</span>
-                </button>
+                {data.type === 'SHARED' ? (
+                  <Link
+                    className="summary-list__balance"
+                    href={`/ledgers/${ledgerId}?view=balances`}
+                  >
+                    <CircleDollarSign />
+                    <span>
+                      <small>Bakiyen</small>
+                      <strong>
+                        {myBalanceState === 'receivable'
+                          ? `${formatMoneyFromMinor(Math.abs(myPosition?.netMinor ?? 0), data.currency)} alacağın var`
+                          : myBalanceState === 'payable'
+                            ? `${formatMoneyFromMinor(Math.abs(myPosition?.netMinor ?? 0), data.currency)} ödemen var`
+                            : 'Hesaplar kapalı'}
+                      </strong>
+                    </span>
+                    <span>Bakiyeleri gör</span>
+                  </Link>
+                ) : (
+                  <div>
+                    <CircleDollarSign />
+                    <span>
+                      <small>Gelirler</small>
+                      <strong>{incomes.data?.length ?? '—'}</strong>
+                    </span>
+                  </div>
+                )}
               </div>
             </section>
             <section className="lined-section">
-              <span className="eyebrow">Son kayıtlar</span>
-              <h2>Yakın hareketler</h2>
+              <div className="section-heading">
+                <div>
+                  <span className="eyebrow">Son kayıtlar</span>
+                  <h2>Yakın hareketler</h2>
+                </div>
+                {activity.data?.items.length ? (
+                  <Link href={`/ledgers/${ledgerId}?view=activity`}>
+                    Daha fazlasını gör
+                  </Link>
+                ) : null}
+              </div>
               <ol className="compact-activity">
                 {(activity.data?.items ?? []).slice(0, 5).map((item) => (
                   <li key={item.id}>
@@ -199,8 +249,9 @@ export default function LedgerDetailPage() {
                     <div>
                       <strong>{expense.title}</strong>
                       <small>
-                        {expense.payer.displayName} ödedi ·{' '}
-                        {expense.splits.length} kişi paylaştı
+                        {data.type === 'PERSONAL'
+                          ? expense.category?.name ?? 'Kategorisiz'
+                          : `${expense.payer.displayName} ödedi · ${expense.splits.length} kişi paylaştı`}
                       </small>
                       <ExpenseIndicators expense={expense} />
                     </div>
@@ -226,10 +277,12 @@ export default function LedgerDetailPage() {
                   <ReceiptText />
                 </span>
                 <div>
-                  <h3>Bu Defter henüz tertemiz.</h3>
+                  <h3>Henüz harcama yok.</h3>
                   <p>
                     {!data.archivedAt
-                      ? 'İlk harcamayı eklediğinde Defterdar payları ve bakiyeleri hesaplamaya başlayacak.'
+                      ? data.type === 'PERSONAL'
+                        ? 'İlk kişisel harcamanı ekleyebilirsin.'
+                        : 'İlk harcamayı eklediğinde paylar ve bakiyeler hesaplanır.'
                       : 'Bu Defter arşivde olduğu için yeni harcama eklenemez; mevcut kayıtlar okunmaya devam eder.'}
                   </p>
                 </div>
@@ -248,7 +301,7 @@ export default function LedgerDetailPage() {
             <section className="paper-section">
               <div className="section-heading">
                 <div>
-                  <span className="eyebrow">Bağlı notlar</span>
+                  <span className="eyebrow">Planlar</span>
                   <h2>Planlar</h2>
                 </div>
                 {!data.archivedAt ? (
@@ -312,8 +365,8 @@ export default function LedgerDetailPage() {
           </div>
         </>
       ) : null}
-      {activeTab === 'activity' ? <ActivityFeed ledgerId={ledgerId} /> : null}
-      {activeTab === 'balances' ? (
+      {activeView === 'activity' ? <ActivityFeed ledgerId={ledgerId} /> : null}
+      {activeView === 'balances' && data.type === 'SHARED' ? (
         <BalanceExperience
           scope="ledger"
           ledgerId={ledgerId}
@@ -326,18 +379,21 @@ export default function LedgerDetailPage() {
           mutationsDisabled={Boolean(data.archivedAt)}
         />
       ) : null}
-      {activeTab === 'analytics' ? (
+      {activeView === 'analytics' ? (
         <AnalyticsExperience
           scope="ledger"
           resourceId={ledgerId}
           personal={data.type === 'PERSONAL'}
         />
       ) : null}
-      {activeTab === 'members' ? (
+      {activeView === 'members' && data.type === 'SHARED' ? (
         <LedgerMembersPanel ledger={data} members={members.data ?? []} />
       ) : null}
-      {activeTab === 'settings' ? (
-        <LedgerSettingsPanel ledger={data} members={members.data ?? []} />
+      {activeView === 'settings' ? (
+        <>
+          <LedgerSettingsPanel ledger={data} members={members.data ?? []} />
+          <CategoryManager ledgerContext={data} />
+        </>
       ) : null}
     </>
   );

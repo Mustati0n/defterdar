@@ -10,7 +10,6 @@ import {
   Menu,
   NotebookTabs,
   Settings,
-  Sparkles,
   X,
 } from 'lucide-react';
 import Link from 'next/link';
@@ -90,7 +89,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
 
         <nav className="sidebar__nav" aria-label="Ana menü">
-          <span className="sidebar__section-label">Çalışma masası</span>
+          <span className="sidebar__section-label">Menü</span>
           {navigation.map((item) => {
             const Icon = item.icon;
             const active = matchesPath(pathname, item.href);
@@ -111,14 +110,6 @@ export function AppShell({ children }: { children: ReactNode }) {
         </nav>
 
         <QuickAdd />
-
-        <div className="sidebar__hint">
-          <Sparkles />
-          <div>
-            <strong>Küçük not</strong>
-            <p>Hesabı yazınca akılda yer açılır.</p>
-          </div>
-        </div>
 
         <div className="sidebar__account">
           <span className="avatar">{initials(user.displayName)}</span>
@@ -150,7 +141,11 @@ export function AppShell({ children }: { children: ReactNode }) {
       <main className="app-main">
         <div className="app-topbar">
           <span className="app-topbar__context">
-            <NotebookTabs /> Açık defterler / <b>çalışma masası</b>
+            <NotebookTabs /> Defterdar /{' '}
+            <b>
+              {navigation.find((item) => matchesPath(pathname, item.href))
+                ?.label ?? 'Özet'}
+            </b>
           </span>
           <Link className="profile-link" href="/settings">
             <CircleUserRound /> <span>{user.displayName}</span>

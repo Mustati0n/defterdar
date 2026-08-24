@@ -31,6 +31,8 @@ describe('settings hub', () => {
       .mocked(useOnboarding)
       .mockReturnValue({ pending: false, complete: jest.fn(), replay });
     render(<SettingsPage />);
+    expect(screen.queryByText('Defterdar hakkında')).not.toBeInTheDocument();
+    expect(screen.queryByText('Kategori yönetimi')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Tekrar başlat' }));
     expect(replay).toHaveBeenCalledTimes(1);
     expect(push).toHaveBeenCalledWith('/overview');

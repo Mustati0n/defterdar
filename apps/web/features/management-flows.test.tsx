@@ -116,6 +116,27 @@ describe('Ledger and Plan management flows', () => {
       screen.queryByRole('button', { name: /Davet oluştur/ }),
     ).not.toBeInTheDocument();
     expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+    expect(screen.getByText('Üye')).toBeInTheDocument();
+    expect(screen.queryByText('MEMBER')).not.toBeInTheDocument();
+  });
+
+  it('renders no shared member controls for a PERSONAL Ledger', () => {
+    providers(
+      <LedgerMembersPanel
+        ledger={{ ...ledger, type: 'PERSONAL' }}
+        members={[
+          {
+            user: { id: 'owner', displayName: 'Ece' },
+            role: 'OWNER',
+            joinedAt: '2026-01-01',
+          },
+        ]}
+      />,
+    );
+    expect(screen.queryByText('Üyeler ve roller')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Davet oluştur' }),
+    ).not.toBeInTheDocument();
   });
 
   it('blocks mutation fields for an archived Ledger', () => {
