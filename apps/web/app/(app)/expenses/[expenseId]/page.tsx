@@ -1,6 +1,5 @@
 'use client';
 
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Ban, Gift, Pencil, ReceiptText } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
@@ -10,13 +9,13 @@ import { ErrorState, LoadingState } from '@/components/ui/states';
 import { useToast } from '@/components/ui/toast';
 import { useAuth } from '@/features/auth/auth-provider';
 import {
-  queryKeys,
   useExpense,
   useLedger,
   usePlan,
+  useVoidExpense,
 } from '@/features/data/hooks';
 import { ReceiptPanel } from '@/features/expenses/receipt-panel';
-import { api, ApiError } from '@/lib/api-client';
+import { ApiError } from '@/lib/api-client';
 import { formatMoneyFromMinor } from '@/lib/format';
 import { OffsetSplitCard } from '@/features/financial/offset-split-card';
 
@@ -26,30 +25,26 @@ export default function ExpenseDetailPage() {
   const ledger = useLedger(expense.data?.ledgerId ?? '');
   const plan = usePlan(expense.data?.planId ?? '');
   const { user } = useAuth();
-  const queryClient = useQueryClient();
   const toast = useToast();
   const [confirmVoid, setConfirmVoid] = useState(false);
-  const voidMutation = useMutation({
-    mutationFn: () => api.expenses.void(expenseId),
-    onSuccess: async (data) => {
-      setConfirmVoid(false);
-      queryClient.setQueryData(queryKeys.expense(expenseId), data);
-      await Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: ['expenses', data.ledgerId],
-        }),
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.activity(data.ledgerId),
-        }),
-      ]);
-      toast('Harcama iptal edildi; kayıt geçmişte görünmeye devam edecek.');
-    },
-    onError: (error) =>
-      toast(
-        error instanceof ApiError ? error.message : 'Harcama iptal edilemedi.',
-        'error',
-      ),
-  });
+  const voidMutation = useVoidExpense(expenseId);
+  function voidExpense() {
+    voidMutation.mutate(undefined, {
+      onSuccess: () => {
+        setConfirmVoid(false);
+        toast(
+          'Harcama iptal edildi; kayıt geçmişte görünmeye devam edecek.',
+        );
+      },
+      onError: (error) =>
+        toast(
+          error instanceof ApiError
+            ? error.message
+            : 'Harcama iptal edilemedi.',
+          'error',
+        ),
+    });
+  }
   if (expense.isLoading) return <LoadingState label="Harcama açılıyor…" />;
   if (expense.isError || !expense.data)
     return (
@@ -165,7 +160,7 @@ export default function ExpenseDetailPage() {
         danger
         pending={voidMutation.isPending}
         onCancel={() => setConfirmVoid(false)}
-        onConfirm={() => voidMutation.mutate()}
+        onConfirm={voidExpense}
       />
     </>
   );

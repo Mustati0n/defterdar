@@ -60,7 +60,7 @@ export default function OverviewPage() {
     enabled: Boolean(firstLedgerId),
   });
   const activity = useQuery({
-    queryKey: queryKeys.activity(firstLedgerId),
+    queryKey: queryKeys.activityPreview(firstLedgerId),
     queryFn: () => api.ledgers.activity(firstLedgerId, 5),
     enabled: Boolean(firstLedgerId),
   });
@@ -224,7 +224,10 @@ export default function OverviewPage() {
         </div>
       </section>
 
-      <section className="stat-grid" aria-label="Genel durum">
+      <section
+        className="stat-grid"
+        aria-label={`${activeLedgers?.[0]?.name ?? 'Seçili Defter'} özeti`}
+      >
         <article className="stat-card">
           <span>
             <BookOpenText />
@@ -250,7 +253,7 @@ export default function OverviewPage() {
             <CircleDollarSign />
           </span>
           <div>
-            <small>İlk defter harcaması</small>
+            <small>{activeLedgers?.[0]?.name ?? 'Defter'} harcaması</small>
             <strong>
               {analytics.data
                 ? formatMoneyFromMinor(
@@ -276,7 +279,7 @@ export default function OverviewPage() {
                   )
                 : '—'}
             </strong>
-            <p>ilk aktif defter</p>
+            <p>{activeLedgers?.[0]?.name ?? 'seçili Defter'}</p>
           </div>
         </article>
       </section>

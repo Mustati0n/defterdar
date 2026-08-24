@@ -15,4 +15,9 @@ export class ActivityQueryDto {
   @IsOptional()
   @IsUUID()
   cursor?: string;
+
+  @ApiPropertyOptional({ format: 'uuid' })
+  @IsOptional()
+  @IsUUID()
+  planId?: string;
 }

@@ -3,8 +3,14 @@
 import { activitySentence } from '@/lib/activity';
 import { useActivityFeed } from '@/features/data/hooks';
 
-export function ActivityFeed({ ledgerId }: { ledgerId: string }) {
-  const activity = useActivityFeed(ledgerId);
+export function ActivityFeed({
+  ledgerId,
+  planId,
+}: {
+  ledgerId: string;
+  planId?: string;
+}) {
+  const activity = useActivityFeed(ledgerId, planId);
   const items = activity.data?.pages.flatMap((page) => page.items) ?? [];
   return (
     <section className="paper-section detail-full">

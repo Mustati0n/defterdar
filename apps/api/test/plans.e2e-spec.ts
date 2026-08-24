@@ -932,6 +932,71 @@ describe('Plan lifecycle and participant API', () => {
     expect((await api('owner').get(`/ledgers/${archivedLedger}/activity`)).status).toBe(200);
   });
 
+  it('filters Plan activity without leaking unrelated Ledger events and preserves pagination', async () => {
+    const planId = await createPlan(
+      'owner',
+      sourceLedgerId,
+      'Activity scope Plan',
+    );
+    const planExpense = await api('owner')
+      .post(`/ledgers/${sourceLedgerId}/expenses`)
+      .send({
+        title: 'Plan-scoped activity expense',
+        amountMinor: 2_000,
+        payerUserId: identity('owner').id,
+        planId,
+        expenseDate: '2026-08-23T10:00:00.000Z',
+        isGift: false,
+        split: {
+          method: 'EXACT',
+          entries: [
+            { userId: identity('owner').id, amountMinor: 2_000 },
+          ],
+        },
+      });
+    expect(planExpense.status).toBe(201);
+    const unrelatedExpense = await api('owner')
+      .post(`/ledgers/${sourceLedgerId}/expenses`)
+      .send({
+        title: 'Ledger-only activity expense',
+        amountMinor: 1_000,
+        payerUserId: identity('owner').id,
+        expenseDate: '2026-08-23T11:00:00.000Z',
+        isGift: false,
+        split: {
+          method: 'EXACT',
+          entries: [
+            { userId: identity('owner').id, amountMinor: 1_000 },
+          ],
+        },
+      });
+    expect(unrelatedExpense.status).toBe(201);
+
+    const first = await api('owner').get(
+      `/ledgers/${sourceLedgerId}/activity?planId=${planId}&limit=1`,
+    );
+    expect(first.status).toBe(200);
+    expect(first.body.items).toHaveLength(1);
+    expect(first.body.items[0].entityId).toBe(planExpense.body.id);
+    expect(first.body.items[0].entityId).not.toBe(unrelatedExpense.body.id);
+    expect(first.body.nextCursor).toBeTruthy();
+
+    const second = await api('owner').get(
+      `/ledgers/${sourceLedgerId}/activity?planId=${planId}&limit=1&cursor=${first.body.nextCursor}`,
+    );
+    expect(second.status).toBe(200);
+    expect(second.body.items).toHaveLength(1);
+    expect(second.body.items[0].entityType).toBe('Plan');
+    expect(second.body.items[0].entityId).toBe(planId);
+    expect(
+      (
+        await api('outsider').get(
+          `/ledgers/${sourceLedgerId}/activity?planId=${planId}`,
+        )
+      ).status,
+    ).toBe(404);
+  });
+
   it('deduplicates financial retries and rejects stale Expense versions', async () => {
     const ledgerId = await createLedger('owner', 'Idempotency Defteri');
     await inviteTo(ledgerId, 'admin');

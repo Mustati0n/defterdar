@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import type { Prisma } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { LedgerAuthorizationService } from '../ledgers/ledger-authorization.service.js';
@@ -31,8 +31,11 @@ export class ActivityLogService {
 
   async list(ledgerId: string, actorId: string, query: ActivityQueryDto) {
     await this.authorization.requireMember(ledgerId, actorId);
+    const scope = query.planId
+      ? await this.planScope(ledgerId, query.planId)
+      : {};
     const rows = await this.prisma.activityLog.findMany({
-      where: { ledgerId },
+      where: { ledgerId, ...scope },
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       take: query.limit + 1,
       ...(query.cursor ? { cursor: { id: query.cursor }, skip: 1 } : {}),
@@ -41,5 +44,66 @@ export class ActivityLogService {
     const hasMore = rows.length > query.limit;
     const items = hasMore ? rows.slice(0, query.limit) : rows;
     return { items, nextCursor: hasMore ? items.at(-1)!.id : null };
+  }
+
+  private async planScope(
+    ledgerId: string,
+    planId: string,
+  ): Promise<Prisma.ActivityLogWhereInput> {
+    const plan = await this.prisma.plan.findFirst({
+      where: { id: planId, ledgerId },
+      select: { id: true },
+    });
+    if (!plan) throw new NotFoundException('Plan not found');
+
+    const [expenses, incomes, settlements, attachments, offsets] =
+      await Promise.all([
+        this.prisma.expense.findMany({
+          where: { ledgerId, planId },
+          select: { id: true },
+        }),
+        this.prisma.income.findMany({
+          where: { ledgerId, planId },
+          select: { id: true },
+        }),
+        this.prisma.settlement.findMany({
+          where: { ledgerId, planId },
+          select: { id: true },
+        }),
+        this.prisma.expenseAttachment.findMany({
+          where: { expense: { ledgerId, planId } },
+          select: { id: true },
+        }),
+        this.prisma.expenseSplitOffset.findMany({
+          where: { expenseSplit: { expense: { ledgerId, planId } } },
+          select: { id: true },
+        }),
+      ]);
+
+    return {
+      OR: [
+        { entityType: 'Plan', entityId: planId },
+        {
+          entityType: 'Expense',
+          entityId: { in: expenses.map(({ id }) => id) },
+        },
+        {
+          entityType: 'Income',
+          entityId: { in: incomes.map(({ id }) => id) },
+        },
+        {
+          entityType: 'Settlement',
+          entityId: { in: settlements.map(({ id }) => id) },
+        },
+        {
+          entityType: 'ExpenseAttachment',
+          entityId: { in: attachments.map(({ id }) => id) },
+        },
+        {
+          entityType: 'ExpenseSplitOffset',
+          entityId: { in: offsets.map(({ id }) => id) },
+        },
+      ],
+    };
   }
 }

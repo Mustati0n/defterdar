@@ -16,6 +16,7 @@ import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 import { ErrorState, LoadingState } from '@/components/ui/states';
 import { useToast } from '@/components/ui/toast';
 import { queryKeys } from '@/features/data/hooks';
+import { invalidateFinancialData } from '@/features/data/financial-invalidation';
 import { api, ApiError } from '@/lib/api-client';
 import { formatDate, formatMoneyFromMinor } from '@/lib/format';
 import type { BalanceResponse, LedgerRole, Settlement } from '@/lib/types';
@@ -65,32 +66,11 @@ export function BalanceExperience({
   });
 
   async function refreshFinancialTruth() {
-    await Promise.all([
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.ledgerBalance(ledgerId),
-      }),
-      ...(planId
-        ? [
-            queryClient.invalidateQueries({
-              queryKey: queryKeys.planBalance(planId),
-            }),
-          ]
-        : []),
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.settlements(ledgerId, planId),
-      }),
-      queryClient.invalidateQueries({ queryKey: queryKeys.activity(ledgerId) }),
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.ledgerAnalytics(ledgerId),
-      }),
-      ...(planId
-        ? [
-            queryClient.invalidateQueries({
-              queryKey: queryKeys.planAnalytics(planId),
-            }),
-          ]
-        : []),
-    ]);
+    await invalidateFinancialData(queryClient, {
+      ledgerId,
+      planIds: [planId],
+      settlements: true,
+    });
   }
 
   const createSettlement = useMutation({

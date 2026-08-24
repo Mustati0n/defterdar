@@ -7,6 +7,7 @@ import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 import { ErrorState, LoadingState } from '@/components/ui/states';
 import { useToast } from '@/components/ui/toast';
 import { queryKeys, useCategories, useLedgers } from '@/features/data/hooks';
+import { invalidateFinancialData } from '@/features/data/financial-invalidation';
 import { api } from '@/lib/api-client';
 import type { Category, CategoryKind } from '@/lib/types';
 
@@ -53,8 +54,11 @@ export function CategoryManager() {
       queryClient.invalidateQueries({
         queryKey: queryKeys.categories(ledgerId),
       }),
-      queryClient.invalidateQueries({
-        queryKey: ['ledger-analytics', ledgerId],
+      invalidateFinancialData(queryClient, {
+        ledgerId,
+        balances: false,
+        offsetAvailability: false,
+        allPlanAnalytics: true,
       }),
     ]);
   };

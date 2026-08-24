@@ -15,7 +15,7 @@ export class ActivityController {
   constructor(private readonly service: ActivityLogService) {}
 
   @Get('ledgers/:ledgerId/activity')
-  @ApiOperation({ summary: 'Read immutable ledger activity with cursor pagination' })
+  @ApiOperation({ summary: 'Read immutable Ledger or Plan-scoped activity with cursor pagination' })
   @ApiOkResponse({ type: ActivityPageDto })
   list(@Param('ledgerId', new ParseUUIDPipe({ version: '4' })) ledgerId: string, @CurrentUser() user: SafeUser, @Query() query: ActivityQueryDto) {
     return this.service.list(ledgerId, user.id, query);

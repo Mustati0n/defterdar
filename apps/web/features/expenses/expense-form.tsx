@@ -1,7 +1,7 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowRight, Check, CircleHelp, Gift, ReceiptText } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -21,6 +21,7 @@ import { useCategories } from '@/features/data/hooks';
 import { parseMoneyToMinor, equalPreview } from '@/lib/money';
 import { buildSplit } from './split-payload';
 import { formatMoneyFromMinor } from '@/lib/format';
+import { invalidateFinancialData } from '@/features/data/financial-invalidation';
 
 const schema = z.object({
   ledgerId: z.string().min(1, 'Bir Defter seç.'),
@@ -70,6 +71,7 @@ export function ExpenseForm() {
   const router = useRouter();
   const { user } = useAuth();
   const toast = useToast();
+  const queryClient = useQueryClient();
   const ledgers = useLedgers();
   const createExpense = useCreateExpense();
   const [allocations, setAllocations] = useState<Record<string, string>>({});
@@ -147,6 +149,12 @@ export function ExpenseForm() {
         kind: 'EXPENSE',
       });
       await categories.refetch();
+      await invalidateFinancialData(queryClient, {
+        ledgerId,
+        balances: false,
+        offsetAvailability: false,
+        allPlanAnalytics: true,
+      });
       setValue('categoryId', category.id);
       setNewCategory('');
       toast('Kategori oluşturuldu.');

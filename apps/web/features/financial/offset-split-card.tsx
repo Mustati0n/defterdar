@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from 'react';
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 import { useToast } from '@/components/ui/toast';
 import { queryKeys } from '@/features/data/hooks';
+import { invalidateFinancialData } from '@/features/data/financial-invalidation';
 import { api, ApiError } from '@/lib/api-client';
 import { formatDate, formatMoneyFromMinor } from '@/lib/format';
 import { parseMoneyToMinor } from '@/lib/money';
@@ -40,7 +41,7 @@ export function OffsetSplitCard({
   const [dialogError, setDialogError] = useState<string | null>(null);
   const [voidId, setVoidId] = useState<string | null>(null);
   const availability = useQuery({
-    queryKey: queryKeys.offsetAvailability(split.id),
+    queryKey: queryKeys.offsetAvailability(expense.ledgerId, split.id),
     queryFn: () => api.offsets.availability(split.id),
     enabled: Boolean(
       split.isReimbursable && !expense.isGift && !expense.voidedAt,
@@ -56,27 +57,12 @@ export function OffsetSplitCard({
   });
 
   async function refresh() {
-    await Promise.all([
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.expense(expense.id),
-      }),
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.offsetAvailability(split.id),
-      }),
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.ledgerBalance(expense.ledgerId),
-      }),
-      ...(expense.planId
-        ? [
-            queryClient.invalidateQueries({
-              queryKey: queryKeys.planBalance(expense.planId),
-            }),
-          ]
-        : []),
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.activity(expense.ledgerId),
-      }),
-    ]);
+    await invalidateFinancialData(queryClient, {
+      ledgerId: expense.ledgerId,
+      planIds: [expense.planId],
+      expenseId: expense.id,
+      expenses: true,
+    });
   }
   const create = useMutation({
     mutationFn: (amountMinor: number) =>

@@ -178,6 +178,12 @@ describe('BalanceExperience', () => {
     expect(invalidate).toHaveBeenCalledWith({
       queryKey: ['ledger-balance', 'ledger-1'],
     });
+    expect(invalidate).toHaveBeenCalledWith({
+      queryKey: ['ledger-analytics', 'ledger-1'],
+    });
+    expect(invalidate).toHaveBeenCalledWith({
+      queryKey: ['settlements', 'ledger-1'],
+    });
   });
 
   it('records a partial payment and previews the remainder', async () => {
@@ -233,6 +239,9 @@ describe('BalanceExperience', () => {
     expect(invalidate).toHaveBeenCalledWith({
       queryKey: ['ledger-balance', 'ledger-1'],
     });
+    expect(invalidate).toHaveBeenCalledWith({
+      queryKey: ['ledger-analytics', 'ledger-1'],
+    });
   });
 
   it('voids an authorized payment record and refreshes balances', async () => {
@@ -252,6 +261,9 @@ describe('BalanceExperience', () => {
     );
     expect(invalidate).toHaveBeenCalledWith({
       queryKey: ['ledger-balance', 'ledger-1'],
+    });
+    expect(invalidate).toHaveBeenCalledWith({
+      queryKey: ['ledger-analytics', 'ledger-1'],
     });
   });
 });

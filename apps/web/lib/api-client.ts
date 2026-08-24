@@ -296,10 +296,19 @@ export const api = {
       ),
     balances: (ledgerId: string) =>
       apiRequest<BalanceResponse>(`/ledgers/${ledgerId}/balances`),
-    activity: (ledgerId: string, limit = 12, cursor?: string) =>
-      apiRequest<ActivityPage>(
-        `/ledgers/${ledgerId}/activity?limit=${limit}${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`,
-      ),
+    activity: (
+      ledgerId: string,
+      limit = 12,
+      cursor?: string,
+      planId?: string,
+    ) => {
+      const params = new URLSearchParams({ limit: String(limit) });
+      if (cursor) params.set('cursor', cursor);
+      if (planId) params.set('planId', planId);
+      return apiRequest<ActivityPage>(
+        `/ledgers/${ledgerId}/activity?${params.toString()}`,
+      );
+    },
     analytics: (ledgerId: string, from?: string, to?: string) => {
       const params = new URLSearchParams();
       if (from) params.set('from', from);
@@ -470,5 +479,13 @@ export const api = {
         body: input,
         headers: { 'Idempotency-Key': crypto.randomUUID() },
       }),
+    get: (incomeId: string) => apiRequest<Income>(`/incomes/${incomeId}`),
+    update: (incomeId: string, input: Partial<CreateIncomeInput>) =>
+      apiRequest<Income>(`/incomes/${incomeId}`, {
+        method: 'PATCH',
+        body: input,
+      }),
+    void: (incomeId: string) =>
+      apiRequest<Income>(`/incomes/${incomeId}/void`, { method: 'POST' }),
   },
 };

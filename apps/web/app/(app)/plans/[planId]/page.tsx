@@ -231,7 +231,7 @@ export default function PlanDetailPage() {
         </>
       ) : null}
       {activeTab === 'activity' ? (
-        <ActivityFeed ledgerId={data.ledgerId} />
+        <ActivityFeed ledgerId={data.ledgerId} planId={planId} />
       ) : null}
       {activeTab === 'balances' ? (
         <BalanceExperience

@@ -11,6 +11,7 @@ import { api } from '@/lib/api-client';
 import type { CreateLedgerInput, CreatePlanInput, Ledger } from '@/lib/types';
 import type { CreateExpenseInput, CreateIncomeInput } from '@/lib/types';
 import type { UpdateExpenseInput } from '@/lib/types';
+import { invalidateFinancialData } from './financial-invalidation';
 
 export const queryKeys = {
   me: ['me'] as const,
@@ -24,9 +25,18 @@ export const queryKeys = {
   participants: (planId: string) => ['participants', planId] as const,
   ledgerBalance: (ledgerId: string) => ['ledger-balance', ledgerId] as const,
   planBalance: (planId: string) => ['plan-balance', planId] as const,
-  activity: (ledgerId: string) => ['activity', ledgerId] as const,
+  activityPreview: (ledgerId: string) =>
+    ['activity-preview', ledgerId] as const,
+  activityFeed: (ledgerId: string, planId?: string) =>
+    ['activity-feed', ledgerId, { planId }] as const,
+  activityFeedPrefix: (ledgerId: string) =>
+    ['activity-feed', ledgerId] as const,
+  ledgerAnalyticsPrefix: (ledgerId: string) =>
+    ['ledger-analytics', ledgerId] as const,
   ledgerAnalytics: (ledgerId: string, from?: string, to?: string) =>
     ['ledger-analytics', ledgerId, { from, to }] as const,
+  planAnalyticsPrefix: (planId: string) =>
+    ['plan-analytics', planId] as const,
   planAnalytics: (planId: string, from?: string, to?: string) =>
     ['plan-analytics', planId, { from, to }] as const,
   expenses: (ledgerId: string, planId?: string) =>
@@ -36,11 +46,14 @@ export const queryKeys = {
   categories: (ledgerId: string) => ['categories', ledgerId] as const,
   incomes: (ledgerId: string, planId?: string) =>
     ['incomes', ledgerId, { planId }] as const,
+  income: (incomeId: string) => ['income', incomeId] as const,
   invitations: (ledgerId: string) => ['invitations', ledgerId] as const,
   settlements: (ledgerId: string, planId?: string) =>
     ['settlements', ledgerId, { planId }] as const,
-  offsetAvailability: (expenseSplitId: string) =>
-    ['offset-availability', expenseSplitId] as const,
+  offsetAvailability: (ledgerId: string, expenseSplitId: string) =>
+    ['offset-availability', ledgerId, expenseSplitId] as const,
+  offsetAvailabilityPrefix: (ledgerId: string) =>
+    ['offset-availability', ledgerId] as const,
 };
 
 export function useLedgers(includeArchived = false) {
@@ -173,7 +186,7 @@ export function useLedgerDetailData(ledgerId: string) {
     enabled: Boolean(ledgerId),
   });
   const activity = useQuery({
-    queryKey: queryKeys.activity(ledgerId),
+    queryKey: queryKeys.activityPreview(ledgerId),
     queryFn: () => api.ledgers.activity(ledgerId),
     enabled: Boolean(ledgerId),
   });
@@ -223,20 +236,11 @@ export function useCreateExpense() {
       input: CreateExpenseInput;
     }) => api.expenses.create(ledgerId, input),
     onSuccess: async (_, variables) => {
-      await Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: ['expenses', variables.ledgerId],
-        }),
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.ledgerBalance(variables.ledgerId),
-        }),
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.activity(variables.ledgerId),
-        }),
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.ledgerAnalytics(variables.ledgerId),
-        }),
-      ]);
+      await invalidateFinancialData(queryClient, {
+        ledgerId: variables.ledgerId,
+        planIds: [variables.input.planId],
+        expenses: true,
+      });
     },
   });
 }
@@ -254,16 +258,57 @@ export function useUpdateExpense(expenseId: string) {
   return useMutation({
     mutationFn: (input: UpdateExpenseInput) =>
       api.expenses.update(expenseId, input),
+    onMutate: () => ({
+      previous: queryClient.getQueryData<
+        Awaited<ReturnType<typeof api.expenses.get>>
+      >(queryKeys.expense(expenseId)),
+    }),
+    onSuccess: async (expense, _variables, context) => {
+      queryClient.setQueryData(queryKeys.expense(expenseId), expense);
+      await invalidateFinancialData(queryClient, {
+        ledgerId: expense.ledgerId,
+        planIds: [context.previous?.planId, expense.planId],
+        expenseId,
+        expenses: true,
+      });
+    },
+    onError: async (_error, variables, context) => {
+      const previous = context?.previous;
+      if (!previous) return;
+      await invalidateFinancialData(queryClient, {
+        ledgerId: previous.ledgerId,
+        planIds: [previous.planId, variables.planId],
+        expenseId,
+        expenses: true,
+      });
+    },
+  });
+}
+
+export function useVoidExpense(expenseId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.expenses.void(expenseId),
     onSuccess: async (expense) => {
       queryClient.setQueryData(queryKeys.expense(expenseId), expense);
-      await Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: ['expenses', expense.ledgerId],
-        }),
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.activity(expense.ledgerId),
-        }),
-      ]);
+      await invalidateFinancialData(queryClient, {
+        ledgerId: expense.ledgerId,
+        planIds: [expense.planId],
+        expenseId,
+        expenses: true,
+      });
+    },
+    onError: async () => {
+      const expense = queryClient.getQueryData<
+        Awaited<ReturnType<typeof api.expenses.get>>
+      >(queryKeys.expense(expenseId));
+      if (!expense) return;
+      await invalidateFinancialData(queryClient, {
+        ledgerId: expense.ledgerId,
+        planIds: [expense.planId],
+        expenseId,
+        expenses: true,
+      });
     },
   });
 }
@@ -292,10 +337,11 @@ export function useIncomes(ledgerId: string, planId?: string) {
   });
 }
 
-export function useActivityFeed(ledgerId: string) {
+export function useActivityFeed(ledgerId: string, planId?: string) {
   return useInfiniteQuery({
-    queryKey: queryKeys.activity(ledgerId),
-    queryFn: ({ pageParam }) => api.ledgers.activity(ledgerId, 20, pageParam),
+    queryKey: queryKeys.activityFeed(ledgerId, planId),
+    queryFn: ({ pageParam }) =>
+      api.ledgers.activity(ledgerId, 20, pageParam, planId),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (page) => page.nextCursor ?? undefined,
     enabled: Boolean(ledgerId),
@@ -313,17 +359,53 @@ export function useCreateIncome() {
       input: CreateIncomeInput;
     }) => api.incomes.create(ledgerId, input),
     onSuccess: async (_, variables) => {
-      await Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: ['incomes', variables.ledgerId],
-        }),
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.activity(variables.ledgerId),
-        }),
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.ledgerAnalytics(variables.ledgerId),
-        }),
-      ]);
+      await invalidateFinancialData(queryClient, {
+        ledgerId: variables.ledgerId,
+        planIds: [variables.input.planId],
+        balances: false,
+        offsetAvailability: false,
+        incomes: true,
+      });
+    },
+  });
+}
+
+export function useUpdateIncome(incomeId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: Partial<CreateIncomeInput>) =>
+      api.incomes.update(incomeId, input),
+    onMutate: () => ({
+      previous: queryClient.getQueryData<
+        Awaited<ReturnType<typeof api.incomes.get>>
+      >(queryKeys.income(incomeId)),
+    }),
+    onSuccess: async (income, _variables, context) => {
+      queryClient.setQueryData(queryKeys.income(incomeId), income);
+      await invalidateFinancialData(queryClient, {
+        ledgerId: income.ledgerId,
+        planIds: [context.previous?.planId, income.planId],
+        balances: false,
+        offsetAvailability: false,
+        incomes: true,
+      });
+    },
+  });
+}
+
+export function useVoidIncome(incomeId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.incomes.void(incomeId),
+    onSuccess: async (income) => {
+      queryClient.setQueryData(queryKeys.income(incomeId), income);
+      await invalidateFinancialData(queryClient, {
+        ledgerId: income.ledgerId,
+        planIds: [income.planId],
+        balances: false,
+        offsetAvailability: false,
+        incomes: true,
+      });
     },
   });
 }
