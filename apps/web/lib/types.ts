@@ -149,7 +149,54 @@ export interface ExpenseSplit {
   isReimbursable: boolean;
   offsetAppliedMinor: string;
   remainingReimbursableMinor: string;
+  offsets: ExpenseSplitOffset[];
   createdAt: string;
+}
+
+export interface ExpenseSplitOffset {
+  id: string;
+  expenseSplitId?: string;
+  amountMinor: string;
+  createdById: string;
+  createdAt: string;
+  voidedAt: string | null;
+}
+
+export interface OffsetAvailability {
+  expenseSplitId: string;
+  eligible: boolean;
+  splitAmountMinor: string;
+  offsetAppliedMinor: string;
+  remainingReimbursableMinor: string;
+  priorSuggestionMinor: string;
+  maxOffsetMinor: string;
+  reason: string | null;
+}
+
+export interface Settlement {
+  id: string;
+  ledgerId: string;
+  planId: string | null;
+  fromUserId: string;
+  toUserId: string;
+  fromUser: Pick<User, 'id' | 'displayName'>;
+  toUser: Pick<User, 'id' | 'displayName'>;
+  amountMinor: string;
+  currency: string;
+  note: string | null;
+  settledAt: string;
+  createdById: string;
+  createdAt: string;
+  voidedAt: string | null;
+}
+
+export interface CreateSettlementInput {
+  fromUserId: string;
+  toUserId: string;
+  amountMinor: number;
+  planId?: string | null;
+  note?: string | null;
+  settledAt: string;
 }
 
 export interface Expense {

@@ -162,4 +162,56 @@ describe('product-flow API contracts', () => {
       '/plans/plan-1/reopen',
     ]);
   });
+
+  it('uses real payment and Borçtan düş create/reversal endpoints', async () => {
+    fetchMock.mockImplementation(() => json({ id: 'financial-record' }, 201));
+    await api.settlements.create('ledger-1', {
+      fromUserId: 'u1',
+      toUserId: 'u2',
+      amountMinor: 10000,
+      settledAt: '2026-08-24T12:00:00Z',
+    });
+    await api.settlements.void('settlement-1');
+    await api.offsets.availability('split-1');
+    await api.offsets.create('split-1', 7000);
+    await api.offsets.create('split-2');
+    await api.offsets.void('offset-1');
+    expect(
+      fetchMock.mock.calls.map((call) => new URL(String(call[0])).pathname),
+    ).toEqual([
+      '/ledgers/ledger-1/settlements',
+      '/settlements/settlement-1/void',
+      '/expense-splits/split-1/offset-availability',
+      '/expense-splits/split-1/offsets',
+      '/expense-splits/split-2/offsets',
+      '/expense-split-offsets/offset-1/void',
+    ]);
+    expect(
+      JSON.parse((fetchMock.mock.calls[3][1] as RequestInit).body as string),
+    ).toEqual({ amountMinor: 7000 });
+    expect(
+      JSON.parse((fetchMock.mock.calls[4][1] as RequestInit).body as string),
+    ).toEqual({});
+  });
+
+  it('translates overpayment and stale financial conflicts into safe product copy', async () => {
+    fetchMock
+      .mockImplementationOnce(() =>
+        json({ message: 'Settlement exceeds the current balance' }, 409),
+      )
+      .mockImplementationOnce(() =>
+        json({ message: 'Offset exceeds current availability' }, 409),
+      );
+    await expect(
+      api.settlements.create('ledger-1', {
+        fromUserId: 'u1',
+        toUserId: 'u2',
+        amountMinor: 40000,
+        settledAt: '2026-08-24T12:00:00Z',
+      }),
+    ).rejects.toMatchObject({ message: 'Bu tutar kalan borçtan fazla.' });
+    await expect(api.offsets.create('split-1', 8000)).rejects.toMatchObject({
+      message: expect.stringMatching(/artık Borçtan düşülebilecek/),
+    });
+  });
 });

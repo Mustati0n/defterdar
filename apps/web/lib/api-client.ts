@@ -21,6 +21,7 @@ import type {
   CreatePlanInput,
   Expense,
   ExpenseAttachment,
+  ExpenseSplitOffset,
   Income,
   Ledger,
   LedgerMember,
@@ -28,10 +29,13 @@ import type {
   LoginInput,
   Plan,
   PlanParticipant,
+  OffsetAvailability,
   RegisterInput,
   TokenResponse,
   UpdateExpenseInput,
   User,
+  Settlement,
+  CreateSettlementInput,
 } from './types';
 
 export class ApiError extends Error {
@@ -63,6 +67,26 @@ function getErrorMessage(body: ApiErrorBody | null, status: number): string {
   if (normalized.includes('version') && normalized.includes('match')) {
     return 'Bu harcama başka bir yerde güncellendi. Son halini yükleyip değişikliklerini yeniden uygula.';
   }
+  if (normalized.includes('settlement exceeds')) {
+    return 'Bu tutar kalan borçtan fazla.';
+  }
+  if (
+    normalized.includes('fromuser is not a debtor') ||
+    normalized.includes('touser is not a creditor') ||
+    normalized.includes('concurrent financial')
+  ) {
+    return 'Bakiye az önce değişti. Güncel hesabı yeniden yükledik.';
+  }
+  if (normalized.includes('offset exceeds current availability')) {
+    return 'Bu tutar artık Borçtan düşülebilecek miktardan fazla. Güncel durumu yeniden yükledik.';
+  }
+  if (
+    normalized.includes('offset is not available') ||
+    normalized.includes('no prior reverse debt') ||
+    normalized.includes('split has no remaining')
+  ) {
+    return 'Bu harcama artık Borçtan düş için uygun değil. Bakiyeler değişmiş olabilir.';
+  }
   if (
     normalized.includes('participant') &&
     normalized.includes('target ledger')
@@ -82,7 +106,7 @@ function getErrorMessage(body: ApiErrorBody | null, status: number): string {
   if (status === 400)
     return 'Bilgilerden biri eksik veya hatalı. İşaretli alanları kontrol et.';
   if (status === 401) return 'Oturumunuz sona erdi. Lütfen tekrar giriş yapın.';
-  if (status === 403) return 'Bu işlem için yetkiniz bulunmuyor.';
+  if (status === 403) return 'Bu işlemi yapma yetkin yok.';
   if (status === 404) return 'Aradığınız kayıt bulunamadı.';
   if (status >= 500) return 'Sunucuya ulaşılamadı. Biraz sonra tekrar deneyin.';
   return 'İstek tamamlanamadı.';
@@ -352,6 +376,42 @@ export const api = {
       ),
     remove: (attachmentId: string) =>
       apiRequest<void>(`/attachments/${attachmentId}`, { method: 'DELETE' }),
+  },
+  settlements: {
+    list: (ledgerId: string, planId?: string) =>
+      apiRequest<Settlement[]>(
+        `/ledgers/${ledgerId}/settlements${planId ? `?planId=${encodeURIComponent(planId)}` : ''}`,
+      ),
+    create: (ledgerId: string, input: CreateSettlementInput) =>
+      apiRequest<Settlement>(`/ledgers/${ledgerId}/settlements`, {
+        method: 'POST',
+        body: input,
+        headers: { 'Idempotency-Key': crypto.randomUUID() },
+      }),
+    void: (settlementId: string) =>
+      apiRequest<Settlement>(`/settlements/${settlementId}/void`, {
+        method: 'POST',
+      }),
+  },
+  offsets: {
+    availability: (expenseSplitId: string) =>
+      apiRequest<OffsetAvailability>(
+        `/expense-splits/${expenseSplitId}/offset-availability`,
+      ),
+    create: (expenseSplitId: string, amountMinor?: number) =>
+      apiRequest<ExpenseSplitOffset>(
+        `/expense-splits/${expenseSplitId}/offsets`,
+        {
+          method: 'POST',
+          body: amountMinor === undefined ? {} : { amountMinor },
+          headers: { 'Idempotency-Key': crypto.randomUUID() },
+        },
+      ),
+    void: (offsetId: string) =>
+      apiRequest<ExpenseSplitOffset>(
+        `/expense-split-offsets/${offsetId}/void`,
+        { method: 'POST' },
+      ),
   },
   categories: {
     list: (ledgerId: string) =>

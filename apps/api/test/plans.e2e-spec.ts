@@ -701,6 +701,18 @@ describe('Plan lifecycle and participant API', () => {
     ]);
     expect(concurrent.map((result) => result.status).sort()).toEqual([201, 409]);
     const active = concurrent.find((result) => result.status === 201)!;
+    const activeHistory = await api('owner').get(`/expenses/${target.body.id}`);
+    expect(activeHistory.body.splits[0]).toMatchObject({
+      offsetAppliedMinor: '6000',
+      remainingReimbursableMinor: '2000',
+      offsets: [
+        expect.objectContaining({
+          id: active.body.id,
+          amountMinor: '6000',
+          voidedAt: null,
+        }),
+      ],
+    });
     const after = (await api('owner').get(`/ledgers/${ledgerId}/balances`)).body;
     expect(after).toEqual(before);
     expect(
@@ -713,6 +725,13 @@ describe('Plan lifecycle and participant API', () => {
     expect((await api('owner').patch(`/expenses/${target.body.id}`).send({ title: 'Metadata ok', expectedVersion: 1 })).status).toBe(200);
     expect((await api('admin').post(`/expense-split-offsets/${active.body.id}/void`)).status).toBe(403);
     expect((await api('owner').post(`/expense-split-offsets/${active.body.id}/void`)).status).toBe(201);
+    const voidedHistory = await api('owner').get(`/expenses/${target.body.id}`);
+    expect(voidedHistory.body.splits[0].offsetAppliedMinor).toBe('0');
+    expect(voidedHistory.body.splits[0].offsets[0]).toMatchObject({
+      id: active.body.id,
+      amountMinor: '6000',
+    });
+    expect(voidedHistory.body.splits[0].offsets[0].voidedAt).not.toBeNull();
     const reapplied = await api('owner').post(`/expense-splits/${splitId}/offsets`).send({});
     expect(reapplied.status).toBe(201);
     expect((await api('owner').post(`/expenses/${target.body.id}/void`)).status).toBe(201);

@@ -90,7 +90,16 @@ export class ExpensesService {
         splits: {
           include: {
             user: { select: { id: true, displayName: true } },
-            offsets: { where: { voidedAt: null }, select: { amountMinor: true } },
+            offsets: {
+              select: {
+                id: true,
+                amountMinor: true,
+                createdById: true,
+                createdAt: true,
+                voidedAt: true,
+              },
+              orderBy: { createdAt: 'asc' },
+            },
           },
         },
       },
@@ -106,12 +115,20 @@ export class ExpensesService {
         amountMinor: s.amountMinor.toString(),
         isReimbursable: s.isReimbursable,
         offsetAppliedMinor: s.offsets
+          .filter((offset) => !offset.voidedAt)
           .reduce((sum, offset) => sum + offset.amountMinor, 0n)
           .toString(),
         remainingReimbursableMinor: (s.isReimbursable && !e.voidedAt
-          ? s.amountMinor - s.offsets.reduce((sum, offset) => sum + offset.amountMinor, 0n)
+          ? s.amountMinor -
+            s.offsets
+              .filter((offset) => !offset.voidedAt)
+              .reduce((sum, offset) => sum + offset.amountMinor, 0n)
           : 0n
         ).toString(),
+        offsets: s.offsets.map((offset) => ({
+          ...offset,
+          amountMinor: offset.amountMinor.toString(),
+        })),
         createdAt: s.createdAt,
       })),
     };

@@ -10,6 +10,10 @@ const actions: Record<string, string> = {
   'attachment.added': 'bir receipt ekledi',
   'attachment.removed': 'bir receipt kaldırdı',
   'member.joined': 'deftere katıldı',
+  'settlement.created': 'bir ödemeyi kaydetti',
+  'settlement.voided': 'bir ödeme kaydını geri aldı',
+  'offset.created': 'bir payı mevcut borçtan düştü',
+  'offset.voided': 'bir Borçtan düş işlemini geri aldı',
 };
 
 export function activitySentence(item: ActivityItem): string {

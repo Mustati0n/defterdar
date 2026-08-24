@@ -5,6 +5,15 @@ class SafeExpenseUserDto {
   @ApiProperty({ format: 'uuid' }) id!: string;
   @ApiProperty() displayName!: string;
 }
+
+class ExpenseSplitOffsetSummaryDto {
+  @ApiProperty({ format: 'uuid' }) id!: string;
+  @ApiProperty({ type: String }) amountMinor!: string;
+  @ApiProperty({ format: 'uuid' }) createdById!: string;
+  @ApiProperty() createdAt!: Date;
+  @ApiPropertyOptional({ nullable: true }) voidedAt!: Date | null;
+}
+
 export class ExpenseSplitResponseDto {
   @ApiProperty({ format: 'uuid' }) id!: string;
   @ApiProperty({ type: SafeExpenseUserDto }) user!: SafeExpenseUserDto;
@@ -19,6 +28,8 @@ export class ExpenseSplitResponseDto {
   isReimbursable!: boolean;
   @ApiProperty({ type: String }) offsetAppliedMinor!: string;
   @ApiProperty({ type: String }) remainingReimbursableMinor!: string;
+  @ApiProperty({ type: ExpenseSplitOffsetSummaryDto, isArray: true })
+  offsets!: ExpenseSplitOffsetSummaryDto[];
   @ApiProperty() createdAt!: Date;
 }
 export class ExpenseResponseDto {

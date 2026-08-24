@@ -24,6 +24,7 @@ import {
   useLedgerBalances,
   useLedgers,
   queryKeys,
+  usePlanBalances,
 } from '@/features/data/hooks';
 import { useAuth } from '@/features/auth/auth-provider';
 import { api } from '@/lib/api-client';
@@ -37,6 +38,8 @@ export default function OverviewPage() {
   );
   const allPlans = useAllPlans(activeLedgers);
   const ledgerBalances = useLedgerBalances(activeLedgers);
+  const activePlans = allPlans.plans.filter((plan) => plan.status === 'ACTIVE');
+  const planBalances = usePlanBalances(activePlans);
   const firstLedgerId = activeLedgers?.[0]?.id ?? '';
   const analytics = useQuery({
     queryKey: queryKeys.ledgerAnalytics(firstLedgerId),
@@ -54,15 +57,25 @@ export default function OverviewPage() {
   if (ledgersQuery.isError)
     return <ErrorState onRetry={() => void ledgersQuery.refetch()} />;
 
-  const activePlans = allPlans.plans.filter((plan) => plan.status === 'ACTIVE');
   const personalLedger = activeLedgers?.find(
     (ledger) => ledger.type === 'PERSONAL',
   );
-  const owedBalances = ledgerBalances.balances
-    .map((balance) =>
-      balance.positions.find((position) => position.user.id === user?.id),
-    )
-    .filter((position) => position && position.netMinor < 0);
+  const owedBalances = ledgerBalances.entries.flatMap(({ ledger, balance }) => {
+    const position = balance.positions.find(
+      (item) => item.user.id === user?.id,
+    );
+    return position && position.netMinor < 0
+      ? [{ ledger, balance, position }]
+      : [];
+  });
+  const openPlanAccounts = planBalances.entries.flatMap(({ plan, balance }) => {
+    const position = balance.positions.find(
+      (item) => item.user.id === user?.id,
+    );
+    return position && position.netMinor !== 0
+      ? [{ plan, balance, position }]
+      : [];
+  });
   const currency =
     analytics.data?.currency ?? activeLedgers?.[0]?.currency ?? 'TRY';
 
@@ -74,7 +87,7 @@ export default function OverviewPage() {
         description="Defterler, planlar ve son hareketler tek bakışta masanda."
       />
 
-      {owedBalances.length || activePlans.length ? (
+      {owedBalances.length || openPlanAccounts.length ? (
         <section className="attention-strip" aria-label="İlgilenmen gerekenler">
           <div>
             <AlertCircle />
@@ -84,26 +97,40 @@ export default function OverviewPage() {
             </span>
           </div>
           <div className="attention-strip__items">
-            {owedBalances.length ? (
-              <Link href="/ledgers">
+            {owedBalances.slice(0, 2).map(({ ledger, balance, position }) => (
+              <Link href={`/ledgers/${ledger.id}`} key={ledger.id}>
                 <WalletCards />
                 <span>
-                  <strong>{owedBalances.length} açık ödemen var</strong>
-                  <small>Defter bakiyelerini kontrol et</small>
+                  <strong>
+                    {ledger.name}:{' '}
+                    {formatMoneyFromMinor(
+                      Math.abs(position.netMinor),
+                      balance.currency,
+                    )}{' '}
+                    ödemen var
+                  </strong>
+                  <small>Bakiyeyi gör ve ödendi olarak kaydet</small>
                 </span>
                 <ArrowRight />
               </Link>
-            ) : null}
-            {activePlans.length ? (
-              <Link href="/plans">
+            ))}
+            {openPlanAccounts.slice(0, 2).map(({ plan, balance, position }) => (
+              <Link href={`/plans/${plan.id}`} key={plan.id}>
                 <NotebookTabs />
                 <span>
-                  <strong>{activePlans.length} Plan devam ediyor</strong>
-                  <small>Son hareketleri gözden geçir</small>
+                  <strong>
+                    {plan.name} Planında{' '}
+                    {formatMoneyFromMinor(
+                      Math.abs(position.netMinor),
+                      balance.currency,
+                    )}{' '}
+                    {position.netMinor < 0 ? 'ödemen' : 'alacağın'} var
+                  </strong>
+                  <small>Planın açık hesabını kontrol et</small>
                 </span>
                 <ArrowRight />
               </Link>
-            ) : null}
+            ))}
           </div>
         </section>
       ) : null}

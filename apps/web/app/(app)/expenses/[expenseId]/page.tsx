@@ -9,15 +9,22 @@ import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 import { ErrorState, LoadingState } from '@/components/ui/states';
 import { useToast } from '@/components/ui/toast';
 import { useAuth } from '@/features/auth/auth-provider';
-import { queryKeys, useExpense, useLedger } from '@/features/data/hooks';
+import {
+  queryKeys,
+  useExpense,
+  useLedger,
+  usePlan,
+} from '@/features/data/hooks';
 import { ReceiptPanel } from '@/features/expenses/receipt-panel';
 import { api, ApiError } from '@/lib/api-client';
 import { formatMoneyFromMinor } from '@/lib/format';
+import { OffsetSplitCard } from '@/features/financial/offset-split-card';
 
 export default function ExpenseDetailPage() {
   const { expenseId } = useParams<{ expenseId: string }>();
   const expense = useExpense(expenseId);
   const ledger = useLedger(expense.data?.ledgerId ?? '');
+  const plan = usePlan(expense.data?.planId ?? '');
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const toast = useToast();
@@ -100,10 +107,6 @@ export default function ExpenseDetailPage() {
               <dt>Plan</dt>
               <dd>{data.planId ? 'Plana bağlı' : 'Defter geneli'}</dd>
             </div>
-            <div>
-              <dt>Sürüm</dt>
-              <dd>{data.version}</dd>
-            </div>
           </dl>
           {data.isGift ? (
             <div className="gift-note">
@@ -116,20 +119,18 @@ export default function ExpenseDetailPage() {
           <h2>Kim ne kadar paylaştı?</h2>
           <div className="split-detail-list">
             {data.splits.map((split) => (
-              <div key={split.id}>
-                <span>
-                  <strong>{split.user.displayName}</strong>
-                  <small>
-                    {split.isReimbursable ? 'Geri ödenebilir' : 'Geri ödemesiz'}
-                    {BigInt(split.offsetAppliedMinor) > 0n
-                      ? ` · Borçtan düş: ${formatMoneyFromMinor(split.offsetAppliedMinor, data.currency)}`
-                      : ''}
-                  </small>
-                </span>
-                <strong>
-                  {formatMoneyFromMinor(split.amountMinor, data.currency)}
-                </strong>
-              </div>
+              <OffsetSplitCard
+                key={split.id}
+                expense={data}
+                split={split}
+                role={ledger.data?.role ?? 'MEMBER'}
+                currentUserId={user?.id ?? ''}
+                disabled={Boolean(
+                  data.voidedAt ||
+                  ledger.data?.archivedAt ||
+                  plan.data?.status === 'ARCHIVED',
+                )}
+              />
             ))}
           </div>
         </section>

@@ -8,7 +8,6 @@ import {
   Settings,
   Plus,
   ReceiptText,
-  CheckCircle2,
   UsersRound,
   WalletCards,
 } from 'lucide-react';
@@ -29,6 +28,7 @@ import {
 import { ActivityFeed } from '@/features/activity/activity-feed';
 import { ExpenseIndicators } from '@/features/expenses/expense-indicators';
 import { formatDate, formatMoneyFromMinor } from '@/lib/format';
+import { BalanceExperience } from '@/features/financial/balance-experience';
 
 const tabs = [
   { id: 'general', label: 'Genel', icon: CheckSquare2 },
@@ -225,39 +225,21 @@ export default function PlanDetailPage() {
         <ActivityFeed ledgerId={data.ledgerId} />
       ) : null}
       {activeTab === 'balances' ? (
-        <section className="paper-section detail-full">
-          <span className="eyebrow">Anlık hesap</span>
-          <h2>Plan bakiyeleri</h2>
-          <div className="balance-list">
-            {(balance.data?.positions ?? []).map((position) => (
-              <div key={position.user.id}>
-                <span className="avatar avatar--paper">
-                  {position.user.displayName[0]}
-                </span>
-                <strong>{position.user.displayName}</strong>
-                <span
-                  className={
-                    position.netMinor < 0 ? 'money-negative' : 'money-positive'
-                  }
-                >
-                  {formatMoneyFromMinor(
-                    position.netMinor,
-                    balance.data?.currency,
-                  )}
-                </span>
-              </div>
-            ))}
-            {!balance.data?.positions.length ? (
-              <div className="closed-balance">
-                <CheckCircle2 />
-                <div>
-                  <strong>Hesaplar kapalı</strong>
-                  <p>Şu anda kimsenin kimseye ödemesi yok.</p>
-                </div>
-              </div>
-            ) : null}
-          </div>
-        </section>
+        <BalanceExperience
+          scope="plan"
+          ledgerId={data.ledgerId}
+          planId={planId}
+          balance={balance.data}
+          isLoading={balance.isLoading}
+          isError={balance.isError}
+          onRetry={() => void balance.refetch()}
+          currentUserId={user?.id ?? ''}
+          role={ledger.data?.role ?? 'MEMBER'}
+          mutationsDisabled={Boolean(
+            ledger.data?.archivedAt || data.status === 'ARCHIVED',
+          )}
+          planStatus={data.status}
+        />
       ) : null}
       {activeTab === 'participants' ? (
         <PlanParticipantsPanel

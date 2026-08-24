@@ -36,6 +36,10 @@ export const queryKeys = {
   incomes: (ledgerId: string, planId?: string) =>
     ['incomes', ledgerId, { planId }] as const,
   invitations: (ledgerId: string) => ['invitations', ledgerId] as const,
+  settlements: (ledgerId: string, planId?: string) =>
+    ['settlements', ledgerId, { planId }] as const,
+  offsetAvailability: (expenseSplitId: string) =>
+    ['offset-availability', expenseSplitId] as const,
 };
 
 export function useLedgers(includeArchived = false) {
@@ -100,6 +104,30 @@ export function useLedgerBalances(ledgers: Ledger[] | undefined) {
 
   return {
     balances: queries.flatMap((query) => (query.data ? [query.data] : [])),
+    entries: queries.flatMap((query, index) =>
+      query.data && ledgers?.[index]
+        ? [{ ledger: ledgers[index], balance: query.data }]
+        : [],
+    ),
+    isLoading: queries.some((query) => query.isLoading),
+  };
+}
+
+export function usePlanBalances(
+  plans: Array<{ id: string; name: string }> | undefined,
+) {
+  const queries = useQueries({
+    queries: (plans ?? []).map((plan) => ({
+      queryKey: queryKeys.planBalance(plan.id),
+      queryFn: () => api.plans.balances(plan.id),
+    })),
+  });
+  return {
+    entries: queries.flatMap((query, index) =>
+      query.data && plans?.[index]
+        ? [{ plan: plans[index], balance: query.data }]
+        : [],
+    ),
     isLoading: queries.some((query) => query.isLoading),
   };
 }

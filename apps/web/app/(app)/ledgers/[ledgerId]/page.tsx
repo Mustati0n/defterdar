@@ -6,7 +6,6 @@ import {
   CircleDollarSign,
   Clock3,
   Crown,
-  CheckCircle2,
   Plus,
   ReceiptText,
   Settings,
@@ -26,6 +25,8 @@ import {
 } from '@/features/ledgers/ledger-management';
 import { activitySentence } from '@/lib/activity';
 import { ExpenseIndicators } from '@/features/expenses/expense-indicators';
+import { BalanceExperience } from '@/features/financial/balance-experience';
+import { positionState } from '@/features/financial/financial-ux';
 import { formatMoneyFromMinor } from '@/lib/format';
 
 const tabs = [
@@ -57,6 +58,7 @@ export default function LedgerDetailPage() {
   const myPosition = balance.data?.positions.find(
     (position) => position.user.id === user?.id,
   );
+  const myBalanceState = positionState(myPosition?.netMinor ?? 0);
 
   return (
     <>
@@ -121,20 +123,24 @@ export default function LedgerDetailPage() {
                     <strong>{plans.data?.length ?? '—'}</strong>
                   </span>
                 </div>
-                <div>
+                <button
+                  className="summary-list__balance"
+                  type="button"
+                  onClick={() => setActiveTab('balances')}
+                >
                   <CircleDollarSign />
                   <span>
-                    <small>Konum</small>
+                    <small>Bakiyen</small>
                     <strong>
-                      {myPosition
-                        ? formatMoneyFromMinor(
-                            myPosition.netMinor,
-                            data.currency,
-                          )
-                        : '—'}
+                      {myBalanceState === 'receivable'
+                        ? `${formatMoneyFromMinor(Math.abs(myPosition?.netMinor ?? 0), data.currency)} alacağın var`
+                        : myBalanceState === 'payable'
+                          ? `${formatMoneyFromMinor(Math.abs(myPosition?.netMinor ?? 0), data.currency)} ödemen var`
+                          : 'Hesaplar kapalı'}
                     </strong>
                   </span>
-                </div>
+                  <span>Bakiyeleri gör</span>
+                </button>
               </div>
             </section>
             <section className="lined-section">
@@ -298,39 +304,17 @@ export default function LedgerDetailPage() {
       ) : null}
       {activeTab === 'activity' ? <ActivityFeed ledgerId={ledgerId} /> : null}
       {activeTab === 'balances' ? (
-        <section className="paper-section detail-full">
-          <span className="eyebrow">Anlık hesap</span>
-          <h2>Üye bakiyeleri</h2>
-          <div className="balance-list">
-            {(balance.data?.positions ?? []).map((position) => (
-              <div key={position.user.id}>
-                <span className="avatar avatar--paper">
-                  {position.user.displayName[0]}
-                </span>
-                <strong>{position.user.displayName}</strong>
-                <span
-                  className={
-                    position.netMinor < 0 ? 'money-negative' : 'money-positive'
-                  }
-                >
-                  {formatMoneyFromMinor(
-                    position.netMinor,
-                    balance.data?.currency,
-                  )}
-                </span>
-              </div>
-            ))}
-            {!balance.data?.positions.length ? (
-              <div className="closed-balance">
-                <CheckCircle2 />
-                <div>
-                  <strong>Hesaplar kapalı</strong>
-                  <p>Şu anda kimsenin kimseye ödemesi yok.</p>
-                </div>
-              </div>
-            ) : null}
-          </div>
-        </section>
+        <BalanceExperience
+          scope="ledger"
+          ledgerId={ledgerId}
+          balance={balance.data}
+          isLoading={balance.isLoading}
+          isError={balance.isError}
+          onRetry={() => void balance.refetch()}
+          currentUserId={user?.id ?? ''}
+          role={data.role}
+          mutationsDisabled={Boolean(data.archivedAt)}
+        />
       ) : null}
       {activeTab === 'members' ? (
         <LedgerMembersPanel ledger={data} members={members.data ?? []} />
