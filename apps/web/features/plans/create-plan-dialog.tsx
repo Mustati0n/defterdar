@@ -2,7 +2,7 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { CalendarPlus, X } from 'lucide-react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -10,6 +10,7 @@ import { useToast } from '@/components/ui/toast';
 import { useCreatePlan } from '@/features/data/hooks';
 import { ApiError } from '@/lib/api-client';
 import type { Ledger } from '@/lib/types';
+import { useModalDialog } from '@/components/ui/use-modal-dialog';
 
 const schema = z
   .object({
@@ -51,6 +52,15 @@ export function CreatePlanDialog({
   } = useForm<Values>({
     resolver: zodResolver(schema),
     defaultValues: { ledgerId: initialLedgerId },
+  });
+  const dialogRef = useRef<HTMLElement>(null);
+  const nameRef = useRef<HTMLInputElement>(null);
+  const nameRegistration = register('name');
+  const handleDialogKeyDown = useModalDialog({
+    open,
+    onClose: () => setOpen(false),
+    dialogRef,
+    initialFocusRef: nameRef,
   });
 
   async function onSubmit(values: Values) {
@@ -99,10 +109,12 @@ export function CreatePlanDialog({
           }
         >
           <section
+            ref={dialogRef}
             className="dialog-card"
             role="dialog"
             aria-modal="true"
             aria-labelledby="new-plan-title"
+            onKeyDown={handleDialogKeyDown}
           >
             <button
               className="dialog-card__close"
@@ -121,7 +133,14 @@ export function CreatePlanDialog({
                 {initialLedgerId ? (
                   <input type="hidden" {...register('ledgerId')} />
                 ) : (
-                  <select className="input" {...register('ledgerId')}>
+                  <select
+                    className="input"
+                    aria-invalid={Boolean(errors.ledgerId)}
+                    aria-describedby={
+                      errors.ledgerId ? 'plan-ledger-error' : undefined
+                    }
+                    {...register('ledgerId')}
+                  >
                     <option value="" disabled>
                       Defter seç
                     </option>
@@ -141,18 +160,25 @@ export function CreatePlanDialog({
                   </div>
                 ) : null}
                 {errors.ledgerId ? (
-                  <small>{errors.ledgerId.message}</small>
+                  <small id="plan-ledger-error">{errors.ledgerId.message}</small>
                 ) : null}
               </label>
               <label className="field">
                 <span>Plan adı</span>
                 <input
+                  {...nameRegistration}
+                  ref={(element) => {
+                    nameRegistration.ref(element);
+                    nameRef.current = element;
+                  }}
                   className="input"
-                  autoFocus
                   placeholder="Ege hafta sonu"
-                  {...register('name')}
+                  aria-invalid={Boolean(errors.name)}
+                  aria-describedby={errors.name ? 'plan-name-error' : undefined}
                 />
-                {errors.name ? <small>{errors.name.message}</small> : null}
+                {errors.name ? (
+                  <small id="plan-name-error">{errors.name.message}</small>
+                ) : null}
               </label>
               <label className="field">
                 <span>
@@ -179,10 +205,16 @@ export function CreatePlanDialog({
                   <input
                     className="input"
                     type="date"
+                    aria-invalid={Boolean(errors.endsAt)}
+                    aria-describedby={
+                      errors.endsAt ? 'plan-ends-at-error' : undefined
+                    }
                     {...register('endsAt')}
                   />
                   {errors.endsAt ? (
-                    <small>{errors.endsAt.message}</small>
+                    <small id="plan-ends-at-error">
+                      {errors.endsAt.message}
+                    </small>
                   ) : null}
                 </label>
               </div>

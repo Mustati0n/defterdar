@@ -250,27 +250,23 @@ export function ExpenseForm() {
             <h2>Harcamanın kısa adı</h2>
           </div>
         </div>
-        <label className="field">
-          <span>Harcama</span>
+        <div className="field">
+          <label htmlFor="expense-title">Harcama</label>
           <input
+            id="expense-title"
             className="input input--large"
             autoFocus
             placeholder="Örn. Akşam yemeği"
+            aria-invalid={Boolean(errors.title)}
+            aria-describedby={errors.title ? 'expense-title-error' : undefined}
             {...register('title')}
           />
-          {errors.title ? <small>{errors.title.message}</small> : null}
-        </label>
-        <label className="field">
-          <span>
-            Not <em>isteğe bağlı</em>
-          </span>
-          <textarea
-            className="input"
-            rows={2}
-            placeholder="Hatırlamak isteyeceğin küçük bir ayrıntı"
-            {...register('description')}
-          />
-        </label>
+          {errors.title ? (
+            <small id="expense-title-error" role="alert">
+              {errors.title.message}
+            </small>
+          ) : null}
+        </div>
 
         <div className="form-divider" />
         <div className="form-question">
@@ -285,99 +281,139 @@ export function ExpenseForm() {
             inputMode="decimal"
             placeholder="0,00"
             aria-label="Harcama tutarı"
+            aria-invalid={Boolean(errors.amount)}
+            aria-describedby={`expense-amount-help${errors.amount ? ' expense-amount-error' : ''}`}
             {...register('amount')}
           />
           <strong>{selectedLedger?.currency ?? 'TRY'}</strong>
         </div>
         {errors.amount ? (
-          <p className="field-error">{errors.amount.message}</p>
+          <p className="field-error" id="expense-amount-error" role="alert">
+            {errors.amount.message}
+          </p>
         ) : null}
-        <p className="form-hint">
+        <p className="form-hint" id="expense-amount-help">
           Para birimi Defterden gelir ve bu harcama için değiştirilemez.
         </p>
 
         <div className="form-divider" />
-        <div className="field-row">
-          <label className="field">
-            <span>Defter</span>
-            {requestedLedgerId ? (
-              <>
-                <input type="hidden" {...register('ledgerId')} />
-                <div className="context-note">
-                  {selectedLedger?.name ?? 'Seçili Defter'} içinde
-                  oluşturulacak.
-                </div>
-              </>
-            ) : (
-              <select className="input" {...register('ledgerId')}>
-                <option value="">Defter seç</option>
-                {ledgers.data
-                  ?.filter((ledger) => !ledger.archivedAt)
-                  .map((ledger) => (
-                    <option value={ledger.id} key={ledger.id}>
-                      {ledger.name}
-                    </option>
-                  ))}
-              </select>
-            )}
-            {errors.ledgerId ? <small>{errors.ledgerId.message}</small> : null}
-          </label>
-          <label className="field">
-            <span>
-              Plan <em>isteğe bağlı</em>
-            </span>
-            <select className="input" {...register('planId')}>
-              <option value="">Bir Plana bağlı değil</option>
-              {plans.data
-                ?.filter((plan) => plan.status === 'ACTIVE')
-                .map((plan) => (
-                  <option value={plan.id} key={plan.id}>
-                    {plan.name}
+        <label className="field">
+          <span>Defter</span>
+          {requestedLedgerId ? (
+            <>
+              <input type="hidden" {...register('ledgerId')} />
+              <div className="context-note">
+                {selectedLedger?.name ?? 'Seçili Defter'} içinde
+                oluşturulacak.
+              </div>
+            </>
+          ) : (
+            <select
+              className="input"
+              aria-invalid={Boolean(errors.ledgerId)}
+              aria-describedby={
+                errors.ledgerId ? 'expense-ledger-error' : undefined
+              }
+              {...register('ledgerId')}
+            >
+              <option value="">Defter seç</option>
+              {ledgers.data
+                ?.filter((ledger) => !ledger.archivedAt)
+                .map((ledger) => (
+                  <option value={ledger.id} key={ledger.id}>
+                    {ledger.name}
                   </option>
                 ))}
             </select>
-          </label>
-        </div>
-        <label className="field">
-          <span>
-            Kategori <em>isteğe bağlı</em>
-          </span>
-          <select className="input" {...register('categoryId')}>
-            <option value="">Kategorisiz</option>
-            {categories.data
-              ?.filter(
-                (category) =>
-                  !category.archivedAt &&
-                  (category.kind === 'EXPENSE' || category.kind === 'BOTH'),
-              )
-              .map((category) => (
-                <option value={category.id} key={category.id}>
-                  {category.name}
-                </option>
-              ))}
-          </select>
+          )}
+          {errors.ledgerId ? (
+            <small id="expense-ledger-error">{errors.ledgerId.message}</small>
+          ) : null}
         </label>
-        <div className="add-row">
-          <input
-            className="input"
-            value={newCategory}
-            onChange={(event) => setNewCategory(event.target.value)}
-            placeholder="Yeni kategori adı"
-            aria-label="Yeni kategori adı"
-          />
-          <button
-            className="button button--quiet button--small"
-            type="button"
-            disabled={!newCategory.trim()}
-            onClick={() => void createCategory()}
-          >
-            Kategori ekle
-          </button>
-        </div>
-        <label className="field field--date">
-          <span>Harcama tarihi</span>
-          <input className="input" type="date" {...register('expenseDate')} />
-        </label>
+        {requestedPlanId ? <input type="hidden" {...register('planId')} /> : null}
+        <details className="form-disclosure">
+          <summary>İsteğe bağlı ayrıntılar</summary>
+          <div className="stack-form">
+            <label className="field">
+              <span>Not</span>
+              <textarea
+                className="input"
+                rows={2}
+                placeholder="Kısa bir açıklama"
+                {...register('description')}
+              />
+            </label>
+            {!requestedPlanId ? (
+              <label className="field">
+                <span>Plan</span>
+                <select className="input" {...register('planId')}>
+                  <option value="">Bir Plana bağlı değil</option>
+                  {plans.data
+                    ?.filter((plan) => plan.status === 'ACTIVE')
+                    .map((plan) => (
+                      <option value={plan.id} key={plan.id}>
+                        {plan.name}
+                      </option>
+                    ))}
+                </select>
+              </label>
+            ) : null}
+            <label className="field">
+              <span>Kategori</span>
+              <select className="input" {...register('categoryId')}>
+                <option value="">Kategorisiz</option>
+                {categories.data
+                  ?.filter(
+                    (category) =>
+                      !category.archivedAt &&
+                      (category.kind === 'EXPENSE' || category.kind === 'BOTH'),
+                  )
+                  .map((category) => (
+                    <option value={category.id} key={category.id}>
+                      {category.name}
+                    </option>
+                  ))}
+              </select>
+            </label>
+            <details className="nested-disclosure">
+              <summary>Yeni kategori oluştur</summary>
+              <div className="add-row">
+                <input
+                  className="input"
+                  value={newCategory}
+                  onChange={(event) => setNewCategory(event.target.value)}
+                  placeholder="Yeni kategori adı"
+                  aria-label="Yeni kategori adı"
+                />
+                <button
+                  className="button button--quiet button--small"
+                  type="button"
+                  disabled={!newCategory.trim()}
+                  onClick={() => void createCategory()}
+                >
+                  Kategori ekle
+                </button>
+              </div>
+            </details>
+            <label className="field field--date">
+              <span>Harcama tarihi</span>
+              <input
+                className="input"
+                type="date"
+                aria-invalid={Boolean(errors.expenseDate)}
+                aria-describedby={
+                  errors.expenseDate ? 'expense-date-error' : undefined
+                }
+                {...register('expenseDate')}
+              />
+              {errors.expenseDate ? (
+                <small id="expense-date-error">
+                  {errors.expenseDate.message}
+                </small>
+              ) : null}
+            </label>
+          </div>
+        </details>
       </section>
 
       <aside className="smart-form__side">
@@ -389,7 +425,15 @@ export function ExpenseForm() {
               <h2>Ödemeyi yapan</h2>
             </div>
           </div>
-          <div className="choice-list">
+          <div
+            className="choice-list"
+            role="radiogroup"
+            aria-label="Ödemeyi yapan"
+            aria-invalid={Boolean(errors.payerUserId)}
+            aria-describedby={
+              errors.payerUserId ? 'expense-payer-error' : undefined
+            }
+          >
             {people.map((person) => (
               <label key={person.id}>
                 <input
@@ -409,7 +453,9 @@ export function ExpenseForm() {
             ))}
           </div>
           {errors.payerUserId ? (
-            <p className="field-error">{errors.payerUserId.message}</p>
+            <p className="field-error" id="expense-payer-error">
+              {errors.payerUserId.message}
+            </p>
           ) : null}
 
           <div className="form-divider" />
@@ -420,12 +466,25 @@ export function ExpenseForm() {
               <h2>Payı olan kişiler</h2>
             </div>
           </div>
-          <div className="choice-list">
+          <div
+            className="choice-list"
+            role="group"
+            aria-label="Payı olan kişiler"
+            aria-describedby={
+              errors.participantUserIds ? 'expense-participants-error' : undefined
+            }
+          >
             {people.map((person) => (
               <label key={person.id}>
                 <input
                   type="checkbox"
                   value={person.id}
+                  aria-invalid={Boolean(errors.participantUserIds)}
+                  aria-describedby={
+                    errors.participantUserIds
+                      ? 'expense-participants-error'
+                      : undefined
+                  }
                   {...register('participantUserIds')}
                 />
                 <span className="avatar avatar--paper">
@@ -440,7 +499,9 @@ export function ExpenseForm() {
             ))}
           </div>
           {errors.participantUserIds ? (
-            <p className="field-error">{errors.participantUserIds.message}</p>
+            <p className="field-error" id="expense-participants-error">
+              {errors.participantUserIds.message}
+            </p>
           ) : null}
         </section>
 
@@ -466,9 +527,6 @@ export function ExpenseForm() {
                 </strong>
               </div>
             ))}
-            <small>
-              Kuruş farklarını Defterdar adil ve tutarlı biçimde dağıtır.
-            </small>
           </section>
         ) : null}
 
@@ -481,7 +539,7 @@ export function ExpenseForm() {
             </div>
           </div>
           <div className="split-options">
-            {splitOptions.map((option) => (
+            {splitOptions.slice(0, 1).map((option) => (
               <label key={option.value}>
                 <input
                   type="radio"
@@ -495,6 +553,28 @@ export function ExpenseForm() {
                 <Check />
               </label>
             ))}
+            <details
+              className="advanced-split"
+              open={splitMethod !== 'EQUAL' || undefined}
+            >
+              <summary>Diğer paylaşım yöntemleri</summary>
+              <div>
+                {splitOptions.slice(1).map((option) => (
+                  <label key={option.value}>
+                    <input
+                      type="radio"
+                      value={option.value}
+                      {...register('splitMethod')}
+                    />
+                    <span>
+                      <strong>{option.label}</strong>
+                      <small>{option.help}</small>
+                    </span>
+                    <Check />
+                  </label>
+                ))}
+              </div>
+            </details>
           </div>
           {splitMethod !== 'EQUAL' ? (
             <div className="allocation-list">
@@ -564,7 +644,7 @@ export function ExpenseForm() {
             ? 'Deftere yazılıyor…'
             : isGift
               ? 'Ismarlamayı kaydet'
-              : 'Harcamayı paylaştır'}{' '}
+              : 'Harcamayı kaydet'}{' '}
           <ArrowRight />
         </button>
       </aside>

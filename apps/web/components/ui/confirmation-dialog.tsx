@@ -1,10 +1,7 @@
 'use client';
 
-import {
-  useEffect,
-  useRef,
-  type KeyboardEvent as ReactKeyboardEvent,
-} from 'react';
+import { useRef } from 'react';
+import { useModalDialog } from './use-modal-dialog';
 
 export function ConfirmationDialog({
   open,
@@ -25,34 +22,15 @@ export function ConfirmationDialog({
   onCancel: () => void;
   onConfirm: () => void;
 }) {
-  const confirmRef = useRef<HTMLButtonElement>(null);
+  const cancelRef = useRef<HTMLButtonElement>(null);
   const dialogRef = useRef<HTMLElement>(null);
-  useEffect(() => {
-    if (!open) return;
-    confirmRef.current?.focus();
-    const close = (event: KeyboardEvent) =>
-      event.key === 'Escape' && onCancel();
-    window.addEventListener('keydown', close);
-    return () => window.removeEventListener('keydown', close);
-  }, [onCancel, open]);
+  const handleDialogKeyDown = useModalDialog({
+    open,
+    onClose: onCancel,
+    dialogRef,
+    initialFocusRef: cancelRef,
+  });
   if (!open) return null;
-
-  function trapFocus(event: ReactKeyboardEvent<HTMLElement>) {
-    if (event.key !== 'Tab') return;
-    const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(
-      'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
-    );
-    if (!focusable?.length) return;
-    const first = focusable[0];
-    const last = focusable[focusable.length - 1];
-    if (event.shiftKey && document.activeElement === first) {
-      event.preventDefault();
-      last?.focus();
-    } else if (!event.shiftKey && document.activeElement === last) {
-      event.preventDefault();
-      first?.focus();
-    }
-  }
 
   return (
     <div className="dialog-backdrop" role="presentation">
@@ -62,12 +40,14 @@ export function ConfirmationDialog({
         role="alertdialog"
         aria-modal="true"
         aria-labelledby="confirm-title"
-        onKeyDown={trapFocus}
+        aria-describedby="confirm-description"
+        onKeyDown={handleDialogKeyDown}
       >
         <h2 id="confirm-title">{title}</h2>
-        <p>{description}</p>
+        <p id="confirm-description">{description}</p>
         <div className="dialog-card__actions">
           <button
+            ref={cancelRef}
             className="button button--quiet"
             type="button"
             onClick={onCancel}
@@ -75,7 +55,6 @@ export function ConfirmationDialog({
             Vazgeç
           </button>
           <button
-            ref={confirmRef}
             className={`button ${danger ? 'button--danger' : 'button--primary'}`}
             type="button"
             disabled={pending}

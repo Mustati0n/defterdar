@@ -1,5 +1,8 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
-import { OnboardingExperience } from './onboarding-experience';
+import {
+  OnboardingExperience,
+  onboardingStepNames,
+} from './onboarding-experience';
 import { useOnboarding } from './use-onboarding';
 import { useAuth } from '@/features/auth/auth-provider';
 import { useLedgers } from '@/features/data/hooks';
@@ -71,7 +74,6 @@ describe('guided domain tour', () => {
   it('teaches the Defter and Plan distinction in the guided flow', () => {
     render(<OnboardingExperience />);
     forward();
-    forward();
     expect(
       screen.getByRole('heading', { name: 'Defter kalır, Plan tamamlanır.' }),
     ).toBeInTheDocument();
@@ -87,9 +89,8 @@ describe('guided domain tour', () => {
 
   it('finishes with a real first-action route', () => {
     render(<OnboardingExperience />);
-    for (let step = 0; step < 5; step += 1) {
-      forward();
-    }
+    forward();
+    forward();
     fireEvent.click(
       screen.getByRole('button', { name: /Kişisel Defterime git/ }),
     );
@@ -108,7 +109,7 @@ describe('guided domain tour', () => {
       'forward',
     );
     act(() => jest.advanceTimersByTime(400));
-    expect(screen.getByText('Sana uygun kullanım')).toBeInTheDocument();
+    expect(screen.getByText('Defter ve Plan')).toBeInTheDocument();
     expect(container.querySelector('.onboarding-progress li')).toHaveClass(
       'is-complete',
     );
@@ -139,7 +140,7 @@ describe('guided domain tour', () => {
     const { container } = render(<OnboardingExperience />);
     fireEvent.click(screen.getByRole('button', { name: /İleri/ }));
     expect(
-      screen.getByRole('heading', { name: /ne için kullanacaksın/ }),
+      screen.getByRole('heading', { name: /Defter kalır, Plan tamamlanır/ }),
     ).toBeInTheDocument();
     expect(container.querySelector('.onboarding-step')).toHaveClass(
       'is-settled',
@@ -150,5 +151,13 @@ describe('guided domain tour', () => {
     render(<OnboardingExperience />);
     fireEvent.click(screen.getByRole('button', { name: /Tanıtımı atla/ }));
     expect(complete).toHaveBeenCalledTimes(1);
+  });
+
+  it('contains no more than three core steps or advanced finance training', () => {
+    expect(onboardingStepNames).toHaveLength(3);
+    render(<OnboardingExperience />);
+    expect(screen.getByText('1 / 3')).toBeInTheDocument();
+    expect(screen.queryByText(/Borçtan düş/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Settlement/i)).not.toBeInTheDocument();
   });
 });

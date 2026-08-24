@@ -2,13 +2,14 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { BookPlus, X } from 'lucide-react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { useToast } from '@/components/ui/toast';
 import { useCreateLedger } from '@/features/data/hooks';
 import { ApiError } from '@/lib/api-client';
+import { useModalDialog } from '@/components/ui/use-modal-dialog';
 
 const schema = z.object({
   name: z.string().trim().min(1, 'Deftere bir ad verin.').max(80),
@@ -38,6 +39,15 @@ export function CreateLedgerDialog({
   } = useForm<Values>({
     resolver: zodResolver(schema),
     defaultValues: { currency: 'TRY' },
+  });
+  const dialogRef = useRef<HTMLElement>(null);
+  const nameRef = useRef<HTMLInputElement>(null);
+  const nameRegistration = register('name');
+  const handleDialogKeyDown = useModalDialog({
+    open,
+    onClose: () => setOpen(false),
+    dialogRef,
+    initialFocusRef: nameRef,
   });
 
   async function onSubmit(values: Values) {
@@ -76,10 +86,12 @@ export function CreateLedgerDialog({
           }
         >
           <section
+            ref={dialogRef}
             className="dialog-card"
             role="dialog"
             aria-modal="true"
             aria-labelledby="new-ledger-title"
+            onKeyDown={handleDialogKeyDown}
           >
             <button
               className="dialog-card__close"
@@ -96,12 +108,20 @@ export function CreateLedgerDialog({
               <label className="field">
                 <span>Defter adı</span>
                 <input
+                  id="ledger-name"
+                  {...nameRegistration}
+                  ref={(element) => {
+                    nameRegistration.ref(element);
+                    nameRef.current = element;
+                  }}
                   className="input"
-                  autoFocus
                   placeholder="Ev arkadaşları"
-                  {...register('name')}
+                  aria-invalid={Boolean(errors.name)}
+                  aria-describedby={errors.name ? 'ledger-name-error' : undefined}
                 />
-                {errors.name ? <small>{errors.name.message}</small> : null}
+                {errors.name ? (
+                  <small id="ledger-name-error">{errors.name.message}</small>
+                ) : null}
               </label>
               <label className="field">
                 <span>
@@ -111,10 +131,16 @@ export function CreateLedgerDialog({
                   className="input"
                   rows={3}
                   placeholder="Bu defter ne için?"
+                  aria-invalid={Boolean(errors.description)}
+                  aria-describedby={
+                    errors.description ? 'ledger-description-error' : undefined
+                  }
                   {...register('description')}
                 />
                 {errors.description ? (
-                  <small>{errors.description.message}</small>
+                  <small id="ledger-description-error">
+                    {errors.description.message}
+                  </small>
                 ) : null}
               </label>
               <label className="field field--short">
@@ -122,10 +148,16 @@ export function CreateLedgerDialog({
                 <input
                   className="input"
                   maxLength={3}
+                  aria-invalid={Boolean(errors.currency)}
+                  aria-describedby={
+                    errors.currency ? 'ledger-currency-error' : undefined
+                  }
                   {...register('currency')}
                 />
                 {errors.currency ? (
-                  <small>{errors.currency.message}</small>
+                  <small id="ledger-currency-error">
+                    {errors.currency.message}
+                  </small>
                 ) : null}
               </label>
               <div className="dialog-card__actions">

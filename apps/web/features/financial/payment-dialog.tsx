@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { ArrowRight, WalletCards } from 'lucide-react';
 import { formatMoneyFromMinor } from '@/lib/format';
 import { parseMoneyToMinor } from '@/lib/money';
 import { remainingAfterPayment } from './financial-ux';
+import { useModalDialog } from '@/components/ui/use-modal-dialog';
 
 export interface PaymentDraft {
   amountMinor: number;
@@ -65,14 +66,13 @@ function PaymentDialogContent({
   const [note, setNote] = useState('');
   const [error, setError] = useState<string | null>(null);
   const amountRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    requestAnimationFrame(() => amountRef.current?.focus());
-    const close = (event: KeyboardEvent) =>
-      event.key === 'Escape' && onCancel();
-    window.addEventListener('keydown', close);
-    return () => window.removeEventListener('keydown', close);
-  }, [onCancel]);
+  const dialogRef = useRef<HTMLElement>(null);
+  const handleDialogKeyDown = useModalDialog({
+    open: true,
+    onClose: onCancel,
+    dialogRef,
+    initialFocusRef: amountRef,
+  });
   const amountMinor = parseMoneyToMinor(amount) ?? 0;
   const remaining = remainingAfterPayment(maximumMinor, amountMinor);
 
@@ -93,14 +93,17 @@ function PaymentDialogContent({
   return (
     <div className="dialog-backdrop" role="presentation">
       <section
+        ref={dialogRef}
         className="dialog-card payment-dialog"
         role="dialog"
         aria-modal="true"
         aria-labelledby="payment-dialog-title"
+        aria-describedby="payment-dialog-description"
+        onKeyDown={handleDialogKeyDown}
       >
         <span className="eyebrow">Defterdar içi kayıt</span>
         <h2 id="payment-dialog-title">Ödeme kaydet</h2>
-        <p>
+        <p id="payment-dialog-description">
           Bu işlem para göndermez; yaptığın ödemeyi Defterde kayıt altına alır.
         </p>
         <div
@@ -112,16 +115,6 @@ function PaymentDialogContent({
           <strong>{toName}</strong>
         </div>
         <form className="stack-form" onSubmit={submit}>
-          <div className="field-row">
-            <label className="field">
-              <span>Kimden</span>
-              <input className="input" value={fromName} disabled />
-            </label>
-            <label className="field">
-              <span>Kime</span>
-              <input className="input" value={toName} disabled />
-            </label>
-          </div>
           <label className="field">
             <span>Tutar</span>
             <div className="money-field">
@@ -130,6 +123,8 @@ function PaymentDialogContent({
                 className="input"
                 inputMode="decimal"
                 aria-label="Tutar"
+                aria-invalid={Boolean(error || serverError)}
+                aria-describedby={`payment-amount-help${error || serverError ? ' payment-error' : ''}`}
                 value={amount}
                 onChange={(event) => {
                   setAmount(event.target.value);
@@ -138,7 +133,7 @@ function PaymentDialogContent({
               />
               <strong>{currency}</strong>
             </div>
-            <small>
+            <small id="payment-amount-help">
               En fazla {formatMoneyFromMinor(maximumMinor, currency)}
             </small>
           </label>
@@ -174,7 +169,7 @@ function PaymentDialogContent({
             </div>
           ) : null}
           {error || serverError ? (
-            <div className="form-error" role="alert">
+            <div className="form-error" id="payment-error" role="alert">
               {error ?? serverError}
             </div>
           ) : null}

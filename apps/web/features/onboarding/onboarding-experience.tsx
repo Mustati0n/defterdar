@@ -5,11 +5,8 @@ import {
   ArrowRight,
   BookOpenText,
   Check,
-  CircleDollarSign,
   HandCoins,
-  Home,
   NotebookTabs,
-  PartyPopper,
   ReceiptText,
   UserRound,
   UsersRound,
@@ -21,60 +18,23 @@ import {
   useRef,
   useState,
   type CSSProperties,
-  type KeyboardEvent,
   type ReactNode,
 } from 'react';
 import { useLedgers } from '@/features/data/hooks';
 import { useAuth } from '@/features/auth/auth-provider';
-import {
-  saveOnboardingScenario,
-  type OnboardingScenario,
-} from '@/lib/onboarding';
 import { useOnboarding } from './use-onboarding';
+import { useModalDialog } from '@/components/ui/use-modal-dialog';
 import { useReducedMotion } from '@/features/motion/use-reduced-motion';
 import {
   onboardingTransitionClass,
   type OnboardingDirection,
 } from '@/features/motion/onboarding-transition';
 
-const stepNames = [
-  'Hoş geldin',
-  'Sana uygun kullanım',
+export const onboardingStepNames = [
+  'Defterdar',
   'Defter ve Plan',
-  'Harcama paylaşımı',
-  'Borç ve bakiye',
   'İlk adım',
 ] as const;
-
-const scenarios: Array<{
-  id: OnboardingScenario;
-  icon: typeof UserRound;
-  title: string;
-  description: string;
-  items: string[];
-}> = [
-  {
-    id: 'personal',
-    icon: UserRound,
-    title: 'Kendi hesabımı tutuyorum',
-    description: 'Gelir ve giderlerimi tek yerde görmek istiyorum.',
-    items: ['Kişisel harcamalar', 'Kategoriler', 'Aylık özetler'],
-  },
-  {
-    id: 'home',
-    icon: Home,
-    title: 'Ev arkadaşlarımla kullanıyorum',
-    description: 'Ortak giderlerde kimin ne ödediği karışmasın.',
-    items: ['Kira ve faturalar', 'Market', 'Kim ne ödedi'],
-  },
-  {
-    id: 'plans',
-    icon: PartyPopper,
-    title: 'Arkadaşlarımla plan yapıyorum',
-    description: 'Kısa etkinliklerin hesabını kolayca kapatmak istiyorum.',
-    items: ['Gezi ve tatil', 'Yemek', 'Piknik ve etkinlik'],
-  },
-];
 
 function StepFrame({ children }: { children: ReactNode }) {
   return <div className="onboarding-step__body">{children}</div>;
@@ -86,13 +46,18 @@ export function OnboardingExperience() {
   const ledgers = useLedgers();
   const router = useRouter();
   const [step, setStep] = useState(0);
-  const [scenario, setScenario] = useState<OnboardingScenario>('personal');
   const [direction, setDirection] = useState<OnboardingDirection>(1);
   const [phase, setPhase] = useState<'idle' | 'exit' | 'enter'>('idle');
   const reducedMotion = useReducedMotion();
   const headingRef = useRef<HTMLHeadingElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
   const transitionTimers = useRef<number[]>([]);
+  const handleDialogKeyDown = useModalDialog({
+    open: Boolean(pending && user),
+    onClose: complete,
+    dialogRef,
+    initialFocusRef: headingRef,
+  });
 
   useEffect(() => {
     if (pending) headingRef.current?.focus();
@@ -108,11 +73,6 @@ export function OnboardingExperience() {
   const personalLedger = ledgers.data?.find(
     (ledger) => ledger.type === 'PERSONAL',
   );
-
-  function chooseScenario(value: OnboardingScenario) {
-    setScenario(value);
-    saveOnboardingScenario(user!.id, value);
-  }
 
   function finish(path = '/overview') {
     complete();
@@ -139,27 +99,6 @@ export function OnboardingExperience() {
     );
   }
 
-  function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
-    if (event.key === 'Escape') {
-      complete();
-      return;
-    }
-    if (event.key !== 'Tab') return;
-    const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(
-      'button:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])',
-    );
-    if (!focusable?.length) return;
-    const first = focusable[0];
-    const last = focusable[focusable.length - 1];
-    if (event.shiftKey && document.activeElement === first) {
-      event.preventDefault();
-      last?.focus();
-    } else if (!event.shiftKey && document.activeElement === last) {
-      event.preventDefault();
-      first?.focus();
-    }
-  }
-
   return (
     <div
       className="onboarding-overlay"
@@ -167,7 +106,7 @@ export function OnboardingExperience() {
       aria-modal="true"
       aria-labelledby="onboarding-title"
       ref={dialogRef}
-      onKeyDown={handleKeyDown}
+      onKeyDown={handleDialogKeyDown}
     >
       <div className="onboarding-shell">
         <header className="onboarding-header">
@@ -187,18 +126,18 @@ export function OnboardingExperience() {
           className="onboarding-progress"
           style={
             {
-              '--onboarding-progress': step / (stepNames.length - 1),
+            '--onboarding-progress': step / (onboardingStepNames.length - 1),
             } as CSSProperties
           }
         >
           <p aria-live="polite" key={step}>
             <strong>
-              {step + 1} / {stepNames.length}
+              {step + 1} / {onboardingStepNames.length}
             </strong>
-            <span>{stepNames[step]}</span>
+            <span>{onboardingStepNames[step]}</span>
           </p>
           <ol aria-label="Tanıtım ilerlemesi">
-            {stepNames.map((name, index) => (
+            {onboardingStepNames.map((name, index) => (
               <li
                 className={
                   index < step
@@ -264,48 +203,6 @@ export function OnboardingExperience() {
           {step === 1 ? (
             <StepFrame>
               <div className="tour-heading">
-                <span className="eyebrow">Sana en yakın olan</span>
-                <h1 id="onboarding-title" ref={headingRef} tabIndex={-1}>
-                  Defterdar&apos;ı ne için kullanacaksın?
-                </h1>
-                <p>
-                  Seçimin sadece tanıtımı sana göre düzenler; sonra her şeyi
-                  kullanabilirsin.
-                </p>
-              </div>
-              <div className="scenario-grid">
-                {scenarios.map((item) => {
-                  const Icon = item.icon;
-                  return (
-                    <button
-                      className={`scenario-card${scenario === item.id ? ' is-selected' : ''}`}
-                      type="button"
-                      aria-pressed={scenario === item.id}
-                      onClick={() => chooseScenario(item.id)}
-                      key={item.id}
-                    >
-                      <span>
-                        <Icon />
-                      </span>
-                      <h2>{item.title}</h2>
-                      <p>{item.description}</p>
-                      <ul>
-                        {item.items.map((label) => (
-                          <li key={label}>
-                            <Check /> {label}
-                          </li>
-                        ))}
-                      </ul>
-                    </button>
-                  );
-                })}
-              </div>
-            </StepFrame>
-          ) : null}
-
-          {step === 2 ? (
-            <StepFrame>
-              <div className="tour-heading">
                 <span className="eyebrow">İki temel alan</span>
                 <h1 id="onboarding-title" ref={headingRef} tabIndex={-1}>
                   Defter kalır, Plan tamamlanır.
@@ -357,104 +254,7 @@ export function OnboardingExperience() {
             </StepFrame>
           ) : null}
 
-          {step === 3 ? (
-            <StepFrame>
-              <div className="tour-heading">
-                <span className="eyebrow">Paylaşmak bu kadar</span>
-                <h1 id="onboarding-title" ref={headingRef} tabIndex={-1}>
-                  Kim ödedi, kimler paylaşıyor?
-                </h1>
-                <p>Sen sadece gerçeği yaz; payları Defterdar hesaplasın.</p>
-              </div>
-              <div className="expense-demo">
-                <div className="expense-demo__receipt">
-                  <ReceiptText />
-                  <small>AKŞAM YEMEĞİ</small>
-                  <strong>600 ₺</strong>
-                  <span>Mustafa ödedi</span>
-                </div>
-                <ArrowRight className="expense-demo__arrow" />
-                <div className="expense-demo__people">
-                  <span>
-                    <UserRound /> Mustafa <b>200 ₺</b>
-                  </span>
-                  <span>
-                    <UserRound /> Ece <b>200 ₺</b>
-                  </span>
-                  <span>
-                    <UserRound /> Can <b>200 ₺</b>
-                  </span>
-                </div>
-              </div>
-              <div className="plain-language-note">
-                <CircleDollarSign />
-                <p>
-                  <strong>3 kişi eşit paylaştı.</strong> Kişi başı 200 ₺.
-                  Mustafa kendi payı dışında 400 ₺ alacaklı olur.
-                </p>
-              </div>
-            </StepFrame>
-          ) : null}
-
-          {step === 4 ? (
-            <StepFrame>
-              <div className="tour-heading">
-                <span className="eyebrow">İki pratik kısayol</span>
-                <h1 id="onboarding-title" ref={headingRef} tabIndex={-1}>
-                  Borç büyütmek zorunda değil.
-                </h1>
-                <p>
-                  Defterdar günlük hayattaki anlaşmaları insan diliyle uygular.
-                </p>
-              </div>
-              <div className="money-concepts">
-                <article className="gift-note">
-                  <HandCoins />
-                  <div>
-                    <small>ISMARLA</small>
-                    <h2>“Bu benden.”</h2>
-                    <p>
-                      Ismarla&apos;yı seçersen diğer kişiler için geri ödeme
-                      borcu oluşmaz.
-                    </p>
-                  </div>
-                </article>
-                <article className="offset-note">
-                  <span className="offset-note__before">
-                    <small>Ahmet&apos;e borcun</small>
-                    <strong>−300 ₺</strong>
-                  </span>
-                  <ArrowRight />
-                  <span className="offset-note__share">
-                    <small>Ahmet&apos;in yeni payı</small>
-                    <strong>100 ₺</strong>
-                  </span>
-                  <ArrowRight />
-                  <span className="offset-note__after">
-                    <small>Borçtan düş</small>
-                    <strong>−200 ₺</strong>
-                  </span>
-                  <p>Yeni ödeme istemek yerine mevcut borcun azalır.</p>
-                </article>
-              </div>
-              <div className="balance-legend">
-                <span className="balance-positive">
-                  <b>+250 ₺</b>
-                  <small>Alacağın var ↑</small>
-                </span>
-                <span className="balance-negative">
-                  <b>−180 ₺</b>
-                  <small>Ödemen var ↓</small>
-                </span>
-                <span className="balance-zero">
-                  <b>0 ₺</b>
-                  <small>Hesabınız kapalı ✓</small>
-                </span>
-              </div>
-            </StepFrame>
-          ) : null}
-
-          {step === 5 ? (
+          {step === 2 ? (
             <StepFrame>
               <div className="tour-heading tour-heading--center">
                 <span className="eyebrow">Hazırsın</span>
@@ -541,13 +341,13 @@ export function OnboardingExperience() {
           >
             <ArrowLeft /> Geri
           </button>
-          {step < stepNames.length - 1 ? (
+          {step < onboardingStepNames.length - 1 ? (
             <button
               className="button button--primary"
               type="button"
               disabled={phase !== 'idle'}
               onClick={() =>
-                moveTo(Math.min(stepNames.length - 1, step + 1), 1)
+                moveTo(Math.min(onboardingStepNames.length - 1, step + 1), 1)
               }
             >
               İleri <ArrowRight />

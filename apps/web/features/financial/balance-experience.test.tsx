@@ -203,6 +203,24 @@ describe('BalanceExperience', () => {
     );
   });
 
+  it('keeps one direction summary and restores focus after Escape', async () => {
+    setup();
+    const trigger = screen.getByRole('button', { name: /ödeme kaydet/i });
+    trigger.focus();
+    fireEvent.click(trigger);
+    const dialog = screen.getByRole('dialog');
+    await waitFor(() =>
+      expect(within(dialog).getByLabelText('Tutar')).toHaveFocus(),
+    );
+    expect(within(dialog).queryByLabelText('Kimden')).not.toBeInTheDocument();
+    expect(within(dialog).queryByLabelText('Kime')).not.toBeInTheDocument();
+    expect(within(dialog).getByText(/Mustafa/)).toBeInTheDocument();
+    expect(within(dialog).getByText(/Ada/)).toBeInTheDocument();
+    fireEvent.keyDown(dialog, { key: 'Escape' });
+    await waitFor(() => expect(trigger).toHaveFocus());
+    expect(api.settlements.create).not.toHaveBeenCalled();
+  });
+
   it('blocks overpayment before creating a financial record', () => {
     setup();
     fireEvent.click(screen.getByRole('button', { name: /ödeme kaydet/i }));

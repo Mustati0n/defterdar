@@ -16,6 +16,11 @@ import { api, ApiError } from '@/lib/api-client';
 import { parseMoneyToMinor } from '@/lib/money';
 import type { Expense, SplitMethod, UpdateExpenseInput } from '@/lib/types';
 import { buildSplit } from './split-payload';
+import { splitMethodLabel } from '@/lib/format';
+
+export function editableSplitMethod(method: SplitMethod): SplitMethod {
+  return method === 'EQUAL' ? 'EQUAL' : 'EXACT';
+}
 
 export function ExpenseEditForm({ expenseId }: { expenseId: string }) {
   const expense = useExpense(expenseId);
@@ -53,7 +58,9 @@ function LoadedExpenseEditForm({
   const [categoryId, setCategoryId] = useState(data.categoryId ?? '');
   const [date, setDate] = useState(data.expenseDate.slice(0, 10));
   const [isGift, setIsGift] = useState(data.isGift);
-  const [method, setMethod] = useState<SplitMethod>('EXACT');
+  const [method, setMethod] = useState<SplitMethod>(
+    editableSplitMethod(data.splitMethod),
+  );
   const [selected, setSelected] = useState<string[]>(
     data.splits.map((split) => split.user.id),
   );
@@ -149,14 +156,6 @@ function LoadedExpenseEditForm({
           onChange={(event) => setTitle(event.target.value)}
         />
       </label>
-      <label className="field">
-        <span>Not</span>
-        <textarea
-          className="input"
-          value={description}
-          onChange={(event) => setDescription(event.target.value)}
-        />
-      </label>
       <div className="field-row">
         <label className="field">
           <span>Tutar</span>
@@ -177,44 +176,58 @@ function LoadedExpenseEditForm({
           />
         </label>
       </div>
-      <div className="field-row">
-        <label className="field">
-          <span>Plan</span>
-          <select
-            className="input"
-            value={planId}
-            onChange={(event) => setPlanId(event.target.value)}
-          >
-            <option value="">Plana bağlı değil</option>
-            {plans.data
-              ?.filter(
-                (plan) => plan.status === 'ACTIVE' || plan.id === data.planId,
-              )
-              .map((plan) => (
-                <option value={plan.id} key={plan.id}>
-                  {plan.name}
-                </option>
-              ))}
-          </select>
-        </label>
-        <label className="field">
-          <span>Kategori</span>
-          <select
-            className="input"
-            value={categoryId}
-            onChange={(event) => setCategoryId(event.target.value)}
-          >
-            <option value="">Kategorisiz</option>
-            {categories.data
-              ?.filter((category) => !category.archivedAt)
-              .map((category) => (
-                <option value={category.id} key={category.id}>
-                  {category.name}
-                </option>
-              ))}
-          </select>
-        </label>
-      </div>
+      <details className="form-disclosure">
+        <summary>İsteğe bağlı ayrıntılar</summary>
+        <div className="stack-form">
+          <label className="field">
+            <span>Not</span>
+            <textarea
+              className="input"
+              value={description}
+              onChange={(event) => setDescription(event.target.value)}
+            />
+          </label>
+          <div className="field-row">
+            <label className="field">
+              <span>Plan</span>
+              <select
+                className="input"
+                value={planId}
+                onChange={(event) => setPlanId(event.target.value)}
+              >
+                <option value="">Plana bağlı değil</option>
+                {plans.data
+                  ?.filter(
+                    (plan) =>
+                      plan.status === 'ACTIVE' || plan.id === data.planId,
+                  )
+                  .map((plan) => (
+                    <option value={plan.id} key={plan.id}>
+                      {plan.name}
+                    </option>
+                  ))}
+              </select>
+            </label>
+            <label className="field">
+              <span>Kategori</span>
+              <select
+                className="input"
+                value={categoryId}
+                onChange={(event) => setCategoryId(event.target.value)}
+              >
+                <option value="">Kategorisiz</option>
+                {categories.data
+                  ?.filter((category) => !category.archivedAt)
+                  .map((category) => (
+                    <option value={category.id} key={category.id}>
+                      {category.name}
+                    </option>
+                  ))}
+              </select>
+            </label>
+          </div>
+        </div>
+      </details>
       <label className="field">
         <span>Ödeyen</span>
         <select
@@ -254,25 +267,45 @@ function LoadedExpenseEditForm({
           ))}
         </div>
       </fieldset>
-      <label className="field">
+      <div className="field">
         <span>Paylaştırma</span>
-        <select
-          className="input"
-          value={method}
-          onChange={(event) => {
-            setSplitTouched(true);
-            setMethod(event.target.value as SplitMethod);
-          }}
-        >
-          <option value="EQUAL">Eşit böl</option>
-          <option value="EXACT">Tutar gir</option>
-          <option value="PERCENTAGE">Yüzdeyle böl</option>
-          <option value="SHARES">Pay oranı</option>
-        </select>
-        <small>
-          Kayıtlı paylar güvenli düzenleme için tam tutar olarak açılır.
-        </small>
-      </label>
+        <div className="split-options">
+          <label>
+            <input
+              type="radio"
+              checked={method === 'EQUAL'}
+              onChange={() => {
+                setSplitTouched(true);
+                setMethod('EQUAL');
+              }}
+            />
+            <span>
+              <strong>Eşit böl</strong>
+              <small>Seçilen kişiler arasında eşit paylaştır</small>
+            </span>
+          </label>
+          <details className="advanced-split" open={method !== 'EQUAL' || undefined}>
+            <summary>Diğer paylaşım yöntemleri</summary>
+            <div>
+              {(['EXACT', 'PERCENTAGE', 'SHARES'] as const).map((value) => (
+                <label key={value}>
+                  <input
+                    type="radio"
+                    checked={method === value}
+                    onChange={() => {
+                      setSplitTouched(true);
+                      setMethod(value);
+                    }}
+                  />
+                  <span>
+                    <strong>{splitMethodLabel(value)}</strong>
+                  </span>
+                </label>
+              ))}
+            </div>
+          </details>
+        </div>
+      </div>
       {method !== 'EQUAL' ? (
         <div className="allocation-list">
           {people

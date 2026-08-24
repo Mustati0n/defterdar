@@ -1,0 +1,44 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
+function luminance(hex: string) {
+  const channels = hex
+    .slice(1)
+    .match(/.{2}/g)!
+    .map((value) => Number.parseInt(value, 16) / 255)
+    .map((value) =>
+      value <= 0.04045
+        ? value / 12.92
+        : Math.pow((value + 0.055) / 1.055, 2.4),
+    );
+  const [red, green, blue] = channels;
+  if (red === undefined || green === undefined || blue === undefined) {
+    throw new Error(`Invalid hex color: ${hex}`);
+  }
+  return red * 0.2126 + green * 0.7152 + blue * 0.0722;
+}
+
+function contrast(first: string, second: string) {
+  const values = [luminance(first), luminance(second)].sort((a, b) => b - a);
+  const [lighter, darker] = values;
+  if (lighter === undefined || darker === undefined) {
+    throw new Error('Two colors are required for contrast');
+  }
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
+describe('critical accessibility CSS', () => {
+  const css = readFileSync(join(process.cwd(), 'app/globals.css'), 'utf8');
+
+  it('uses a focus indicator above the 3:1 component target on paper', () => {
+    expect(contrast('#8d2d4a', '#fffdf5')).toBeGreaterThanOrEqual(3);
+    expect(css).toMatch(/:focus-visible\s*\{[^}]*outline: 3px solid #8d2d4a/s);
+  });
+
+  it('keeps critical controls at least 44px and honors mobile safe areas', () => {
+    expect(css).toMatch(/\.icon-button\s*\{[^}]*width: 2\.75rem;[^}]*height: 2\.75rem/s);
+    expect(css).toMatch(/\.dialog-card__close\s*\{[^}]*width: 44px;[^}]*height: 44px/s);
+    expect(css).toContain('env(safe-area-inset-bottom)');
+    expect(css).toContain('100dvh');
+  });
+});

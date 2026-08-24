@@ -65,46 +65,69 @@ export function AuthForm({ mode }: { mode: 'login' | 'register' }) {
   return (
     <form className="auth-form" onSubmit={handleSubmit(onSubmit)} noValidate>
       {mode === 'register' ? (
-        <label className="field">
-          <span>Adınız</span>
+        <div className="field">
+          <label htmlFor="auth-display-name">Adınız</label>
           <span className="input-wrap">
             <UserRound />
             <input
+              id="auth-display-name"
               autoComplete="name"
               placeholder="Defterde nasıl görünelim?"
+              aria-invalid={Boolean(
+                'displayName' in errors && errors.displayName,
+              )}
+              aria-describedby={
+                'displayName' in errors && errors.displayName
+                  ? 'auth-display-name-error'
+                  : undefined
+              }
               {...field('displayName')}
             />
           </span>
           {'displayName' in errors && errors.displayName ? (
-            <small>{errors.displayName.message}</small>
+            <small id="auth-display-name-error" role="alert">
+              {errors.displayName.message}
+            </small>
           ) : null}
-        </label>
+        </div>
       ) : null}
 
-      <label className="field">
-        <span>E-posta</span>
+      <div className="field">
+        <label htmlFor="auth-email">E-posta</label>
         <span className="input-wrap">
           <Mail />
           <input
+            id="auth-email"
             autoComplete="email"
             inputMode="email"
             placeholder="ornek@eposta.com"
+            aria-invalid={Boolean(errors.email)}
+            aria-describedby={errors.email ? 'auth-email-error' : undefined}
             {...field('email')}
           />
         </span>
-        {errors.email ? <small>{errors.email.message}</small> : null}
-      </label>
+        {errors.email ? (
+          <small id="auth-email-error" role="alert">
+            {errors.email.message}
+          </small>
+        ) : null}
+      </div>
 
-      <label className="field">
-        <span>Şifre</span>
+      <div className="field">
+        <label htmlFor="auth-password">Şifre</label>
         <span className="input-wrap">
           <LockKeyhole />
           <input
+            id="auth-password"
             type={showPassword ? 'text' : 'password'}
             autoComplete={
               mode === 'login' ? 'current-password' : 'new-password'
             }
             placeholder={mode === 'login' ? 'Şifreniz' : 'En az 10 karakter'}
+            aria-invalid={Boolean(errors.password)}
+            aria-describedby={
+              errors.password ? 'auth-password-error' : undefined
+            }
             {...field('password')}
           />
           <button
@@ -116,8 +139,12 @@ export function AuthForm({ mode }: { mode: 'login' | 'register' }) {
             {showPassword ? <EyeOff /> : <Eye />}
           </button>
         </span>
-        {errors.password ? <small>{errors.password.message}</small> : null}
-      </label>
+        {errors.password ? (
+          <small id="auth-password-error" role="alert">
+            {errors.password.message}
+          </small>
+        ) : null}
+      </div>
 
       {serverError ? (
         <div className="form-error" role="alert">

@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowRight, Check, RotateCcw, Scissors } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 import { useToast } from '@/components/ui/toast';
 import { queryKeys } from '@/features/data/hooks';
@@ -10,6 +10,7 @@ import { invalidateFinancialData } from '@/features/data/financial-invalidation'
 import { api, ApiError } from '@/lib/api-client';
 import { formatDate, formatMoneyFromMinor } from '@/lib/format';
 import { parseMoneyToMinor } from '@/lib/money';
+import { useModalDialog } from '@/components/ui/use-modal-dialog';
 import type {
   Expense,
   ExpenseSplit,
@@ -254,13 +255,13 @@ function OffsetDialogContent({
   );
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  useEffect(() => {
-    requestAnimationFrame(() => inputRef.current?.focus());
-    const close = (event: KeyboardEvent) =>
-      event.key === 'Escape' && onCancel();
-    window.addEventListener('keydown', close);
-    return () => window.removeEventListener('keydown', close);
-  }, [onCancel]);
+  const dialogRef = useRef<HTMLElement>(null);
+  const handleDialogKeyDown = useModalDialog({
+    open: true,
+    onClose: onCancel,
+    dialogRef,
+    initialFocusRef: inputRef,
+  });
   const amountMinor = parseMoneyToMinor(amount) ?? 0;
   const after =
     amountMinor > 0 && amountMinor <= maximum
@@ -278,16 +279,18 @@ function OffsetDialogContent({
   return (
     <div className="dialog-backdrop" role="presentation">
       <section
+        ref={dialogRef}
         className="dialog-card offset-dialog"
         role="dialog"
         aria-modal="true"
         aria-labelledby="offset-title"
+        aria-describedby="offset-description"
+        onKeyDown={handleDialogKeyDown}
       >
         <span className="eyebrow">Gereksiz ödemeyi azalt</span>
         <h2 id="offset-title">Borçtan düş</h2>
-        <p>
-          Borçtan düş, iki tarafın birbirine gereksiz yere para gönderip geri
-          almasını önler.
+        <p id="offset-description">
+          Bu payı mevcut borcundan düşerek kalan tutarı günceller.
         </p>
         <div className="offset-story">
           <span>
@@ -301,7 +304,7 @@ function OffsetDialogContent({
           </span>
           <ArrowRight />
           <span>
-            <small>Sonrasında</small>
+            <small>Sonra</small>
             <strong>
               {after === null
                 ? '—'
@@ -310,31 +313,16 @@ function OffsetDialogContent({
           </span>
         </div>
         <form className="stack-form" onSubmit={submit}>
-          <div className="offset-facts">
-            <div>
-              <small>Bu harcamadaki {userName} payı</small>
-              <strong>
-                {formatMoneyFromMinor(
-                  availability.remainingReimbursableMinor,
-                  currency,
-                )}
-              </strong>
-            </div>
-            <div>
-              <small>Maksimum düşülebilir</small>
-              <strong>
-                {formatMoneyFromMinor(availability.maxOffsetMinor, currency)}
-              </strong>
-            </div>
-          </div>
           <label className="field">
-            <span>Borçtan düşülecek</span>
+            <span>Bu paydan düşülecek ({userName})</span>
             <div className="money-field">
               <input
                 ref={inputRef}
                 className="input"
                 inputMode="decimal"
                 aria-label="Borçtan düşülecek tutar"
+                aria-invalid={Boolean(error || serverError)}
+                aria-describedby={`offset-amount-help${error || serverError ? ' offset-error' : ''}`}
                 value={amount}
                 onChange={(event) => {
                   setAmount(event.target.value);
@@ -343,9 +331,13 @@ function OffsetDialogContent({
               />
               <strong>{currency}</strong>
             </div>
+            <small id="offset-amount-help">
+              En fazla{' '}
+              {formatMoneyFromMinor(availability.maxOffsetMinor, currency)}
+            </small>
           </label>
           {error || serverError ? (
-            <div className="form-error" role="alert">
+            <div className="form-error" id="offset-error" role="alert">
               {error ?? serverError}
             </div>
           ) : null}

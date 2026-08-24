@@ -78,9 +78,20 @@ describe('OffsetSplitCard financial refresh', () => {
     });
     const invalidate = setup();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Borçtan düş' }));
+    const trigger = screen.getByRole('button', { name: 'Borçtan düş' });
+    fireEvent.click(trigger);
+    const dialog = screen.getByRole('dialog');
+    await waitFor(() =>
+      expect(within(dialog).getByLabelText('Borçtan düşülecek tutar')).toHaveFocus(),
+    );
+    expect(within(dialog).getByText(/Mevcut borcun/)).toBeInTheDocument();
+    expect(within(dialog).getByText(/Bu paydan düşülecek/)).toBeInTheDocument();
+    expect(within(dialog).getByText(/Sonra/)).toBeInTheDocument();
+    expect(
+      within(dialog).queryByText(/Maksimum düşülebilir/),
+    ).not.toBeInTheDocument();
     fireEvent.click(
-      within(screen.getByRole('dialog')).getByRole('button', {
+      within(dialog).getByRole('button', {
         name: 'Borçtan düş',
       }),
     );
