@@ -22,9 +22,7 @@ function UpdateHarness() {
   return (
     <button
       type="button"
-      onClick={() =>
-        update.mutate({ expectedVersion: 1, planId: 'plan-b' })
-      }
+      onClick={() => update.mutate({ expectedVersion: 1, planId: 'plan-b' })}
     >
       {update.isSuccess ? 'updated' : 'update'}
     </button>

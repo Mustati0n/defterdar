@@ -1,4 +1,8 @@
-import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query';
+import {
+  QueryClient,
+  QueryClientProvider,
+  useQuery,
+} from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import {
@@ -67,12 +71,14 @@ describe('simple-first Expense form', () => {
   beforeEach(() => {
     push.mockClear();
     mutateAsync.mockReset().mockResolvedValue({ id: 'expense-1' });
-    jest.mocked(useLedgers).mockReturnValue({ data: [ledger] } as unknown as ReturnType<
-      typeof useLedgers
-    >);
-    jest.mocked(usePlans).mockReturnValue({ data: [] } as unknown as ReturnType<
-      typeof usePlans
-    >);
+    jest
+      .mocked(useLedgers)
+      .mockReturnValue({ data: [ledger] } as unknown as ReturnType<
+        typeof useLedgers
+      >);
+    jest
+      .mocked(usePlans)
+      .mockReturnValue({ data: [] } as unknown as ReturnType<typeof usePlans>);
     jest.mocked(useCategories).mockReturnValue({
       data: [],
       refetch: jest.fn(),

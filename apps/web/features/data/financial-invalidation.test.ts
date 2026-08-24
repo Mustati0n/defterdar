@@ -5,8 +5,16 @@ describe('financial invalidation matrix', () => {
   it('invalidates every filtered analytics range and both old/new Plan scopes', async () => {
     const client = new QueryClient();
     const keys = [
-      ['ledger-analytics', 'ledger-1', { from: '2026-01-01', to: '2026-01-31' }],
-      ['ledger-analytics', 'ledger-1', { from: '2026-02-01', to: '2026-02-28' }],
+      [
+        'ledger-analytics',
+        'ledger-1',
+        { from: '2026-01-01', to: '2026-01-31' },
+      ],
+      [
+        'ledger-analytics',
+        'ledger-1',
+        { from: '2026-02-01', to: '2026-02-28' },
+      ],
       ['plan-analytics', 'plan-a', { from: '2026-01-01', to: '2026-01-31' }],
       ['plan-analytics', 'plan-b', { from: '2026-02-01', to: '2026-02-28' }],
       ['ledger-balance', 'ledger-1'],

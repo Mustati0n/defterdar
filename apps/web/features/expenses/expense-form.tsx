@@ -2,11 +2,10 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowRight, Check, CircleHelp, Gift, ReceiptText } from 'lucide-react';
+import { ArrowRight, ReceiptText } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
-import { z } from 'zod';
 import { useToast } from '@/components/ui/toast';
 import {
   queryKeys,
@@ -16,55 +15,20 @@ import {
 } from '@/features/data/hooks';
 import { useAuth } from '@/features/auth/auth-provider';
 import { api, ApiError } from '@/lib/api-client';
-import type { SplitMethod } from '@/lib/types';
 import { useCategories } from '@/features/data/hooks';
 import { parseMoneyToMinor, equalPreview } from '@/lib/money';
 import { buildSplit } from './split-payload';
-import { formatMoneyFromMinor } from '@/lib/format';
 import { invalidateFinancialData } from '@/features/data/financial-invalidation';
-
-const schema = z.object({
-  ledgerId: z.string().min(1, 'Bir Defter seç.'),
-  planId: z.string().optional(),
-  title: z.string().trim().min(1, 'Harcamaya kısa bir ad ver.').max(160),
-  amount: z
-    .string()
-    .refine(
-      (value) => (parseMoneyToMinor(value) ?? 0) > 0,
-      'Sıfırdan büyük bir tutar yaz.',
-    ),
-  payerUserId: z.string().min(1, 'Kimin ödediğini seç.'),
-  participantUserIds: z.array(z.string()).min(1, 'En az bir kişi seç.'),
-  splitMethod: z.enum(['EQUAL', 'EXACT', 'PERCENTAGE', 'SHARES']),
-  expenseDate: z.string().min(1, 'Tarih seç.'),
-  description: z.string().trim().max(1000).optional(),
-  categoryId: z.string().optional(),
-  isGift: z.boolean(),
-});
-type Values = z.infer<typeof schema>;
-
-const splitOptions: Array<{
-  value: SplitMethod;
-  label: string;
-  help: string;
-}> = [
-  {
-    value: 'EQUAL',
-    label: 'Eşit böl',
-    help: 'Tutarı seçilen kişilere eşit dağıt',
-  },
-  { value: 'EXACT', label: 'Tutar gir', help: 'Herkesin payını ayrı yaz' },
-  {
-    value: 'PERCENTAGE',
-    label: 'Yüzdeyle böl',
-    help: 'Payları yüzde olarak belirle',
-  },
-  {
-    value: 'SHARES',
-    label: 'Pay oranı',
-    help: '1 pay, 2 pay gibi oranla dağıt',
-  },
-];
+import {
+  expenseFormSchema,
+  type ExpenseFormValues,
+} from './expense-form-config';
+import {
+  ExpensePreview,
+  GiftOption,
+  ParticipantsSection,
+  SplitMethodSection,
+} from './expense-form-sections';
 
 export function ExpenseForm() {
   const searchParams = useSearchParams();
@@ -87,8 +51,8 @@ export function ExpenseForm() {
     setValue,
     control,
     formState: { errors },
-  } = useForm<Values>({
-    resolver: zodResolver(schema),
+  } = useForm<ExpenseFormValues>({
+    resolver: zodResolver(expenseFormSchema),
     defaultValues: {
       ledgerId: requestedLedgerId,
       planId: requestedPlanId,
@@ -120,8 +84,7 @@ export function ExpenseForm() {
   });
   const participants = useQuery({
     queryKey: queryKeys.participants(planId ?? ''),
-    queryFn: ({ signal }) =>
-      api.plans.participants(planId ?? '', signal),
+    queryFn: ({ signal }) => api.plans.participants(planId ?? '', signal),
     enabled: Boolean(planId),
   });
 
@@ -192,7 +155,7 @@ export function ExpenseForm() {
     setAllocations((current) => ({ ...current, [userId]: value }));
   }
 
-  async function onSubmit(values: Values) {
+  async function onSubmit(values: ExpenseFormValues) {
     setFormError(null);
     const amountMinor = parseMoneyToMinor(values.amount);
     if (!amountMinor) return setFormError('Geçerli bir tutar yaz.');
@@ -304,8 +267,7 @@ export function ExpenseForm() {
             <>
               <input type="hidden" {...register('ledgerId')} />
               <div className="context-note">
-                {selectedLedger?.name ?? 'Seçili Defter'} içinde
-                oluşturulacak.
+                {selectedLedger?.name ?? 'Seçili Defter'} içinde oluşturulacak.
               </div>
             </>
           ) : (
@@ -331,7 +293,9 @@ export function ExpenseForm() {
             <small id="expense-ledger-error">{errors.ledgerId.message}</small>
           ) : null}
         </label>
-        {requestedPlanId ? <input type="hidden" {...register('planId')} /> : null}
+        {requestedPlanId ? (
+          <input type="hidden" {...register('planId')} />
+        ) : null}
         <details className="form-disclosure">
           <summary>İsteğe bağlı ayrıntılar</summary>
           <div className="stack-form">
@@ -418,217 +382,31 @@ export function ExpenseForm() {
       </section>
 
       <aside className="smart-form__side">
-        <section className="paper-section smart-form__people">
-          <div className="form-question">
-            <span>3</span>
-            <div>
-              <small>Kim ödedi?</small>
-              <h2>Ödemeyi yapan</h2>
-            </div>
-          </div>
-          <div
-            className="choice-list"
-            role="radiogroup"
-            aria-label="Ödemeyi yapan"
-            aria-invalid={Boolean(errors.payerUserId)}
-            aria-describedby={
-              errors.payerUserId ? 'expense-payer-error' : undefined
-            }
-          >
-            {people.map((person) => (
-              <label key={person.id}>
-                <input
-                  type="radio"
-                  value={person.id}
-                  {...register('payerUserId')}
-                />
-                <span className="avatar avatar--paper">
-                  {person.displayName[0]}
-                </span>
-                <strong>
-                  {person.displayName}
-                  {person.id === user?.id ? ' (sen)' : ''}
-                </strong>
-                <Check />
-              </label>
-            ))}
-          </div>
-          {errors.payerUserId ? (
-            <p className="field-error" id="expense-payer-error">
-              {errors.payerUserId.message}
-            </p>
-          ) : null}
+        <ParticipantsSection
+          people={people}
+          currentUserId={user?.id}
+          register={register}
+          errors={errors}
+        />
 
-          <div className="form-divider" />
-          <div className="form-question">
-            <span>4</span>
-            <div>
-              <small>Kimler paylaşıyor?</small>
-              <h2>Payı olan kişiler</h2>
-            </div>
-          </div>
-          <div
-            className="choice-list"
-            role="group"
-            aria-label="Payı olan kişiler"
-            aria-describedby={
-              errors.participantUserIds ? 'expense-participants-error' : undefined
-            }
-          >
-            {people.map((person) => (
-              <label key={person.id}>
-                <input
-                  type="checkbox"
-                  value={person.id}
-                  aria-invalid={Boolean(errors.participantUserIds)}
-                  aria-describedby={
-                    errors.participantUserIds
-                      ? 'expense-participants-error'
-                      : undefined
-                  }
-                  {...register('participantUserIds')}
-                />
-                <span className="avatar avatar--paper">
-                  {person.displayName[0]}
-                </span>
-                <strong>
-                  {person.displayName}
-                  {person.id === user?.id ? ' (sen)' : ''}
-                </strong>
-                <Check />
-              </label>
-            ))}
-          </div>
-          {errors.participantUserIds ? (
-            <p className="field-error" id="expense-participants-error">
-              {errors.participantUserIds.message}
-            </p>
-          ) : null}
-        </section>
+        <ExpensePreview
+          preview={preview}
+          people={people}
+          splitMethod={splitMethod}
+          currency={selectedLedger?.currency}
+        />
 
-        {preview.length ? (
-          <section className="paper-section split-preview">
-            <span className="eyebrow">Canlı özet</span>
-            <h3>Paylaştırma önizlemesi</h3>
-            {preview.map((item) => (
-              <div key={item.userId}>
-                <span>
-                  {
-                    people.find((person) => person.id === item.userId)
-                      ?.displayName
-                  }
-                </span>
-                <strong>
-                  {'amountMinor' in item
-                    ? formatMoneyFromMinor(
-                        item.amountMinor,
-                        selectedLedger?.currency,
-                      )
-                    : `${item.label}${splitMethod === 'PERCENTAGE' ? '%' : splitMethod === 'SHARES' ? ' pay' : ` ${selectedLedger?.currency ?? ''}`}`}
-                </strong>
-              </div>
-            ))}
-          </section>
-        ) : null}
+        <SplitMethodSection
+          splitMethod={splitMethod}
+          people={people}
+          selectedPeople={selectedPeople}
+          allocations={allocations}
+          currency={selectedLedger?.currency}
+          register={register}
+          updateAllocation={updateAllocation}
+        />
 
-        <section className="paper-section smart-form__split">
-          <div className="form-question">
-            <span>5</span>
-            <div>
-              <small>Nasıl paylaşalım?</small>
-              <h2>Paylaştırma biçimi</h2>
-            </div>
-          </div>
-          <div className="split-options">
-            {splitOptions.slice(0, 1).map((option) => (
-              <label key={option.value}>
-                <input
-                  type="radio"
-                  value={option.value}
-                  {...register('splitMethod')}
-                />
-                <span>
-                  <strong>{option.label}</strong>
-                  <small>{option.help}</small>
-                </span>
-                <Check />
-              </label>
-            ))}
-            <details
-              className="advanced-split"
-              open={splitMethod !== 'EQUAL' || undefined}
-            >
-              <summary>Diğer paylaşım yöntemleri</summary>
-              <div>
-                {splitOptions.slice(1).map((option) => (
-                  <label key={option.value}>
-                    <input
-                      type="radio"
-                      value={option.value}
-                      {...register('splitMethod')}
-                    />
-                    <span>
-                      <strong>{option.label}</strong>
-                      <small>{option.help}</small>
-                    </span>
-                    <Check />
-                  </label>
-                ))}
-              </div>
-            </details>
-          </div>
-          {splitMethod !== 'EQUAL' ? (
-            <div className="allocation-list">
-              {people
-                .filter((person) => selectedPeople.includes(person.id))
-                .map((person) => (
-                  <label key={person.id}>
-                    <span>{person.displayName}</span>
-                    <span>
-                      <input
-                        inputMode="decimal"
-                        value={allocations[person.id] ?? ''}
-                        onChange={(event) =>
-                          updateAllocation(person.id, event.target.value)
-                        }
-                        aria-label={`${person.displayName} payı`}
-                      />
-                      <b>
-                        {splitMethod === 'EXACT'
-                          ? selectedLedger?.currency
-                          : splitMethod === 'PERCENTAGE'
-                            ? '%'
-                            : 'pay'}
-                      </b>
-                    </span>
-                  </label>
-                ))}
-            </div>
-          ) : null}
-        </section>
-
-        <section className={`gift-toggle${isGift ? ' is-active' : ''}`}>
-          <label>
-            <input type="checkbox" {...register('isGift')} />
-            <span>
-              <Gift />
-            </span>
-            <span>
-              <strong>Bu benden — Ismarla</strong>
-              <small>Kimse için geri ödeme borcu oluşmasın.</small>
-            </span>
-            <Check />
-          </label>
-          <details className="help-popover">
-            <summary>
-              <CircleHelp /> Ismarla ne demek?
-            </summary>
-            <p>
-              Herkesin payı kayda geçer ama senden geri ödeme yapmaları
-              beklenmez.
-            </p>
-          </details>
-        </section>
+        <GiftOption isGift={isGift} register={register} />
 
         {formError ? (
           <div className="form-error" role="alert">

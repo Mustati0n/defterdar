@@ -1,0 +1,263 @@
+/* Frontend MVP motion system */
+.auth-story__copy,
+.auth-note,
+.auth-panel__inner {
+  animation: auth-surface-enter var(--motion-slow) var(--ease-enter) both;
+}
+.auth-note {
+  animation-delay: 70ms;
+}
+.auth-panel__inner {
+  animation-delay: 110ms;
+}
+.signature-line path {
+  stroke-dasharray: 1400;
+  stroke-dashoffset: 1400;
+  animation: signature-reveal var(--motion-slow) var(--ease-enter) 80ms forwards;
+}
+.button:active:not(:disabled),
+.icon-button:active:not(:disabled),
+.first-action-grid > button:active:not(:disabled),
+.ledger-card:active,
+.plan-card:active {
+  transform: scale(0.98);
+}
+.button svg,
+.first-action-grid > button > svg {
+  transition: transform var(--motion-fast) var(--ease-standard);
+}
+.onboarding-footer .button--primary:hover svg,
+.first-action-grid > button:hover > svg {
+  transform: translateX(4px);
+}
+.onboarding-footer .button--quiet:hover svg {
+  transform: translateX(-4px);
+}
+.dialog-backdrop {
+  animation: backdrop-enter var(--motion-fast) var(--ease-enter) both;
+}
+.dialog-card {
+  animation: dialog-enter var(--motion-normal) var(--ease-emphasized) both;
+}
+.toast {
+  animation: toast-enter var(--motion-normal) var(--ease-enter) both;
+}
+.state-panel--loading,
+.auth-form-skeleton {
+  background-image: linear-gradient(
+    105deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.32) 47%,
+    transparent 64%
+  );
+  background-size: 220% 100%;
+  animation: paper-shimmer 1.8s ease-out 2;
+}
+.nav-item svg {
+  transition: transform var(--motion-fast) var(--ease-standard);
+}
+.nav-item:hover svg {
+  transform: translateX(2px) scale(1.03);
+}
+.ledger-card:hover .ledger-card__rings i,
+.plan-card:hover .plan-card__pin {
+  transform: translateY(-1px);
+}
+.ledger-card__rings i,
+.plan-card__pin,
+.expense-indicators > span {
+  transition:
+    transform var(--motion-fast) var(--ease-standard),
+    background var(--motion-fast) var(--ease-standard);
+}
+.onboarding-shell {
+  animation: onboarding-compose var(--motion-slow) var(--ease-emphasized) both;
+}
+.onboarding-progress p {
+  animation: progress-label-enter var(--motion-normal) var(--ease-enter) both;
+}
+.onboarding-progress ol::after {
+  position: absolute;
+  z-index: 0;
+  top: 50%;
+  left: 14px;
+  width: calc(100% - 28px);
+  height: 2px;
+  content: '';
+  background: var(--color-wine);
+  transform: translateY(-50%) scaleX(var(--onboarding-progress));
+  transform-origin: left;
+  transition: transform var(--motion-normal) var(--ease-emphasized);
+}
+.onboarding-progress li > span {
+  transition:
+    color var(--motion-fast),
+    border-color var(--motion-fast),
+    background var(--motion-fast),
+    transform var(--motion-fast) var(--ease-emphasized),
+    box-shadow var(--motion-fast);
+}
+.onboarding-progress li.is-current > span {
+  color: white;
+  border-color: var(--color-wine);
+  background: var(--color-wine);
+  box-shadow: 0 0 0 5px rgba(130, 58, 70, 0.1);
+  transform: scale(1.08);
+}
+.onboarding-progress li.is-complete svg {
+  animation: check-settle var(--motion-fast) var(--ease-emphasized) both;
+}
+.onboarding-step {
+  overflow: clip;
+  will-change: transform, opacity;
+}
+.onboarding-step.is-exiting--forward {
+  animation: step-exit-forward var(--motion-fast) var(--ease-exit) both;
+  pointer-events: none;
+}
+.onboarding-step.is-entering--forward {
+  animation: step-enter-forward 220ms var(--ease-enter) both;
+}
+.onboarding-step.is-exiting--backward {
+  animation: step-exit-backward var(--motion-fast) var(--ease-exit) both;
+  pointer-events: none;
+}
+.onboarding-step.is-entering--backward {
+  animation: step-enter-backward 220ms var(--ease-enter) both;
+}
+.onboarding-step.is-entering--forward .onboarding-step__body > *,
+.onboarding-step.is-entering--backward .onboarding-step__body > * {
+  animation: step-child-enter var(--motion-normal) var(--ease-enter) both;
+}
+.onboarding-step.is-entering--forward .onboarding-step__body > :nth-child(2),
+.onboarding-step.is-entering--backward .onboarding-step__body > :nth-child(2) {
+  animation-delay: 35ms;
+}
+.onboarding-step.is-entering--forward .onboarding-step__body > :nth-child(3),
+.onboarding-step.is-entering--backward .onboarding-step__body > :nth-child(3) {
+  animation-delay: 65ms;
+}
+.allocation-list,
+.split-preview,
+.form-error {
+  animation: form-surface-enter var(--motion-normal) var(--ease-enter) both;
+}
+.gift-toggle,
+.choice-list label,
+.split-options label {
+  transition:
+    transform var(--motion-fast) var(--ease-standard),
+    border-color var(--motion-fast),
+    background var(--motion-fast),
+    box-shadow var(--motion-fast);
+}
+.gift-toggle:active,
+.choice-list label:active,
+.split-options label:active {
+  transform: scale(0.99);
+}
+.gift-toggle.is-active > label > svg,
+.choice-list input:checked ~ svg,
+.split-options input:checked ~ svg {
+  animation: check-settle var(--motion-fast) var(--ease-emphasized) both;
+}
+.upload-progress > span {
+  transition: transform var(--motion-normal) var(--ease-standard);
+}
+.balance-hero {
+  animation: balance-value-settle var(--motion-normal) var(--ease-enter) both;
+}
+
+@keyframes signature-reveal {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes backdrop-enter {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes dialog-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.985);
+  }
+}
+@keyframes toast-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+}
+@keyframes onboarding-compose {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.992);
+  }
+}
+@keyframes progress-label-enter {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+@keyframes check-settle {
+  from {
+    opacity: 0;
+    transform: scale(0.72);
+  }
+}
+@keyframes step-exit-forward {
+  to {
+    opacity: 0;
+    transform: translateX(-56px);
+  }
+}
+@keyframes step-enter-forward {
+  from {
+    opacity: 0;
+    transform: translateX(64px);
+  }
+}
+@keyframes step-exit-backward {
+  to {
+    opacity: 0;
+    transform: translateX(56px);
+  }
+}
+@keyframes step-enter-backward {
+  from {
+    opacity: 0;
+    transform: translateX(-64px);
+  }
+}
+@keyframes step-child-enter {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+}
+@keyframes paper-shimmer {
+  to {
+    background-position: -220% 0;
+  }
+}
+@keyframes form-surface-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+}
+@keyframes auth-surface-enter {
+  from {
+    opacity: 0;
+    transform: translateY(9px);
+  }
+}
+@keyframes balance-value-settle {
+  from {
+    opacity: 0.65;
+    transform: translateY(3px);
+  }
+}

@@ -1,4 +1,5 @@
 import type { QueryClient } from '@tanstack/react-query';
+import { queryKeys } from './query-keys';
 
 export interface FinancialInvalidationInput {
   ledgerId: string;
@@ -29,71 +30,73 @@ export async function invalidateFinancialData(
     ),
   ];
   const work = [
-    queryClient.invalidateQueries({ queryKey: ['overview'] }),
+    queryClient.invalidateQueries({ queryKey: queryKeys.overview }),
     queryClient.invalidateQueries({
-      queryKey: ['ledger-analytics', input.ledgerId],
+      queryKey: queryKeys.ledgerAnalyticsPrefix(input.ledgerId),
     }),
     queryClient.invalidateQueries({
-      queryKey: ['activity-preview', input.ledgerId],
+      queryKey: queryKeys.activityPreview(input.ledgerId),
     }),
     queryClient.invalidateQueries({
-      queryKey: ['activity-feed', input.ledgerId],
+      queryKey: queryKeys.activityFeedPrefix(input.ledgerId),
     }),
   ];
 
   if (input.balances !== false) {
     work.push(
       queryClient.invalidateQueries({
-        queryKey: ['ledger-balance', input.ledgerId],
+        queryKey: queryKeys.ledgerBalance(input.ledgerId),
       }),
     );
   }
   if (input.expenses) {
     work.push(
       queryClient.invalidateQueries({
-        queryKey: ['expenses', input.ledgerId],
+        queryKey: queryKeys.expensesPrefix(input.ledgerId),
       }),
     );
   }
   if (input.expenseId) {
     work.push(
       queryClient.invalidateQueries({
-        queryKey: ['expense', input.expenseId],
+        queryKey: queryKeys.expense(input.expenseId),
       }),
     );
   }
   if (input.incomes) {
     work.push(
       queryClient.invalidateQueries({
-        queryKey: ['incomes', input.ledgerId],
+        queryKey: queryKeys.incomesPrefix(input.ledgerId),
       }),
     );
   }
   if (input.settlements) {
     work.push(
       queryClient.invalidateQueries({
-        queryKey: ['settlements', input.ledgerId],
+        queryKey: queryKeys.settlementsPrefix(input.ledgerId),
       }),
     );
   }
   if (input.offsetAvailability !== false) {
     work.push(
       queryClient.invalidateQueries({
-        queryKey: ['offset-availability', input.ledgerId],
+        queryKey: queryKeys.offsetAvailabilityPrefix(input.ledgerId),
       }),
     );
   }
   if (input.allPlanAnalytics) {
     work.push(
-      queryClient.invalidateQueries({ queryKey: ['plan-analytics'] }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.planAnalyticsRoot }),
     );
   }
 
   for (const planId of planIds) {
     work.push(
-      queryClient.invalidateQueries({ queryKey: ['plan-balance', planId] }),
       queryClient.invalidateQueries({
-        queryKey: ['plan-analytics', planId],
+        queryKey: queryKeys.planBalance(planId),
+      }),
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.planAnalyticsPrefix(planId),
       }),
     );
   }

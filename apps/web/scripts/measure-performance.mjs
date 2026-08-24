@@ -1,5 +1,5 @@
-import { readFileSync, readdirSync, statSync } from 'node:fs';
-import { join } from 'node:path';
+import { readFileSync, readdirSync } from 'node:fs';
+import { dirname, join, resolve } from 'node:path';
 import { gzipSync } from 'node:zlib';
 
 const nextRoot = join(process.cwd(), '.next');
@@ -52,6 +52,23 @@ function sourceMetrics(root) {
   return { client, total };
 }
 
+function cssSourceSize(file, seen = new Set()) {
+  if (seen.has(file)) return 0;
+  seen.add(file);
+  const content = readFileSync(file, 'utf8');
+  const imports = [...content.matchAll(/@import\s+['"]([^'"]+)['"];?/g)];
+  if (!imports.length) return Buffer.byteLength(content);
+  const localContent = content.replace(/@import\s+['"]([^'"]+)['"];?\s*/g, '');
+  return (
+    Buffer.byteLength(localContent) +
+    imports.reduce(
+      (total, match) =>
+        total + cssSourceSize(resolve(dirname(file), match[1]), seen),
+      0,
+    )
+  );
+}
+
 const chunkSets = Object.fromEntries(
   Object.entries(routes).map(([route, file]) => [route, routeChunks(file)]),
 );
@@ -68,6 +85,6 @@ for (const [route, chunks] of Object.entries(chunkSets)) {
 }
 
 const cssPath = join(process.cwd(), 'app/globals.css');
-console.log(`global-css=${statSync(cssPath).size} bytes`);
+console.log(`global-css=${cssSourceSize(cssPath)} bytes`);
 const components = sourceMetrics(process.cwd());
 console.log(`client-tsx=${components.client}/${components.total}`);
