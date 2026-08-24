@@ -2,6 +2,7 @@
 
 import {
   ArrowLeft,
+  BarChart3,
   CalendarDays,
   CheckSquare2,
   Clock3,
@@ -27,13 +28,19 @@ import {
 } from '@/features/plans/plan-management';
 import { ActivityFeed } from '@/features/activity/activity-feed';
 import { ExpenseIndicators } from '@/features/expenses/expense-indicators';
-import { formatDate, formatMoneyFromMinor } from '@/lib/format';
+import {
+  formatDate,
+  formatMoneyFromMinor,
+  planStatusLabel,
+} from '@/lib/format';
 import { BalanceExperience } from '@/features/financial/balance-experience';
+import { AnalyticsExperience } from '@/features/analytics/analytics-experience';
 
 const tabs = [
   { id: 'general', label: 'Genel', icon: CheckSquare2 },
   { id: 'activity', label: 'Hareketler', icon: Clock3 },
   { id: 'balances', label: 'Bakiyeler', icon: WalletCards },
+  { id: 'analytics', label: 'İstatistikler', icon: BarChart3 },
   { id: 'participants', label: 'Katılımcılar', icon: UsersRound },
   { id: 'settings', label: 'Ayarlar', icon: Settings },
 ] as const;
@@ -75,7 +82,9 @@ export default function PlanDetailPage() {
       <section className="detail-cover detail-cover--plan">
         <span className="detail-cover__pin" aria-hidden="true" />
         <div>
-          <span className="eyebrow">Plan notu · {data.status}</span>
+          <span className="eyebrow">
+            Plan notu · {planStatusLabel(data.status)}
+          </span>
           <h1>{data.name}</h1>
           <p>{data.description || 'Bu planın açıklama notu henüz boş.'}</p>
         </div>
@@ -128,7 +137,7 @@ export default function PlanDetailPage() {
                   <CheckSquare2 />
                   <span>
                     <small>Durum</small>
-                    <strong>{data.status}</strong>
+                    <strong>{planStatusLabel(data.status)}</strong>
                   </span>
                 </div>
               </div>
@@ -239,6 +248,14 @@ export default function PlanDetailPage() {
             ledger.data?.archivedAt || data.status === 'ARCHIVED',
           )}
           planStatus={data.status}
+        />
+      ) : null}
+      {activeTab === 'analytics' ? (
+        <AnalyticsExperience
+          scope="plan"
+          resourceId={planId}
+          planStatus={data.status}
+          participantCount={data.participantCount}
         />
       ) : null}
       {activeTab === 'participants' ? (

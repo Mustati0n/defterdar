@@ -137,6 +137,19 @@ export interface AnalyticsSummary {
     expenseMinor: string;
     incomeMinor: string;
   }>;
+  byCategory: Array<{
+    category: Pick<Category, 'id' | 'name'> | null;
+    expenseMinor: string;
+    incomeMinor: string;
+  }>;
+  paidByMember: Array<{
+    user: Pick<User, 'id' | 'displayName'>;
+    amountMinor: string;
+  }>;
+  shareByMember: Array<{
+    user: Pick<User, 'id' | 'displayName'>;
+    amountMinor: string;
+  }>;
   currentBalances: BalanceResponse;
 }
 

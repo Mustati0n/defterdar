@@ -459,8 +459,7 @@ export function ExpenseForm() {
               </div>
             ))}
             <small>
-              Kesin küsurat dağılımı backend tarafından deterministik olarak
-              hesaplanır.
+              Kuruş farklarını Defterdar adil ve tutarlı biçimde dağıtır.
             </small>
           </section>
         ) : null}

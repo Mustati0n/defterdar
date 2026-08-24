@@ -15,6 +15,7 @@ import {
   WalletCards,
 } from 'lucide-react';
 import Link from 'next/link';
+import { useMemo } from 'react';
 import { LedgerCard } from '@/components/ledger-card';
 import { PageHeading } from '@/components/page-heading';
 import { PlanCard } from '@/components/plan-card';
@@ -29,6 +30,8 @@ import {
 import { useAuth } from '@/features/auth/auth-provider';
 import { api } from '@/lib/api-client';
 import { formatMoneyFromMinor } from '@/lib/format';
+import { activitySentence } from '@/lib/activity';
+import { analyticsDateRange } from '@/features/analytics/analytics-date';
 
 export default function OverviewPage() {
   const { user } = useAuth();
@@ -41,9 +44,19 @@ export default function OverviewPage() {
   const activePlans = allPlans.plans.filter((plan) => plan.status === 'ACTIVE');
   const planBalances = usePlanBalances(activePlans);
   const firstLedgerId = activeLedgers?.[0]?.id ?? '';
+  const overviewRange = useMemo(() => analyticsDateRange('month'), []);
   const analytics = useQuery({
-    queryKey: queryKeys.ledgerAnalytics(firstLedgerId),
-    queryFn: () => api.ledgers.analytics(firstLedgerId),
+    queryKey: queryKeys.ledgerAnalytics(
+      firstLedgerId,
+      overviewRange.from,
+      overviewRange.to,
+    ),
+    queryFn: () =>
+      api.ledgers.analytics(
+        firstLedgerId,
+        overviewRange.from,
+        overviewRange.to,
+      ),
     enabled: Boolean(firstLedgerId),
   });
   const activity = useQuery({
@@ -78,6 +91,9 @@ export default function OverviewPage() {
   });
   const currency =
     analytics.data?.currency ?? activeLedgers?.[0]?.currency ?? 'TRY';
+  const topCategory = analytics.data?.byCategory
+    .filter((item) => Number(item.expenseMinor) > 0)
+    .sort((a, b) => Number(b.expenseMinor) - Number(a.expenseMinor))[0];
 
   return (
     <>
@@ -265,6 +281,21 @@ export default function OverviewPage() {
         </article>
       </section>
 
+      {topCategory ? (
+        <Link className="overview-insight" href="/statistics">
+          <Sparkles />
+          <span>
+            <small>Defterden kısa not</small>
+            <strong>
+              Bu ay en çok {topCategory.category?.name ?? 'Kategorisiz'} için
+              harcadın:{' '}
+              {formatMoneyFromMinor(topCategory.expenseMinor, currency)}.
+            </strong>
+          </span>
+          <ArrowRight />
+        </Link>
+      ) : null}
+
       <div className="overview-columns">
         <section>
           <div className="section-heading">
@@ -287,37 +318,31 @@ export default function OverviewPage() {
             ) : null}
           </div>
         </section>
-        <section className="activity-paper">
-          <div className="section-heading">
-            <div>
-              <span className="eyebrow">Son kayıtlar</span>
-              <h2>Defter hareketleri</h2>
+        {activity.data?.items.length ? (
+          <section className="activity-paper">
+            <div className="section-heading">
+              <div>
+                <span className="eyebrow">Son kayıtlar</span>
+                <h2>Defter hareketleri</h2>
+              </div>
+              <Clock3 />
             </div>
-            <Clock3 />
-          </div>
-          <ol className="activity-list">
-            {(activity.data?.items ?? []).map((item) => (
-              <li key={item.id}>
-                <span />
-                <div>
-                  <strong>{item.actor?.displayName ?? 'Defterdar'}</strong>
-                  <p>
-                    {item.entityType.toLocaleLowerCase('tr-TR')} kaydında “
-                    {item.action}” işlemi yaptı.
-                  </p>
-                  <small>
-                    {new Date(item.createdAt).toLocaleString('tr-TR')}
-                  </small>
-                </div>
-              </li>
-            ))}
-            {!activity.isLoading && !activity.data?.items.length ? (
-              <li className="activity-list__empty">
-                Henüz yeni bir hareket yok.
-              </li>
-            ) : null}
-          </ol>
-        </section>
+            <ol className="activity-list">
+              {(activity.data?.items ?? []).map((item) => (
+                <li key={item.id}>
+                  <span />
+                  <div>
+                    <strong>{item.actor?.displayName ?? 'Defterdar'}</strong>
+                    <p>{activitySentence(item)}</p>
+                    <small>
+                      {new Date(item.createdAt).toLocaleString('tr-TR')}
+                    </small>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </section>
+        ) : null}
       </div>
 
       {activePlans.length ? (

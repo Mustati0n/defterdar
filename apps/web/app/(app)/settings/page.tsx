@@ -1,42 +1,43 @@
 'use client';
 
-import { Bell, KeyRound, Palette, RotateCcw, UserRound } from 'lucide-react';
+import { BookOpenText, Info, RotateCcw, Sparkles } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { PageHeading } from '@/components/page-heading';
 import { useAuth } from '@/features/auth/auth-provider';
-import { initials } from '@/lib/format';
 import { useOnboarding } from '@/features/onboarding/use-onboarding';
+import { CategoryManager } from '@/features/settings/category-manager';
+import { ProfileForm } from '@/features/settings/profile-form';
 
 export default function SettingsPage() {
   const { user } = useAuth();
   const router = useRouter();
   const { replay } = useOnboarding(user?.id);
+
   return (
     <>
       <PageHeading
         eyebrow="Defter sahibi"
         title="Ayarlar"
-        description="Profil, oturum ve görünüm tercihleri için temel çalışma alanı."
+        description="Profilini, Defter kategorilerini ve ürün deneyimini tek yerden düzenle."
       />
-      <div className="settings-grid">
-        <section className="paper-section profile-card">
-          <span className="avatar avatar--large">
-            {initials(user?.displayName ?? 'D')}
+      <div className="settings-hub">
+        <ProfileForm />
+        <CategoryManager />
+        <section
+          className="paper-section experience-settings"
+          aria-labelledby="experience-heading"
+        >
+          <span className="eyebrow">
+            <Sparkles /> Deneyim
           </span>
-          <div>
-            <span className="eyebrow">Profil</span>
-            <h2>{user?.displayName}</h2>
-            <p>{user?.email}</p>
-          </div>
-        </section>
-        <section className="settings-list">
-          <article className="settings-list__action">
+          <h2 id="experience-heading">Tanıtım turu</h2>
+          <div className="experience-settings__row">
             <span>
               <RotateCcw />
             </span>
             <div>
               <strong>Tanıtımı tekrar göster</strong>
-              <p>Defter, Plan, Ismarla ve bakiye turunu yeniden aç.</p>
+              <p>Defter, Plan, Ismarla ve bakiye turunu baştan aç.</p>
             </div>
             <button
               className="button button--quiet button--small"
@@ -48,47 +49,20 @@ export default function SettingsPage() {
             >
               Tekrar başlat
             </button>
-          </article>
-          <article>
-            <span>
-              <UserRound />
-            </span>
-            <div>
-              <strong>Profil bilgileri</strong>
-              <p>Görünen ad ve hesap bilgileri.</p>
-            </div>
-            <small>API hazır</small>
-          </article>
-          <article>
-            <span>
-              <KeyRound />
-            </span>
-            <div>
-              <strong>Oturum güvenliği</strong>
-              <p>Dönen yenileme tokenı ile kalıcı oturum.</p>
-            </div>
-            <small>Etkin</small>
-          </article>
-          <article>
-            <span>
-              <Bell />
-            </span>
-            <div>
-              <strong>Bildirimler</strong>
-              <p>Davet ve hareket bildirimleri için hazır alan.</p>
-            </div>
-            <small>Yakında</small>
-          </article>
-          <article>
-            <span>
-              <Palette />
-            </span>
-            <div>
-              <strong>Görünüm</strong>
-              <p>Sıcak kâğıt teması ve erişilebilir kontrast.</p>
-            </div>
-            <small>Varsayılan</small>
-          </article>
+          </div>
+        </section>
+        <section
+          className="paper-section about-settings"
+          aria-labelledby="about-heading"
+        >
+          <span className="eyebrow">
+            <Info /> Defterdar hakkında
+          </span>
+          <h2 id="about-heading">Hesabın akılda kalmasın.</h2>
+          <p>
+            <BookOpenText /> Defterdar, kişisel ve ortak harcamaları sakin,
+            anlaşılır bir Defter düzeninde tutar.
+          </p>
         </section>
       </div>
     </>

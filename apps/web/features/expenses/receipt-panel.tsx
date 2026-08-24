@@ -62,9 +62,9 @@ export function ReceiptPanel({
   const mutation = useMutation({
     mutationFn: async (file: File) => {
       if (file.size > MAX_RECEIPT_BYTES)
-        throw new Error('Receipt en fazla 10 MB olabilir.');
+        throw new Error('Fiş en fazla 10 MB olabilir.');
       if (!canAddReceipt(attachments.data?.length ?? 0))
-        throw new Error('Bir harcamaya en fazla 5 receipt eklenebilir.');
+        throw new Error('Bir harcamaya en fazla 5 fiş eklenebilir.');
       setProgress(0);
       const reservation = await api.expenses.reserveAttachment(expenseId, {
         fileName: file.name,
@@ -80,7 +80,7 @@ export function ReceiptPanel({
       await queryClient.invalidateQueries({
         queryKey: queryKeys.attachments(expenseId),
       });
-      toast('Receipt eklendi.');
+      toast('Fiş eklendi.');
     },
     onError: (error, file) => {
       setProgress(null);
@@ -88,7 +88,7 @@ export function ReceiptPanel({
       toast(
         error instanceof ApiError || error instanceof Error
           ? error.message
-          : 'Receipt yüklenemedi.',
+          : 'Fiş yüklenemedi.',
         'error',
       );
     },
@@ -100,11 +100,11 @@ export function ReceiptPanel({
       await queryClient.invalidateQueries({
         queryKey: queryKeys.attachments(expenseId),
       });
-      toast('Receipt kaldırıldı.');
+      toast('Fiş kaldırıldı.');
     },
     onError: (error) =>
       toast(
-        error instanceof ApiError ? error.message : 'Receipt kaldırılamadı.',
+        error instanceof ApiError ? error.message : 'Fiş kaldırılamadı.',
         'error',
       ),
   });
@@ -114,7 +114,7 @@ export function ReceiptPanel({
       window.open(url, '_blank', 'noopener,noreferrer');
     } catch (error) {
       toast(
-        error instanceof ApiError ? error.message : 'Receipt açılamadı.',
+        error instanceof ApiError ? error.message : 'Fiş açılamadı.',
         'error',
       );
     }
@@ -125,7 +125,7 @@ export function ReceiptPanel({
       <div className="section-heading">
         <div>
           <span className="eyebrow">Belgeler</span>
-          <h2>Receipt’ler</h2>
+          <h2>Fişler</h2>
         </div>
         <span className="status-chip">
           <Paperclip /> {activeCount}/{MAX_RECEIPTS}
@@ -133,7 +133,7 @@ export function ReceiptPanel({
       </div>
       {attachments.isError ? (
         <div className="form-error">
-          Receipt listesi yüklenemedi.{' '}
+          Fiş listesi yüklenemedi.{' '}
           <button type="button" onClick={() => void attachments.refetch()}>
             Yeniden dene
           </button>
@@ -194,8 +194,8 @@ export function ReceiptPanel({
           >
             <Upload />{' '}
             {!canAddReceipt(activeCount)
-              ? 'Receipt sınırına ulaşıldı'
-              : 'Receipt yükle'}
+              ? 'Fiş sınırına ulaşıldı'
+              : 'Fiş yükle'}
           </button>
         </>
       ) : null}
@@ -216,7 +216,7 @@ export function ReceiptPanel({
       ) : null}
       <ConfirmationDialog
         open={Boolean(removeId)}
-        title="Receipt kaldırılsın mı?"
+        title="Fiş kaldırılsın mı?"
         description="Belge bu harcamadan kaldırılacak."
         confirmLabel="Kaldır"
         danger

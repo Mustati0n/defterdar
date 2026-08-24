@@ -2,6 +2,7 @@
 
 import {
   ArrowLeft,
+  BarChart3,
   BookOpenText,
   CircleDollarSign,
   Clock3,
@@ -27,12 +28,18 @@ import { activitySentence } from '@/lib/activity';
 import { ExpenseIndicators } from '@/features/expenses/expense-indicators';
 import { BalanceExperience } from '@/features/financial/balance-experience';
 import { positionState } from '@/features/financial/financial-ux';
-import { formatMoneyFromMinor } from '@/lib/format';
+import {
+  formatMoneyFromMinor,
+  ledgerRoleLabel,
+  planStatusLabel,
+} from '@/lib/format';
+import { AnalyticsExperience } from '@/features/analytics/analytics-experience';
 
 const tabs = [
   { id: 'general', label: 'Genel', icon: BookOpenText },
   { id: 'activity', label: 'Hareketler', icon: Clock3 },
   { id: 'balances', label: 'Bakiyeler', icon: WalletCards },
+  { id: 'analytics', label: 'İstatistikler', icon: BarChart3 },
   { id: 'members', label: 'Üyeler', icon: UsersRound },
   { id: 'settings', label: 'Ayarlar', icon: Settings },
 ] as const;
@@ -66,7 +73,9 @@ export default function LedgerDetailPage() {
         <ArrowLeft /> Defterliğe dön
       </Link>
       <section className="detail-cover detail-cover--ledger">
-        <span className="detail-cover__bookmark">{data.role}</span>
+        <span className="detail-cover__bookmark">
+          {ledgerRoleLabel(data.role)}
+        </span>
         <div>
           <span className="eyebrow eyebrow--light">
             {data.type === 'PERSONAL' ? 'Kişisel defter' : 'Ortak defter'} ·{' '}
@@ -256,7 +265,8 @@ export default function LedgerDetailPage() {
                   <Link href={`/plans/${plan.id}`} key={plan.id}>
                     <strong>{plan.name}</strong>
                     <small>
-                      {plan.status} · {plan.participantCount} katılımcı
+                      {planStatusLabel(plan.status)} · {plan.participantCount}{' '}
+                      katılımcı
                     </small>
                   </Link>
                 ))}
@@ -314,6 +324,13 @@ export default function LedgerDetailPage() {
           currentUserId={user?.id ?? ''}
           role={data.role}
           mutationsDisabled={Boolean(data.archivedAt)}
+        />
+      ) : null}
+      {activeTab === 'analytics' ? (
+        <AnalyticsExperience
+          scope="ledger"
+          resourceId={ledgerId}
+          personal={data.type === 'PERSONAL'}
         />
       ) : null}
       {activeTab === 'members' ? (

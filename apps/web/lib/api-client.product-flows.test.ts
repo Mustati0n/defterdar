@@ -214,4 +214,23 @@ describe('product-flow API contracts', () => {
       message: expect.stringMatching(/artık Borçtan düşülebilecek/),
     });
   });
+
+  it('sends inclusive date filters to Ledger and Plan analytics', async () => {
+    fetchMock.mockImplementation(() => json({}));
+    await api.ledgers.analytics(
+      'ledger-1',
+      '2026-08-01T00:00:00.000Z',
+      '2026-08-24T23:59:59.999Z',
+    );
+    await api.plans.analytics(
+      'plan-1',
+      '2026-08-01T00:00:00.000Z',
+      '2026-08-24T23:59:59.999Z',
+    );
+    const urls = fetchMock.mock.calls.map((call) => new URL(String(call[0])));
+    expect(urls[0]!.pathname).toBe('/ledgers/ledger-1/analytics/summary');
+    expect(urls[1]!.pathname).toBe('/plans/plan-1/analytics/summary');
+    expect(urls[0]!.searchParams.get('from')).toBe('2026-08-01T00:00:00.000Z');
+    expect(urls[1]!.searchParams.get('to')).toBe('2026-08-24T23:59:59.999Z');
+  });
 });

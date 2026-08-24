@@ -6,14 +6,8 @@ import {
   UsersRound,
 } from 'lucide-react';
 import Link from 'next/link';
-import { formatDate } from '@/lib/format';
+import { formatDate, planStatusLabel } from '@/lib/format';
 import type { Ledger, Plan } from '@/lib/types';
-
-const statusLabels = {
-  ACTIVE: 'Devam ediyor',
-  COMPLETED: 'Tamamlandı',
-  ARCHIVED: 'Arşivde',
-} as const;
 
 export function PlanCard({
   plan,
@@ -36,7 +30,7 @@ export function PlanCard({
           className={`status-chip status-chip--${plan.status.toLowerCase()}`}
         >
           {plan.status === 'ACTIVE' ? <Clock3 /> : <CheckCircle2 />}
-          {statusLabels[plan.status]}
+          {planStatusLabel(plan.status)}
         </span>
         <span className="plan-card__number">
           #{String(index + 1).padStart(2, '0')}

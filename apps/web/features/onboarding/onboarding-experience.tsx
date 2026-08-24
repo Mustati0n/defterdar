@@ -20,6 +20,7 @@ import {
   useEffect,
   useRef,
   useState,
+  type CSSProperties,
   type KeyboardEvent,
   type ReactNode,
 } from 'react';
@@ -30,6 +31,11 @@ import {
   type OnboardingScenario,
 } from '@/lib/onboarding';
 import { useOnboarding } from './use-onboarding';
+import { useReducedMotion } from '@/features/motion/use-reduced-motion';
+import {
+  onboardingTransitionClass,
+  type OnboardingDirection,
+} from '@/features/motion/onboarding-transition';
 
 const stepNames = [
   'Hoş geldin',
@@ -81,12 +87,21 @@ export function OnboardingExperience() {
   const router = useRouter();
   const [step, setStep] = useState(0);
   const [scenario, setScenario] = useState<OnboardingScenario>('personal');
+  const [direction, setDirection] = useState<OnboardingDirection>(1);
+  const [phase, setPhase] = useState<'idle' | 'exit' | 'enter'>('idle');
+  const reducedMotion = useReducedMotion();
   const headingRef = useRef<HTMLHeadingElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
+  const transitionTimers = useRef<number[]>([]);
 
   useEffect(() => {
     if (pending) headingRef.current?.focus();
   }, [pending, step]);
+
+  useEffect(
+    () => () => transitionTimers.current.forEach(window.clearTimeout),
+    [],
+  );
 
   if (!pending || !user) return null;
 
@@ -102,6 +117,26 @@ export function OnboardingExperience() {
   function finish(path = '/overview') {
     complete();
     router.push(path);
+  }
+
+  function moveTo(nextStep: number, nextDirection: OnboardingDirection) {
+    if (phase !== 'idle' || nextStep === step) return;
+    setDirection(nextDirection);
+    if (reducedMotion) {
+      setStep(nextStep);
+      return;
+    }
+
+    setPhase('exit');
+    transitionTimers.current.push(
+      window.setTimeout(() => {
+        setStep(nextStep);
+        setPhase('enter');
+        transitionTimers.current.push(
+          window.setTimeout(() => setPhase('idle'), 220),
+        );
+      }, 150),
+    );
   }
 
   function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
@@ -148,8 +183,15 @@ export function OnboardingExperience() {
           </button>
         </header>
 
-        <div className="onboarding-progress">
-          <p aria-live="polite">
+        <div
+          className="onboarding-progress"
+          style={
+            {
+              '--onboarding-progress': step / (stepNames.length - 1),
+            } as CSSProperties
+          }
+        >
+          <p aria-live="polite" key={step}>
             <strong>
               {step + 1} / {stepNames.length}
             </strong>
@@ -158,7 +200,13 @@ export function OnboardingExperience() {
           <ol aria-label="Tanıtım ilerlemesi">
             {stepNames.map((name, index) => (
               <li
-                className={index <= step ? 'is-complete' : ''}
+                className={
+                  index < step
+                    ? 'is-complete'
+                    : index === step
+                      ? 'is-current'
+                      : ''
+                }
                 aria-current={index === step ? 'step' : undefined}
                 key={name}
               >
@@ -168,7 +216,12 @@ export function OnboardingExperience() {
           </ol>
         </div>
 
-        <section className={`onboarding-step onboarding-step--${step}`}>
+        <section
+          className={`onboarding-step onboarding-step--${step} ${onboardingTransitionClass(direction, phase)}`}
+          data-direction={direction === 1 ? 'forward' : 'backward'}
+          aria-busy={phase !== 'idle'}
+          inert={phase === 'exit' || undefined}
+        >
           {step === 0 ? (
             <StepFrame>
               <div className="welcome-copy">
@@ -483,8 +536,8 @@ export function OnboardingExperience() {
           <button
             className="button button--quiet"
             type="button"
-            disabled={step === 0}
-            onClick={() => setStep((current) => Math.max(0, current - 1))}
+            disabled={step === 0 || phase !== 'idle'}
+            onClick={() => moveTo(Math.max(0, step - 1), -1)}
           >
             <ArrowLeft /> Geri
           </button>
@@ -492,10 +545,9 @@ export function OnboardingExperience() {
             <button
               className="button button--primary"
               type="button"
+              disabled={phase !== 'idle'}
               onClick={() =>
-                setStep((current) =>
-                  Math.min(stepNames.length - 1, current + 1),
-                )
+                moveTo(Math.min(stepNames.length - 1, step + 1), 1)
               }
             >
               İleri <ArrowRight />

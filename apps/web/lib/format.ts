@@ -30,3 +30,15 @@ export function initials(name: string): string {
     .map((part) => part[0]?.toLocaleUpperCase('tr-TR'))
     .join('');
 }
+
+export function planStatusLabel(status: 'ACTIVE' | 'COMPLETED' | 'ARCHIVED') {
+  return {
+    ACTIVE: 'Devam ediyor',
+    COMPLETED: 'Tamamlandı',
+    ARCHIVED: 'Arşivde',
+  }[status];
+}
+
+export function ledgerRoleLabel(role: 'OWNER' | 'ADMIN' | 'MEMBER') {
+  return { OWNER: 'Defter sahibi', ADMIN: 'Yönetici', MEMBER: 'Üye' }[role];
+}

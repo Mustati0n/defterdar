@@ -61,6 +61,12 @@ function getErrorMessage(body: ApiErrorBody | null, status: number): string {
   if (normalized.includes('email is already registered')) {
     return 'Bu e-posta ile daha önce bir hesap açılmış.';
   }
+  if (
+    normalized.includes('category') &&
+    (normalized.includes('already') || normalized.includes('duplicate'))
+  ) {
+    return 'Bu isimde bir kategori zaten var.';
+  }
   if (normalized.includes('offset') && normalized.includes('mutation')) {
     return 'Bu harcamada Borçtan düş işlemi olduğu için paylaşımı şu anda değiştiremezsin. Önce ilgili Borçtan düş kaydını geri al.';
   }
@@ -218,6 +224,11 @@ export const api = {
   },
   users: {
     me: () => apiRequest<User>('/users/me'),
+    update: (displayName: string) =>
+      apiRequest<User>('/users/me', {
+        method: 'PATCH',
+        body: { displayName },
+      }),
   },
   ledgers: {
     list: (includeArchived = false) =>
@@ -289,8 +300,15 @@ export const api = {
       apiRequest<ActivityPage>(
         `/ledgers/${ledgerId}/activity?limit=${limit}${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`,
       ),
-    analytics: (ledgerId: string) =>
-      apiRequest<AnalyticsSummary>(`/ledgers/${ledgerId}/analytics/summary`),
+    analytics: (ledgerId: string, from?: string, to?: string) => {
+      const params = new URLSearchParams();
+      if (from) params.set('from', from);
+      if (to) params.set('to', to);
+      const query = params.size ? `?${params.toString()}` : '';
+      return apiRequest<AnalyticsSummary>(
+        `/ledgers/${ledgerId}/analytics/summary${query}`,
+      );
+    },
   },
   plans: {
     list: (ledgerId: string, includeArchived = false) =>
@@ -331,8 +349,15 @@ export const api = {
       }),
     balances: (planId: string) =>
       apiRequest<BalanceResponse>(`/plans/${planId}/balances`),
-    analytics: (planId: string) =>
-      apiRequest<AnalyticsSummary>(`/plans/${planId}/analytics/summary`),
+    analytics: (planId: string, from?: string, to?: string) => {
+      const params = new URLSearchParams();
+      if (from) params.set('from', from);
+      if (to) params.set('to', to);
+      const query = params.size ? `?${params.toString()}` : '';
+      return apiRequest<AnalyticsSummary>(
+        `/plans/${planId}/analytics/summary${query}`,
+      );
+    },
   },
   expenses: {
     list: (ledgerId: string, planId?: string) =>
@@ -420,6 +445,18 @@ export const api = {
       apiRequest<Category>(`/ledgers/${ledgerId}/categories`, {
         method: 'POST',
         body: input,
+      }),
+    update: (
+      categoryId: string,
+      input: { name?: string; kind?: CategoryKind },
+    ) =>
+      apiRequest<Category>(`/categories/${categoryId}`, {
+        method: 'PATCH',
+        body: input,
+      }),
+    archive: (categoryId: string) =>
+      apiRequest<Category>(`/categories/${categoryId}/archive`, {
+        method: 'POST',
       }),
   },
   incomes: {

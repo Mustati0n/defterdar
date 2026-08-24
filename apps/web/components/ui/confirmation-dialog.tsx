@@ -1,6 +1,10 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import {
+  useEffect,
+  useRef,
+  type KeyboardEvent as ReactKeyboardEvent,
+} from 'react';
 
 export function ConfirmationDialog({
   open,
@@ -22,6 +26,7 @@ export function ConfirmationDialog({
   onConfirm: () => void;
 }) {
   const confirmRef = useRef<HTMLButtonElement>(null);
+  const dialogRef = useRef<HTMLElement>(null);
   useEffect(() => {
     if (!open) return;
     confirmRef.current?.focus();
@@ -31,13 +36,33 @@ export function ConfirmationDialog({
     return () => window.removeEventListener('keydown', close);
   }, [onCancel, open]);
   if (!open) return null;
+
+  function trapFocus(event: ReactKeyboardEvent<HTMLElement>) {
+    if (event.key !== 'Tab') return;
+    const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(
+      'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+    );
+    if (!focusable?.length) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last?.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first?.focus();
+    }
+  }
+
   return (
     <div className="dialog-backdrop" role="presentation">
       <section
+        ref={dialogRef}
         className="dialog-card dialog-card--compact"
         role="alertdialog"
         aria-modal="true"
         aria-labelledby="confirm-title"
+        onKeyDown={trapFocus}
       >
         <h2 id="confirm-title">{title}</h2>
         <p>{description}</p>

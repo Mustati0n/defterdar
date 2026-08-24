@@ -26,6 +26,7 @@ describe('protected route behavior', () => {
       login: jest.fn(),
       register: jest.fn(),
       logout: jest.fn(),
+      updateProfile: jest.fn(),
     });
     render(<Harness />);
     expect(screen.getByText('Oturum bekleniyor')).toBeInTheDocument();
@@ -43,6 +44,7 @@ describe('protected route behavior', () => {
       login: jest.fn(),
       register: jest.fn(),
       logout: jest.fn(),
+      updateProfile: jest.fn(),
     });
     render(<Harness />);
     expect(screen.getByText('Korumalı içerik')).toBeInTheDocument();

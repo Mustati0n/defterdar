@@ -32,7 +32,7 @@ const navigation = [
   { href: '/settings', label: 'Ayarlar', icon: Settings },
 ];
 
-function matchesPath(pathname: string, href: string) {
+export function matchesPath(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
@@ -157,7 +157,11 @@ export function AppShell({ children }: { children: ReactNode }) {
           </Link>
         </div>
         <SignatureLine />
-        <div className="page-container">{children}</div>
+        <div className="page-container">
+          <div className="route-content" key={pathname}>
+            {children}
+          </div>
+        </div>
       </main>
       <OnboardingExperience />
     </div>

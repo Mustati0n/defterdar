@@ -25,9 +25,10 @@ export const queryKeys = {
   ledgerBalance: (ledgerId: string) => ['ledger-balance', ledgerId] as const,
   planBalance: (planId: string) => ['plan-balance', planId] as const,
   activity: (ledgerId: string) => ['activity', ledgerId] as const,
-  ledgerAnalytics: (ledgerId: string) =>
-    ['ledger-analytics', ledgerId] as const,
-  planAnalytics: (planId: string) => ['plan-analytics', planId] as const,
+  ledgerAnalytics: (ledgerId: string, from?: string, to?: string) =>
+    ['ledger-analytics', ledgerId, { from, to }] as const,
+  planAnalytics: (planId: string, from?: string, to?: string) =>
+    ['plan-analytics', planId, { from, to }] as const,
   expenses: (ledgerId: string, planId?: string) =>
     ['expenses', ledgerId, { planId }] as const,
   expense: (expenseId: string) => ['expense', expenseId] as const,

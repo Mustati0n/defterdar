@@ -182,7 +182,10 @@ export function BalanceExperience({
           </span>
         </div>
       ) : null}
-      <div className={`balance-hero balance-hero--${currentState}`}>
+      <div
+        className={`balance-hero balance-hero--${currentState}`}
+        key={`${currentNet}-${String(allClosed)}`}
+      >
         <span className="balance-hero__icon" aria-hidden="true">
           {currentState === 'receivable' ? (
             <ArrowDownLeft />
@@ -201,9 +204,9 @@ export function BalanceExperience({
               ? 'Alacağın var'
               : currentState === 'payable'
                 ? 'Ödemen var'
-              : allClosed
-                ? 'Hesaplar kapalı'
-                : 'Senin hesabın kapalı'}
+                : allClosed
+                  ? 'Hesaplar kapalı'
+                  : 'Senin hesabın kapalı'}
           </h2>
           <strong>
             {currentState === 'closed'
@@ -274,7 +277,9 @@ export function BalanceExperience({
 
       <section className="paper-section all-positions">
         <span className="eyebrow">Herkesin durumu</span>
-          <h2>{scope === 'plan' ? 'Plandaki durumlar' : 'Defterdeki durumlar'}</h2>
+        <h2>
+          {scope === 'plan' ? 'Plandaki durumlar' : 'Defterdeki durumlar'}
+        </h2>
         <div className="position-cards">
           {balance.positions.length ? (
             balance.positions
