@@ -43,7 +43,7 @@ function StepFrame({ children }: { children: ReactNode }) {
 export function OnboardingExperience() {
   const { user } = useAuth();
   const { pending, complete } = useOnboarding(user?.id);
-  const ledgers = useLedgers();
+  const ledgers = useLedgers(false, Boolean(pending && user));
   const router = useRouter();
   const [step, setStep] = useState(0);
   const [direction, setDirection] = useState<OnboardingDirection>(1);

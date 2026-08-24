@@ -1,25 +1,41 @@
 'use client';
 
-import { Archive, CheckCircle2, Clock3, Search } from 'lucide-react';
+import {
+  Archive,
+  CalendarPlus,
+  CheckCircle2,
+  Clock3,
+  Search,
+} from 'lucide-react';
+import dynamic from 'next/dynamic';
 import { useSearchParams } from 'next/navigation';
 import { Suspense, useMemo, useState } from 'react';
 import { PageHeading } from '@/components/page-heading';
 import { PlanCard } from '@/components/plan-card';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/states';
 import { useAllPlans, useLedgers } from '@/features/data/hooks';
-import { CreatePlanDialog } from '@/features/plans/create-plan-dialog';
 import type { PlanStatus } from '@/lib/types';
 import { PlanEmptyState } from '@/features/empty-states/collection-empty-states';
+
+const CreatePlanDialog = dynamic(
+  () =>
+    import('@/features/plans/create-plan-dialog').then(
+      (module) => module.CreatePlanDialog,
+    ),
+  { ssr: false },
+);
 
 function PlansContent() {
   const searchParams = useSearchParams();
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<PlanStatus>('ACTIVE');
+  const [creatorRequested, setCreatorRequested] = useState(false);
   const ledgers = useLedgers();
-  const allPlans = useAllPlans(ledgers.data, true);
+  const allPlans = useAllPlans(true);
+  const createFromUrl = searchParams.get('create') === '1';
   const filtered = useMemo(() => {
     const query = search.trim().toLocaleLowerCase('tr-TR');
-    return allPlans.plans
+    return (allPlans.data ?? [])
       .filter((plan) => plan.status === filter)
       .filter(
         (plan) =>
@@ -28,7 +44,7 @@ function PlansContent() {
             .toLocaleLowerCase('tr-TR')
             .includes(query),
       );
-  }, [allPlans.plans, filter, search]);
+  }, [allPlans.data, filter, search]);
 
   return (
     <>
@@ -37,12 +53,23 @@ function PlansContent() {
         title="Planlarını ve hesaplarını birlikte yönet"
         description="Gezi, kutlama ve etkinlik harcamalarını ilgili Defterle birlikte tut."
         action={
-          <CreatePlanDialog
-            key={`${searchParams.get('create')}:${searchParams.get('ledgerId')}`}
-            ledgers={ledgers.data ?? []}
-            defaultOpen={searchParams.get('create') === '1'}
-            initialLedgerId={searchParams.get('ledgerId') ?? ''}
-          />
+          creatorRequested || createFromUrl ? (
+            <CreatePlanDialog
+              key={`${searchParams.get('create')}:${searchParams.get('ledgerId')}`}
+              ledgers={ledgers.data ?? []}
+              defaultOpen
+              initialLedgerId={searchParams.get('ledgerId') ?? ''}
+            />
+          ) : (
+            <button
+              className="button button--primary"
+              type="button"
+              disabled={!ledgers.data?.length}
+              onClick={() => setCreatorRequested(true)}
+            >
+              <CalendarPlus /> Yeni Plan
+            </button>
+          )
         }
       />
       <section className="collection-toolbar" aria-label="Plan filtreleri">

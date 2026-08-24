@@ -30,12 +30,31 @@ export class LedgersService {
       },
       select: {
         role: true,
-        ledger: true,
+        ledger: {
+          include: {
+            _count: {
+              select: {
+                memberships: { where: { leftAt: null } },
+                plans: {
+                  where: { archivedAt: null, status: 'ACTIVE' },
+                },
+              },
+            },
+          },
+        },
       },
       orderBy: { joinedAt: 'asc' },
     });
 
-    return memberships.map(({ ledger, role }) => ({ ...ledger, role }));
+    return memberships.map(({ ledger, role }) => {
+      const { _count, ...data } = ledger;
+      return {
+        ...data,
+        role,
+        activeMemberCount: _count.memberships,
+        activePlanCount: _count.plans,
+      };
+    });
   }
 
   async get(ledgerId: string, userId: string): Promise<LedgerResponseDto> {

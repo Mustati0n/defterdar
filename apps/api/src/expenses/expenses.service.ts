@@ -86,6 +86,9 @@ export class ExpensesService {
       include: {
         ledger: true,
         category: true,
+        _count: {
+          select: { attachments: { where: { deletedAt: null } } },
+        },
         payer: { select: { id: true, displayName: true } },
         splits: {
           include: {
@@ -108,6 +111,8 @@ export class ExpensesService {
     await this.auth.requireMember(e.ledgerId, userId);
     return {
       ...e,
+      _count: undefined,
+      attachmentCount: e._count.attachments,
       amountMinor: e.amountMinor.toString(),
       splits: e.splits.map((s) => ({
         id: s.id,

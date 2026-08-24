@@ -23,6 +23,6 @@ import { LedgersService } from './ledgers.service.js';
     LedgerMembershipsService,
     LedgersService,
   ],
-  exports: [LedgerAuthorizationService],
+  exports: [LedgerAuthorizationService, LedgersService],
 })
 export class LedgersModule {}

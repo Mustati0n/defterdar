@@ -127,6 +127,24 @@ export class PlansService {
     return plans.map((plan) => this.toResponse(plan));
   }
 
+  async listForUser(
+    userId: string,
+    includeArchived: boolean,
+  ): Promise<PlanResponseDto[]> {
+    const plans = await this.prisma.plan.findMany({
+      where: {
+        ...(includeArchived ? {} : { archivedAt: null }),
+        ledger: {
+          archivedAt: null,
+          memberships: { some: { leftAt: null, userId } },
+        },
+      },
+      select: PLAN_SELECT,
+      orderBy: { createdAt: 'desc' },
+    });
+    return plans.map((plan) => this.toResponse(plan));
+  }
+
   async get(planId: string, userId: string): Promise<PlanResponseDto> {
     const plan = await this.requireAccessiblePlan(planId, userId);
     return this.toResponse(plan);

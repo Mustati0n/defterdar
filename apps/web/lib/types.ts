@@ -36,6 +36,8 @@ export interface Ledger {
   createdAt: string;
   updatedAt: string;
   archivedAt: string | null;
+  activeMemberCount?: number;
+  activePlanCount?: number;
 }
 
 export interface CreateLedgerInput {
@@ -123,6 +125,14 @@ export interface ActivityItem {
 export interface ActivityPage {
   items: ActivityItem[];
   nextCursor: string | null;
+}
+
+export interface OverviewResponse {
+  ledgers: Ledger[];
+  plans: Plan[];
+  ledgerBalances: Array<{ ledgerId: string; balance: BalanceResponse }>;
+  planBalances: Array<{ planId: string; balance: BalanceResponse }>;
+  activity: ActivityPage | null;
 }
 
 export interface AnalyticsSummary {
@@ -230,6 +240,7 @@ export interface Expense {
   expenseDate: string;
   voidedAt: string | null;
   version: number;
+  attachmentCount?: number;
   splits: ExpenseSplit[];
 }
 

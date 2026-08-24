@@ -17,8 +17,8 @@
   --font-display:
     'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif;
   --font-body:
-    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
-    'Segoe UI', sans-serif;
+    ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    sans-serif;
   --space-1: 0.25rem;
   --space-2: 0.5rem;
   --space-3: 0.75rem;
@@ -219,8 +219,11 @@
 .upload-progress > span {
   position: absolute;
   inset: 0 auto 0 0;
+  width: 100%;
   background: #dce9df;
-  transition: width 0.2s;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.2s;
 }
 .upload-progress small {
   position: relative;
@@ -719,14 +722,12 @@ h3 {
   border-radius: var(--radius-md);
   background: linear-gradient(90deg, #f4eddc 25%, #fffaf0 50%, #f4eddc 75%);
   background-size: 200% 100%;
-  animation: shimmer 1.3s infinite;
 }
 
 /* Application shell */
 .app-frame {
   min-height: 100vh;
   padding-left: var(--sidebar-width);
-  transition: padding 0.22s ease;
 }
 .app-frame--collapsed {
   --sidebar-width: 88px;
@@ -741,9 +742,7 @@ h3 {
   padding: 1.5rem 1rem 1rem;
   color: #eef0e9;
   background: var(--color-navy);
-  transition:
-    width 0.22s ease,
-    transform 0.22s ease;
+  transition: transform 0.22s ease;
 }
 .sidebar::after {
   position: absolute;
@@ -2092,22 +2091,6 @@ h3 {
   cursor: pointer;
   background: transparent;
 }
-.settings-grid {
-  display: grid;
-  grid-template-columns: 0.7fr 1.3fr;
-  gap: 1.5rem;
-}
-.profile-card {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-.profile-card h2 {
-  margin: 0 0 0.2rem;
-}
-.profile-card p {
-  color: var(--color-muted);
-}
 .avatar--large {
   width: 78px;
   height: 78px;
@@ -2156,45 +2139,6 @@ h3 {
 .ledger-picker {
   min-width: 220px;
 }
-.chart-foundation {
-  min-height: 380px;
-}
-.chart-bars {
-  display: flex;
-  height: 250px;
-  align-items: end;
-  gap: 1.2rem;
-  margin-top: 1rem;
-  padding: 1.4rem 1rem 0;
-  border-bottom: 2px solid var(--color-line);
-}
-.chart-bars > div {
-  display: grid;
-  height: 100%;
-  flex: 1;
-  align-items: end;
-  gap: 0.4rem;
-  text-align: center;
-}
-.chart-bars__pair {
-  display: flex;
-  height: 100%;
-  align-items: end;
-  justify-content: center;
-  gap: 5px;
-}
-.chart-bars__pair i {
-  display: block;
-  width: min(28px, 35%);
-  border-radius: 5px 5px 0 0;
-  background: var(--color-wine);
-}
-.chart-bars__pair i:last-child {
-  background: var(--color-gold);
-}
-.chart-bars small {
-  color: var(--color-muted);
-}
 .chart-empty {
   display: flex;
   height: 100%;
@@ -2210,11 +2154,6 @@ h3 {
 @keyframes spin {
   to {
     transform: rotate(360deg);
-  }
-}
-@keyframes shimmer {
-  to {
-    background-position: -200% 0;
   }
 }
 @keyframes load-line {
@@ -2245,9 +2184,6 @@ h3 {
   }
   .overview-hero__notebook {
     width: 100%;
-  }
-  .settings-grid {
-    grid-template-columns: 1fr;
   }
 }
 
@@ -2466,9 +2402,9 @@ h3 {
   .settings-list article > small {
     grid-column: 2;
   }
-  .chart-bars {
-    gap: 0.4rem;
-    padding-inline: 0.3rem;
+  .dialog-backdrop,
+  .onboarding-overlay {
+    backdrop-filter: none;
   }
 }
 
@@ -2744,68 +2680,6 @@ h3 {
 }
 .tour-heading--center > p {
   margin-inline: auto;
-}
-.scenario-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 1rem;
-}
-.scenario-card {
-  position: relative;
-  min-height: 275px;
-  padding: 1.4rem;
-  color: var(--color-ink);
-  border: 2px solid var(--color-line);
-  border-radius: 5px 18px 8px 14px;
-  cursor: pointer;
-  background: var(--color-paper);
-  box-shadow: var(--shadow-paper);
-  text-align: left;
-  transition:
-    transform 0.18s,
-    border 0.18s;
-}
-.scenario-card:hover {
-  transform: translateY(-4px);
-}
-.scenario-card.is-selected {
-  border-color: var(--color-wine);
-  box-shadow:
-    0 0 0 4px rgba(130, 58, 70, 0.1),
-    var(--shadow-paper);
-}
-.scenario-card > span {
-  display: grid;
-  width: 48px;
-  height: 48px;
-  color: var(--color-wine);
-  border-radius: 50%;
-  place-items: center;
-  background: #f0dfd9;
-}
-.scenario-card h2 {
-  margin: 1rem 0 0.6rem;
-  font-size: 1.35rem;
-}
-.scenario-card p {
-  color: var(--color-muted);
-  font-size: 0.8rem;
-}
-.scenario-card ul {
-  display: grid;
-  gap: 0.3rem;
-  margin: 1rem 0 0;
-  padding: 0;
-  list-style: none;
-}
-.scenario-card li {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-size: 0.72rem;
-}
-.scenario-card li svg {
-  color: var(--color-success);
 }
 .domain-compare {
   display: grid;
@@ -3752,12 +3626,6 @@ h3 {
   .welcome-scene {
     display: none;
   }
-  .scenario-grid {
-    grid-template-columns: 1fr;
-  }
-  .scenario-card {
-    min-height: auto;
-  }
   .domain-compare {
     grid-template-columns: 1fr;
   }
@@ -4159,9 +4027,6 @@ h3 {
 }
 
 /* Frontend MVP motion system */
-.route-content {
-  animation: route-content-enter var(--motion-normal) var(--ease-enter) both;
-}
 .auth-story__copy,
 .auth-note,
 .auth-panel__inner {
@@ -4180,7 +4045,6 @@ h3 {
 }
 .button:active:not(:disabled),
 .icon-button:active:not(:disabled),
-.scenario-card:active,
 .first-action-grid > button:active:not(:disabled),
 .ledger-card:active,
 .plan-card:active {
@@ -4215,7 +4079,7 @@ h3 {
     transparent 64%
   );
   background-size: 220% 100%;
-  animation: paper-shimmer 1.8s linear infinite;
+  animation: paper-shimmer 1.8s ease-out 2;
 }
 .nav-item svg {
   transition: transform var(--motion-fast) var(--ease-standard);
@@ -4229,7 +4093,6 @@ h3 {
 }
 .ledger-card__rings i,
 .plan-card__pin,
-.status-badge,
 .expense-indicators > span {
   transition:
     transform var(--motion-fast) var(--ease-standard),
@@ -4302,24 +4165,6 @@ h3 {
 .onboarding-step.is-entering--backward .onboarding-step__body > :nth-child(3) {
   animation-delay: 65ms;
 }
-.scenario-card > span,
-.scenario-card li svg {
-  transition:
-    transform var(--motion-fast) var(--ease-emphasized),
-    background var(--motion-fast),
-    color var(--motion-fast),
-    opacity var(--motion-fast);
-}
-.scenario-card:hover > span {
-  transform: scale(1.04);
-}
-.scenario-card.is-selected > span {
-  color: white;
-  background: var(--color-wine);
-}
-.scenario-card.is-selected li svg {
-  animation: check-settle var(--motion-fast) var(--ease-emphasized) both;
-}
 .allocation-list,
 .split-preview,
 .form-error {
@@ -4345,18 +4190,12 @@ h3 {
   animation: check-settle var(--motion-fast) var(--ease-emphasized) both;
 }
 .upload-progress > span {
-  transition: width var(--motion-normal) var(--ease-standard);
+  transition: transform var(--motion-normal) var(--ease-standard);
 }
 .balance-hero {
   animation: balance-value-settle var(--motion-normal) var(--ease-enter) both;
 }
 
-@keyframes route-content-enter {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-}
 @keyframes signature-reveal {
   to {
     stroke-dashoffset: 0;

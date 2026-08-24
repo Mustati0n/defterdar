@@ -201,7 +201,7 @@ export function ReceiptPanel({
       ) : null}
       {progress !== null ? (
         <div className="upload-progress" aria-live="polite">
-          <span style={{ width: `${progress}%` }} />
+          <span style={{ transform: `scaleX(${progress / 100})` }} />
           <small>%{progress} yükleniyor</small>
         </div>
       ) : null}

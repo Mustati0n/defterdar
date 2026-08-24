@@ -21,6 +21,7 @@ import {
   resolveDetailView,
 } from '@/components/detail-navigation';
 import { useLedgerDetailData } from '@/features/data/hooks';
+import type { LedgerDetailView } from '@/features/data/hooks';
 import { useAuth } from '@/features/auth/auth-provider';
 import { ActivityFeed } from '@/features/activity/activity-feed';
 import {
@@ -69,8 +70,13 @@ export default function LedgerDetailPage() {
   const { ledgerId } = useParams<{ ledgerId: string }>();
   const searchParams = useSearchParams();
   const { user } = useAuth();
+  const requestedView = resolveDetailView(
+    searchParams.get('view'),
+    ['general', 'activity', 'balances', 'analytics', 'members', 'settings'],
+    'general',
+  ) as LedgerDetailView;
   const { ledger, plans, members, balance, activity, expenses, incomes } =
-    useLedgerDetailData(ledgerId);
+    useLedgerDetailData(ledgerId, requestedView);
 
   if (ledger.isLoading) return <LoadingState label="Defter açılıyor…" />;
   if (ledger.isError || !ledger.data)

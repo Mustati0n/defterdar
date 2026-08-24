@@ -115,12 +115,13 @@ export function ExpenseForm() {
   const categories = useCategories(ledgerId);
   const members = useQuery({
     queryKey: queryKeys.members(ledgerId),
-    queryFn: () => api.ledgers.members(ledgerId),
+    queryFn: ({ signal }) => api.ledgers.members(ledgerId, signal),
     enabled: Boolean(ledgerId),
   });
   const participants = useQuery({
     queryKey: queryKeys.participants(planId ?? ''),
-    queryFn: () => api.plans.participants(planId ?? ''),
+    queryFn: ({ signal }) =>
+      api.plans.participants(planId ?? '', signal),
     enabled: Boolean(planId),
   });
 

@@ -1,11 +1,7 @@
-'use client';
-
 import { Ban, Gift, Paperclip, Tag } from 'lucide-react';
-import { useExpenseAttachments } from '@/features/data/hooks';
 import type { Expense } from '@/lib/types';
 
 export function ExpenseIndicators({ expense }: { expense: Expense }) {
-  const attachments = useExpenseAttachments(expense.id);
   return (
     <span className="expense-indicators">
       {expense.category ? (
@@ -23,9 +19,9 @@ export function ExpenseIndicators({ expense }: { expense: Expense }) {
           <Ban /> İptal
         </span>
       ) : null}
-      {attachments.data?.length ? (
+      {expense.attachmentCount ? (
         <span>
-          <Paperclip /> {attachments.data.length}
+          <Paperclip /> {expense.attachmentCount}
         </span>
       ) : null}
     </span>

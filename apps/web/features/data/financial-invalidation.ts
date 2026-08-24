@@ -29,6 +29,7 @@ export async function invalidateFinancialData(
     ),
   ];
   const work = [
+    queryClient.invalidateQueries({ queryKey: ['overview'] }),
     queryClient.invalidateQueries({
       queryKey: ['ledger-analytics', input.ledgerId],
     }),

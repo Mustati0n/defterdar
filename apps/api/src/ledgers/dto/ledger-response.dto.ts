@@ -30,6 +30,12 @@ export class LedgerResponseDto {
 
   @ApiPropertyOptional({ nullable: true })
   archivedAt!: Date | null;
+
+  @ApiPropertyOptional({ minimum: 1 })
+  activeMemberCount?: number;
+
+  @ApiPropertyOptional({ minimum: 0 })
+  activePlanCount?: number;
 }
 
 export class OwnershipTransferResponseDto {

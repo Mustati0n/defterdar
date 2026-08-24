@@ -233,4 +233,15 @@ describe('product-flow API contracts', () => {
     expect(urls[0]!.searchParams.get('from')).toBe('2026-08-01T00:00:00.000Z');
     expect(urls[1]!.searchParams.get('to')).toBe('2026-08-24T23:59:59.999Z');
   });
+
+  it('forwards query cancellation signals to fetch', async () => {
+    fetchMock.mockImplementationOnce(() => json({ ledgers: [], plans: [] }));
+    const controller = new AbortController();
+
+    await api.overview.get(controller.signal);
+
+    expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({
+      signal: controller.signal,
+    });
+  });
 });

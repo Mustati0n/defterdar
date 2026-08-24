@@ -331,12 +331,13 @@ export function AnalyticsExperience({
       scope === 'ledger'
         ? queryKeys.ledgerAnalytics(resourceId, range.from, range.to)
         : queryKeys.planAnalytics(resourceId, range.from, range.to),
-    queryFn: () =>
+    queryFn: ({ signal }) =>
       scope === 'ledger'
-        ? api.ledgers.analytics(resourceId, range.from, range.to)
-        : api.plans.analytics(resourceId, range.from, range.to),
+        ? api.ledgers.analytics(resourceId, range.from, range.to, signal)
+        : api.plans.analytics(resourceId, range.from, range.to, signal),
     enabled: Boolean(resourceId),
     placeholderData: keepPreviousData,
+    staleTime: 60_000,
   });
 
   return (

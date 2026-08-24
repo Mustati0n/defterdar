@@ -61,8 +61,11 @@ export function BalanceExperience({
   const [voidTarget, setVoidTarget] = useState<Settlement | null>(null);
   const settlements = useQuery({
     queryKey: queryKeys.settlements(ledgerId, planId),
-    queryFn: () => api.settlements.list(ledgerId, planId),
+    queryFn: ({ signal }) =>
+      api.settlements.list(ledgerId, planId, signal),
     enabled: Boolean(ledgerId),
+    staleTime: 15_000,
+    refetchOnWindowFocus: true,
   });
 
   async function refreshFinancialTruth() {

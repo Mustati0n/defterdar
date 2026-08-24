@@ -36,7 +36,7 @@ export function LedgerMembersPanel({
   const [removeMember, setRemoveMember] = useState<LedgerMember | null>(null);
   const invitations = useQuery({
     queryKey: queryKeys.invitations(ledger.id),
-    queryFn: () => api.ledgers.invitations(ledger.id),
+    queryFn: ({ signal }) => api.ledgers.invitations(ledger.id, signal),
     enabled: ledger.type === 'SHARED' && ledger.role !== 'MEMBER',
   });
   const refresh = async () => {
@@ -47,6 +47,7 @@ export function LedgerMembersPanel({
       }),
       queryClient.invalidateQueries({ queryKey: queryKeys.ledger(ledger.id) }),
       queryClient.invalidateQueries({ queryKey: ['ledgers'] }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.overview }),
     ]);
   };
   const mutate = useMutation({
@@ -245,6 +246,7 @@ export function LedgerSettingsPanel({
           queryKey: queryKeys.ledger(ledger.id),
         }),
         queryClient.invalidateQueries({ queryKey: ['ledgers'] }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.overview }),
         queryClient.invalidateQueries({
           queryKey: queryKeys.members(ledger.id),
         }),

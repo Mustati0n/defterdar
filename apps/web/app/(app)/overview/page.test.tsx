@@ -1,23 +1,9 @@
 import { render, screen } from '@testing-library/react';
-import { useQuery } from '@tanstack/react-query';
-import {
-  useAllPlans,
-  useLedgerBalances,
-  useLedgers,
-  usePlanBalances,
-} from '@/features/data/hooks';
+import { useOverview } from '@/features/data/hooks';
 import OverviewPage from './page';
 
-jest.mock('@tanstack/react-query', () => ({
-  ...jest.requireActual('@tanstack/react-query'),
-  useQuery: jest.fn(),
-}));
 jest.mock('@/features/data/hooks', () => ({
-  ...jest.requireActual('@/features/data/hooks'),
-  useAllPlans: jest.fn(),
-  useLedgerBalances: jest.fn(),
-  useLedgers: jest.fn(),
-  usePlanBalances: jest.fn(),
+  useOverview: jest.fn(),
 }));
 jest.mock('@/features/auth/auth-provider', () => ({
   useAuth: () => ({ user: { id: 'me', displayName: 'Mustafa' } }),
@@ -40,32 +26,18 @@ const ledger = {
 
 describe('Overview hierarchy', () => {
   beforeEach(() => {
-    jest.mocked(useLedgers).mockReturnValue({
-      data: [ledger],
+    jest.mocked(useOverview).mockReturnValue({
+      data: {
+        ledgers: [ledger],
+        plans: [],
+        ledgerBalances: [],
+        planBalances: [],
+        activity: { items: [], nextCursor: null },
+      },
       isLoading: false,
       isError: false,
       refetch: jest.fn(),
-    } as unknown as ReturnType<typeof useLedgers>);
-    jest.mocked(useAllPlans).mockReturnValue({
-      plans: [],
-      isLoading: false,
-      isError: false,
-      refetch: jest.fn(),
-    });
-    jest.mocked(useLedgerBalances).mockReturnValue({
-      balances: [],
-      entries: [],
-      isLoading: false,
-    });
-    jest.mocked(usePlanBalances).mockReturnValue({
-      entries: [],
-      isLoading: false,
-    });
-    jest.mocked(useQuery).mockReturnValue({
-      data: { items: [], nextCursor: null },
-    } as ReturnType<
-        typeof useQuery
-      >);
+    } as unknown as ReturnType<typeof useOverview>);
   });
 
   it('keeps one primary heading and does not present first-Ledger metrics as a summary', () => {
@@ -77,12 +49,18 @@ describe('Overview hierarchy', () => {
   });
 
   it('does not render data sections when there is no data', () => {
-    jest.mocked(useLedgers).mockReturnValue({
-      data: [],
+    jest.mocked(useOverview).mockReturnValue({
+      data: {
+        ledgers: [],
+        plans: [],
+        ledgerBalances: [],
+        planBalances: [],
+        activity: null,
+      },
       isLoading: false,
       isError: false,
       refetch: jest.fn(),
-    } as unknown as ReturnType<typeof useLedgers>);
+    } as unknown as ReturnType<typeof useOverview>);
     render(<OverviewPage />);
     expect(screen.queryByRole('heading', { name: 'Defterler' })).not.toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Planlar' })).not.toBeInTheDocument();

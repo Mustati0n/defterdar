@@ -141,6 +141,21 @@ describe('Plan lifecycle and participant API', () => {
       (await api('outsider').get('/plans/11111111-1111-4111-8111-111111111111'))
         .status,
     ).toBe(404);
+
+    const userPlans = await api('member').get('/plans?includeArchived=true');
+    expect(userPlans.status).toBe(200);
+    expect(userPlans.body).toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: planId })]),
+    );
+
+    const overview = await api('member').get('/overview');
+    expect(overview.status).toBe(200);
+    expect(overview.body).toMatchObject({
+      ledgers: expect.any(Array),
+      plans: expect.any(Array),
+      ledgerBalances: expect.any(Array),
+      planBalances: expect.any(Array),
+    });
   });
 
   it('enforces update policy and validates the final date range', async () => {

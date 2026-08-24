@@ -9,5 +9,6 @@ import { PlansService } from './plans.service.js';
   imports: [AuthModule, LedgersModule],
   controllers: [LedgerPlansController, PlansController],
   providers: [PlansService],
+  exports: [PlansService],
 })
 export class PlansModule {}

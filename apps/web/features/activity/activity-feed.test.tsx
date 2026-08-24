@@ -73,6 +73,7 @@ describe('ActivityFeed cache isolation', () => {
       20,
       undefined,
       'plan-1',
+      expect.any(AbortSignal),
     );
     expect(activity).toHaveBeenNthCalledWith(
       2,
@@ -80,6 +81,7 @@ describe('ActivityFeed cache isolation', () => {
       20,
       'cursor-1',
       'plan-1',
+      expect.any(AbortSignal),
     );
     expect(screen.getByText(/plan kaydını değiştirdi/i)).toBeInTheDocument();
   });

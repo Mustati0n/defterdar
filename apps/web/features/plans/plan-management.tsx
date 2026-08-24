@@ -36,6 +36,7 @@ export function PlanParticipantsPanel({
         }),
         queryClient.invalidateQueries({ queryKey: queryKeys.plan(plan.id) }),
         queryClient.invalidateQueries({ queryKey: ['plans', plan.ledgerId] }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.overview }),
       ]);
     },
     onError: (error) =>
@@ -156,6 +157,7 @@ export function PlanSettingsPanel({
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.plan(plan.id) }),
         queryClient.invalidateQueries({ queryKey: ['plans'] }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.overview }),
       ]);
       toast('Plan güncellendi.');
     },
@@ -332,6 +334,7 @@ export function PlanLifecycleAction({
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.plan(plan.id) }),
         queryClient.invalidateQueries({ queryKey: ['plans'] }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.overview }),
       ]);
       toast(
         plan.status === 'COMPLETED'

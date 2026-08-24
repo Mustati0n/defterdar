@@ -18,6 +18,7 @@ import { ExpenseAttachmentsModule } from './attachments/expense-attachments.modu
 import { ActivityModule } from './activity/activity.module.js';
 import { IdempotencyModule } from './idempotency/idempotency.module.js';
 import { AnalyticsModule } from './analytics/analytics.module.js';
+import { OverviewModule } from './overview/overview.module.js';
 
 @Module({
   imports: [
@@ -44,6 +45,7 @@ import { AnalyticsModule } from './analytics/analytics.module.js';
     ActivityModule,
     IdempotencyModule,
     AnalyticsModule,
+    OverviewModule,
   ],
 })
 export class AppModule {}

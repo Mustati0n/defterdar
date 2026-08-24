@@ -35,6 +35,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let active = true;
+    const controller = new AbortController();
 
     async function bootstrap() {
       if (!hasPersistedSession()) {
@@ -43,7 +44,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       try {
-        const currentUser = await api.users.me();
+        const currentUser = await api.users.me(controller.signal);
         if (active) setUser(currentUser);
       } catch {
         clearSession();
@@ -55,6 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     void bootstrap();
     return () => {
       active = false;
+      controller.abort();
     };
   }, []);
 

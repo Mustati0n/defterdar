@@ -30,6 +30,7 @@ import type {
   Plan,
   PlanParticipant,
   OffsetAvailability,
+  OverviewResponse,
   RegisterInput,
   TokenResponse,
   UpdateExpenseInput,
@@ -223,7 +224,7 @@ export const api = {
       }),
   },
   users: {
-    me: () => apiRequest<User>('/users/me'),
+    me: (signal?: AbortSignal) => apiRequest<User>('/users/me', { signal }),
     update: (displayName: string) =>
       apiRequest<User>('/users/me', {
         method: 'PATCH',
@@ -231,11 +232,13 @@ export const api = {
       }),
   },
   ledgers: {
-    list: (includeArchived = false) =>
+    list: (includeArchived = false, signal?: AbortSignal) =>
       apiRequest<Ledger[]>(
         `/ledgers?includeArchived=${String(includeArchived)}`,
+        { signal },
       ),
-    get: (ledgerId: string) => apiRequest<Ledger>(`/ledgers/${ledgerId}`),
+    get: (ledgerId: string, signal?: AbortSignal) =>
+      apiRequest<Ledger>(`/ledgers/${ledgerId}`, { signal }),
     create: (input: CreateLedgerInput) =>
       apiRequest<Ledger>('/ledgers', { method: 'POST', body: input }),
     update: (
@@ -261,8 +264,8 @@ export const api = {
         method: 'POST',
         body: { newOwnerUserId },
       }),
-    members: (ledgerId: string) =>
-      apiRequest<LedgerMember[]>(`/ledgers/${ledgerId}/members`),
+    members: (ledgerId: string, signal?: AbortSignal) =>
+      apiRequest<LedgerMember[]>(`/ledgers/${ledgerId}/members`, { signal }),
     updateMemberRole: (
       ledgerId: string,
       userId: string,
@@ -276,8 +279,10 @@ export const api = {
       apiRequest<void>(`/ledgers/${ledgerId}/members/${userId}`, {
         method: 'DELETE',
       }),
-    invitations: (ledgerId: string) =>
-      apiRequest<LedgerInvitation[]>(`/ledgers/${ledgerId}/invitations`),
+    invitations: (ledgerId: string, signal?: AbortSignal) =>
+      apiRequest<LedgerInvitation[]>(`/ledgers/${ledgerId}/invitations`, {
+        signal,
+      }),
     invite: (ledgerId: string, email?: string) =>
       apiRequest<CreatedLedgerInvitation>(`/ledgers/${ledgerId}/invitations`, {
         method: 'POST',
@@ -294,37 +299,56 @@ export const api = {
           method: 'POST',
         },
       ),
-    balances: (ledgerId: string) =>
-      apiRequest<BalanceResponse>(`/ledgers/${ledgerId}/balances`),
+    balances: (ledgerId: string, signal?: AbortSignal) =>
+      apiRequest<BalanceResponse>(`/ledgers/${ledgerId}/balances`, { signal }),
     activity: (
       ledgerId: string,
       limit = 12,
       cursor?: string,
       planId?: string,
+      signal?: AbortSignal,
     ) => {
       const params = new URLSearchParams({ limit: String(limit) });
       if (cursor) params.set('cursor', cursor);
       if (planId) params.set('planId', planId);
       return apiRequest<ActivityPage>(
         `/ledgers/${ledgerId}/activity?${params.toString()}`,
+        { signal },
       );
     },
-    analytics: (ledgerId: string, from?: string, to?: string) => {
+    analytics: (
+      ledgerId: string,
+      from?: string,
+      to?: string,
+      signal?: AbortSignal,
+    ) => {
       const params = new URLSearchParams();
       if (from) params.set('from', from);
       if (to) params.set('to', to);
       const query = params.size ? `?${params.toString()}` : '';
       return apiRequest<AnalyticsSummary>(
         `/ledgers/${ledgerId}/analytics/summary${query}`,
+        { signal },
       );
     },
   },
   plans: {
-    list: (ledgerId: string, includeArchived = false) =>
+    list: (
+      ledgerId: string,
+      includeArchived = false,
+      signal?: AbortSignal,
+    ) =>
       apiRequest<Plan[]>(
         `/ledgers/${ledgerId}/plans?includeArchived=${String(includeArchived)}`,
+        { signal },
       ),
-    get: (planId: string) => apiRequest<Plan>(`/plans/${planId}`),
+    listAll: (includeArchived = false, signal?: AbortSignal) =>
+      apiRequest<Plan[]>(
+        `/plans?includeArchived=${String(includeArchived)}`,
+        { signal },
+      ),
+    get: (planId: string, signal?: AbortSignal) =>
+      apiRequest<Plan>(`/plans/${planId}`, { signal }),
     create: (ledgerId: string, input: CreatePlanInput) =>
       apiRequest<Plan>(`/ledgers/${ledgerId}/plans`, {
         method: 'POST',
@@ -340,8 +364,10 @@ export const api = {
       apiRequest<Plan>(`/plans/${planId}/archive`, { method: 'POST' }),
     unarchive: (planId: string) =>
       apiRequest<Plan>(`/plans/${planId}/unarchive`, { method: 'POST' }),
-    participants: (planId: string) =>
-      apiRequest<PlanParticipant[]>(`/plans/${planId}/participants`),
+    participants: (planId: string, signal?: AbortSignal) =>
+      apiRequest<PlanParticipant[]>(`/plans/${planId}/participants`, {
+        signal,
+      }),
     addParticipant: (planId: string, userId: string) =>
       apiRequest<PlanParticipant>(`/plans/${planId}/participants`, {
         method: 'POST',
@@ -356,22 +382,29 @@ export const api = {
         method: 'POST',
         body: { targetLedgerId },
       }),
-    balances: (planId: string) =>
-      apiRequest<BalanceResponse>(`/plans/${planId}/balances`),
-    analytics: (planId: string, from?: string, to?: string) => {
+    balances: (planId: string, signal?: AbortSignal) =>
+      apiRequest<BalanceResponse>(`/plans/${planId}/balances`, { signal }),
+    analytics: (
+      planId: string,
+      from?: string,
+      to?: string,
+      signal?: AbortSignal,
+    ) => {
       const params = new URLSearchParams();
       if (from) params.set('from', from);
       if (to) params.set('to', to);
       const query = params.size ? `?${params.toString()}` : '';
       return apiRequest<AnalyticsSummary>(
         `/plans/${planId}/analytics/summary${query}`,
+        { signal },
       );
     },
   },
   expenses: {
-    list: (ledgerId: string, planId?: string) =>
+    list: (ledgerId: string, planId?: string, signal?: AbortSignal) =>
       apiRequest<Expense[]>(
         `/ledgers/${ledgerId}/expenses${planId ? `?planId=${planId}` : ''}`,
+        { signal },
       ),
     create: (ledgerId: string, input: CreateExpenseInput) =>
       apiRequest<Expense>(`/ledgers/${ledgerId}/expenses`, {
@@ -379,7 +412,8 @@ export const api = {
         body: input,
         headers: { 'Idempotency-Key': crypto.randomUUID() },
       }),
-    get: (expenseId: string) => apiRequest<Expense>(`/expenses/${expenseId}`),
+    get: (expenseId: string, signal?: AbortSignal) =>
+      apiRequest<Expense>(`/expenses/${expenseId}`, { signal }),
     update: (expenseId: string, input: UpdateExpenseInput) =>
       apiRequest<Expense>(`/expenses/${expenseId}`, {
         method: 'PATCH',
@@ -387,8 +421,10 @@ export const api = {
       }),
     void: (expenseId: string) =>
       apiRequest<Expense>(`/expenses/${expenseId}/void`, { method: 'POST' }),
-    attachments: (expenseId: string) =>
-      apiRequest<ExpenseAttachment[]>(`/expenses/${expenseId}/attachments`),
+    attachments: (expenseId: string, signal?: AbortSignal) =>
+      apiRequest<ExpenseAttachment[]>(`/expenses/${expenseId}/attachments`, {
+        signal,
+      }),
     reserveAttachment: (
       expenseId: string,
       input: { fileName: string; mimeType: string; sizeBytes: number },
@@ -412,9 +448,10 @@ export const api = {
       apiRequest<void>(`/attachments/${attachmentId}`, { method: 'DELETE' }),
   },
   settlements: {
-    list: (ledgerId: string, planId?: string) =>
+    list: (ledgerId: string, planId?: string, signal?: AbortSignal) =>
       apiRequest<Settlement[]>(
         `/ledgers/${ledgerId}/settlements${planId ? `?planId=${encodeURIComponent(planId)}` : ''}`,
+        { signal },
       ),
     create: (ledgerId: string, input: CreateSettlementInput) =>
       apiRequest<Settlement>(`/ledgers/${ledgerId}/settlements`, {
@@ -428,9 +465,10 @@ export const api = {
       }),
   },
   offsets: {
-    availability: (expenseSplitId: string) =>
+    availability: (expenseSplitId: string, signal?: AbortSignal) =>
       apiRequest<OffsetAvailability>(
         `/expense-splits/${expenseSplitId}/offset-availability`,
+        { signal },
       ),
     create: (expenseSplitId: string, amountMinor?: number) =>
       apiRequest<ExpenseSplitOffset>(
@@ -448,8 +486,8 @@ export const api = {
       ),
   },
   categories: {
-    list: (ledgerId: string) =>
-      apiRequest<Category[]>(`/ledgers/${ledgerId}/categories`),
+    list: (ledgerId: string, signal?: AbortSignal) =>
+      apiRequest<Category[]>(`/ledgers/${ledgerId}/categories`, { signal }),
     create: (ledgerId: string, input: { name: string; kind: CategoryKind }) =>
       apiRequest<Category>(`/ledgers/${ledgerId}/categories`, {
         method: 'POST',
@@ -469,9 +507,10 @@ export const api = {
       }),
   },
   incomes: {
-    list: (ledgerId: string, planId?: string) =>
+    list: (ledgerId: string, planId?: string, signal?: AbortSignal) =>
       apiRequest<Income[]>(
         `/ledgers/${ledgerId}/incomes${planId ? `?planId=${planId}` : ''}`,
+        { signal },
       ),
     create: (ledgerId: string, input: CreateIncomeInput) =>
       apiRequest<Income>(`/ledgers/${ledgerId}/incomes`, {
@@ -479,7 +518,8 @@ export const api = {
         body: input,
         headers: { 'Idempotency-Key': crypto.randomUUID() },
       }),
-    get: (incomeId: string) => apiRequest<Income>(`/incomes/${incomeId}`),
+    get: (incomeId: string, signal?: AbortSignal) =>
+      apiRequest<Income>(`/incomes/${incomeId}`, { signal }),
     update: (incomeId: string, input: Partial<CreateIncomeInput>) =>
       apiRequest<Income>(`/incomes/${incomeId}`, {
         method: 'PATCH',
@@ -487,5 +527,9 @@ export const api = {
       }),
     void: (incomeId: string) =>
       apiRequest<Income>(`/incomes/${incomeId}/void`, { method: 'POST' }),
+  },
+  overview: {
+    get: (signal?: AbortSignal) =>
+      apiRequest<OverviewResponse>('/overview', { signal }),
   },
 };

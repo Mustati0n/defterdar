@@ -20,6 +20,7 @@ import {
 } from '@/components/detail-navigation';
 import { ErrorState, LoadingState } from '@/components/ui/states';
 import { usePlanDetailData } from '@/features/data/hooks';
+import type { PlanDetailView } from '@/features/data/hooks';
 import { useLedger, useLedgers } from '@/features/data/hooks';
 import { useAuth } from '@/features/auth/auth-provider';
 import { api } from '@/lib/api-client';
@@ -67,14 +68,25 @@ export function planNextStep(
 export default function PlanDetailPage() {
   const { planId } = useParams<{ planId: string }>();
   const searchParams = useSearchParams();
-  const { plan, participants, balance, expenses } = usePlanDetailData(planId);
+  const requestedView = resolveDetailView(
+    searchParams.get('view'),
+    [...primaryViews, ...secondaryViews].map((view) => view.id),
+    'general',
+  ) as PlanDetailView;
+  const { plan, participants, balance, expenses } = usePlanDetailData(
+    planId,
+    requestedView,
+  );
   const { user } = useAuth();
-  const ledgers = useLedgers();
+  const ledgers = useLedgers(false, requestedView === 'settings');
   const ledger = useLedger(plan.data?.ledgerId ?? '');
   const members = useQuery({
     queryKey: queryKeys.members(plan.data?.ledgerId ?? ''),
-    queryFn: () => api.ledgers.members(plan.data?.ledgerId ?? ''),
-    enabled: Boolean(plan.data?.ledgerId),
+    queryFn: ({ signal }) =>
+      api.ledgers.members(plan.data?.ledgerId ?? '', signal),
+    enabled: Boolean(
+      plan.data?.ledgerId && requestedView === 'participants',
+    ),
   });
 
   if (plan.isLoading) return <LoadingState label="Plan açılıyor…" />;

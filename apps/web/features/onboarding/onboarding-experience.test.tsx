@@ -160,4 +160,14 @@ describe('guided domain tour', () => {
     expect(screen.queryByText(/Borçtan düş/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Settlement/i)).not.toBeInTheDocument();
   });
+
+  it('disables the global Ledger query after onboarding is complete', () => {
+    jest.mocked(useOnboarding).mockReturnValue({
+      pending: false,
+      complete,
+      replay: jest.fn(),
+    });
+    render(<OnboardingExperience />);
+    expect(useLedgers).toHaveBeenCalledWith(false, false);
+  });
 });

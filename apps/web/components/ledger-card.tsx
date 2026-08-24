@@ -1,5 +1,3 @@
-'use client';
-
 import {
   Archive,
   ArrowUpRight,
@@ -8,9 +6,6 @@ import {
   UserRound,
 } from 'lucide-react';
 import Link from 'next/link';
-import { useQuery } from '@tanstack/react-query';
-import { api } from '@/lib/api-client';
-import { queryKeys } from '@/features/data/hooks';
 import type { Ledger } from '@/lib/types';
 import { ledgerRoleLabel } from '@/lib/format';
 
@@ -21,15 +16,6 @@ export function LedgerCard({
   ledger: Ledger;
   index?: number;
 }) {
-  const members = useQuery({
-    queryKey: queryKeys.members(ledger.id),
-    queryFn: () => api.ledgers.members(ledger.id),
-    enabled: ledger.type === 'SHARED',
-  });
-  const plans = useQuery({
-    queryKey: queryKeys.plans(ledger.id),
-    queryFn: () => api.plans.list(ledger.id),
-  });
   const variants = ['notebook', 'paper', 'stitched'] as const;
   const variant = variants[index % variants.length];
   const RoleIcon =
@@ -72,10 +58,9 @@ export function LedgerCard({
         </span>
         <span>
           {ledger.type === 'SHARED'
-            ? `${members.data?.length ?? '—'} üye · `
+            ? `${ledger.activeMemberCount ?? '—'} üye · `
             : 'Kişisel · '}
-          {plans.data?.filter((plan) => plan.status === 'ACTIVE').length ?? '—'}{' '}
-          aktif Plan
+          {ledger.activePlanCount ?? '—'} aktif Plan
         </span>
         <strong>{ledger.currency}</strong>
       </div>

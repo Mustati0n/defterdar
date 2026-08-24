@@ -1,25 +1,28 @@
 'use client';
 
+import { useEffect } from 'react';
 import {
   useInfiniteQuery,
   useMutation,
-  useQueries,
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
 import { api } from '@/lib/api-client';
-import type { CreateLedgerInput, CreatePlanInput, Ledger } from '@/lib/types';
+import type { CreateLedgerInput, CreatePlanInput } from '@/lib/types';
 import type { CreateExpenseInput, CreateIncomeInput } from '@/lib/types';
 import type { UpdateExpenseInput } from '@/lib/types';
 import { invalidateFinancialData } from './financial-invalidation';
 
 export const queryKeys = {
   me: ['me'] as const,
+  overview: ['overview'] as const,
   ledgers: (includeArchived = false) =>
     ['ledgers', { includeArchived }] as const,
   ledger: (id: string) => ['ledger', id] as const,
   plans: (ledgerId: string, includeArchived = false) =>
     ['plans', ledgerId, { includeArchived }] as const,
+  allPlans: (includeArchived = false) =>
+    ['plans', 'all', { includeArchived }] as const,
   plan: (id: string) => ['plan', id] as const,
   members: (ledgerId: string) => ['members', ledgerId] as const,
   participants: (planId: string) => ['participants', planId] as const,
@@ -56,18 +59,47 @@ export const queryKeys = {
     ['offset-availability', ledgerId] as const,
 };
 
-export function useLedgers(includeArchived = false) {
+export function useOverview() {
+  const queryClient = useQueryClient();
+  const query = useQuery({
+    queryKey: queryKeys.overview,
+    queryFn: ({ signal }) => api.overview.get(signal),
+    staleTime: 30_000,
+  });
+  useEffect(() => {
+    if (!query.data) return;
+    queryClient.setQueryData(queryKeys.ledgers(false), query.data.ledgers);
+    queryClient.setQueryData(queryKeys.allPlans(false), query.data.plans);
+    for (const { ledgerId, balance } of query.data.ledgerBalances) {
+      queryClient.setQueryData(queryKeys.ledgerBalance(ledgerId), balance);
+    }
+    for (const { planId, balance } of query.data.planBalances) {
+      queryClient.setQueryData(queryKeys.planBalance(planId), balance);
+    }
+    const firstLedgerId = query.data.ledgers[0]?.id;
+    if (firstLedgerId && query.data.activity) {
+      queryClient.setQueryData(
+        queryKeys.activityPreview(firstLedgerId),
+        query.data.activity,
+      );
+    }
+  }, [query.data, queryClient]);
+  return query;
+}
+
+export function useLedgers(includeArchived = false, enabled = true) {
   return useQuery({
     queryKey: queryKeys.ledgers(includeArchived),
-    queryFn: () => api.ledgers.list(includeArchived),
+    queryFn: ({ signal }) => api.ledgers.list(includeArchived, signal),
+    enabled,
   });
 }
 
-export function useLedger(ledgerId: string) {
+export function useLedger(ledgerId: string, enabled = true) {
   return useQuery({
     queryKey: queryKeys.ledger(ledgerId),
-    queryFn: () => api.ledgers.get(ledgerId),
-    enabled: Boolean(ledgerId),
+    queryFn: ({ signal }) => api.ledgers.get(ledgerId, signal),
+    enabled: Boolean(ledgerId && enabled),
   });
 }
 
@@ -76,81 +108,40 @@ export function useCreateLedger() {
   return useMutation({
     mutationFn: (input: CreateLedgerInput) => api.ledgers.create(input),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['ledgers'] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['ledgers'] }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.overview }),
+      ]);
     },
   });
 }
 
-export function usePlans(ledgerId: string, includeArchived = false) {
+export function usePlans(
+  ledgerId: string,
+  includeArchived = false,
+  enabled = true,
+) {
   return useQuery({
     queryKey: queryKeys.plans(ledgerId, includeArchived),
-    queryFn: () => api.plans.list(ledgerId, includeArchived),
-    enabled: Boolean(ledgerId),
+    queryFn: ({ signal }) =>
+      api.plans.list(ledgerId, includeArchived, signal),
+    enabled: Boolean(ledgerId && enabled),
   });
 }
 
-export function useAllPlans(
-  ledgers: Ledger[] | undefined,
-  includeArchived = false,
-) {
-  const queries = useQueries({
-    queries: (ledgers ?? []).map((ledger) => ({
-      queryKey: queryKeys.plans(ledger.id, includeArchived),
-      queryFn: () => api.plans.list(ledger.id, includeArchived),
-    })),
+export function useAllPlans(includeArchived = false, enabled = true) {
+  return useQuery({
+    queryKey: queryKeys.allPlans(includeArchived),
+    queryFn: ({ signal }) => api.plans.listAll(includeArchived, signal),
+    enabled,
   });
-
-  return {
-    plans: queries.flatMap((query) => query.data ?? []),
-    isLoading: queries.some((query) => query.isLoading),
-    isError: queries.some((query) => query.isError),
-    refetch: () => Promise.all(queries.map((query) => query.refetch())),
-  };
 }
 
-export function useLedgerBalances(ledgers: Ledger[] | undefined) {
-  const queries = useQueries({
-    queries: (ledgers ?? []).map((ledger) => ({
-      queryKey: queryKeys.ledgerBalance(ledger.id),
-      queryFn: () => api.ledgers.balances(ledger.id),
-    })),
-  });
-
-  return {
-    balances: queries.flatMap((query) => (query.data ? [query.data] : [])),
-    entries: queries.flatMap((query, index) =>
-      query.data && ledgers?.[index]
-        ? [{ ledger: ledgers[index], balance: query.data }]
-        : [],
-    ),
-    isLoading: queries.some((query) => query.isLoading),
-  };
-}
-
-export function usePlanBalances(
-  plans: Array<{ id: string; name: string }> | undefined,
-) {
-  const queries = useQueries({
-    queries: (plans ?? []).map((plan) => ({
-      queryKey: queryKeys.planBalance(plan.id),
-      queryFn: () => api.plans.balances(plan.id),
-    })),
-  });
-  return {
-    entries: queries.flatMap((query, index) =>
-      query.data && plans?.[index]
-        ? [{ plan: plans[index], balance: query.data }]
-        : [],
-    ),
-    isLoading: queries.some((query) => query.isLoading),
-  };
-}
-
-export function usePlan(planId: string) {
+export function usePlan(planId: string, enabled = true) {
   return useQuery({
     queryKey: queryKeys.plan(planId),
-    queryFn: () => api.plans.get(planId),
-    enabled: Boolean(planId),
+    queryFn: ({ signal }) => api.plans.get(planId, signal),
+    enabled: Boolean(planId && enabled),
   });
 }
 
@@ -164,64 +155,114 @@ export function useCreatePlan() {
       ledgerId: string;
       input: CreatePlanInput;
     }) => api.plans.create(ledgerId, input),
-    onSuccess: async (_, variables) => {
-      await queryClient.invalidateQueries({
-        queryKey: ['plans', variables.ledgerId],
-      });
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['plans'] }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.overview }),
+      ]);
     },
   });
 }
 
-export function useLedgerDetailData(ledgerId: string) {
+export type LedgerDetailView =
+  | 'general'
+  | 'activity'
+  | 'balances'
+  | 'analytics'
+  | 'members'
+  | 'settings';
+
+export function useLedgerDetailData(
+  ledgerId: string,
+  view: LedgerDetailView = 'general',
+) {
   const ledger = useLedger(ledgerId);
-  const plans = usePlans(ledgerId);
+  const isShared = ledger.data?.type === 'SHARED';
+  const effectiveView =
+    ledger.data?.type === 'PERSONAL' &&
+    (view === 'balances' || view === 'members')
+      ? 'general'
+      : view;
+  const isGeneral = effectiveView === 'general';
+  const plans = usePlans(ledgerId, false, isGeneral);
   const members = useQuery({
     queryKey: queryKeys.members(ledgerId),
-    queryFn: () => api.ledgers.members(ledgerId),
-    enabled: Boolean(ledgerId),
+    queryFn: ({ signal }) => api.ledgers.members(ledgerId, signal),
+    enabled: Boolean(
+      ledgerId && (effectiveView === 'members' || (isGeneral && isShared)),
+    ),
   });
   const balance = useQuery({
     queryKey: queryKeys.ledgerBalance(ledgerId),
-    queryFn: () => api.ledgers.balances(ledgerId),
-    enabled: Boolean(ledgerId),
+    queryFn: ({ signal }) => api.ledgers.balances(ledgerId, signal),
+    enabled: Boolean(
+      ledgerId && isShared && (isGeneral || effectiveView === 'balances'),
+    ),
+    staleTime: 15_000,
+    refetchOnWindowFocus: true,
   });
   const activity = useQuery({
     queryKey: queryKeys.activityPreview(ledgerId),
-    queryFn: () => api.ledgers.activity(ledgerId),
-    enabled: Boolean(ledgerId),
+    queryFn: ({ signal }) =>
+      api.ledgers.activity(ledgerId, 12, undefined, undefined, signal),
+    enabled: Boolean(ledgerId && isGeneral),
   });
-  const expenses = useExpenses(ledgerId);
-  const incomes = useIncomes(ledgerId);
+  const expenses = useExpenses(ledgerId, undefined, isGeneral);
+  const incomes = useIncomes(
+    ledgerId,
+    undefined,
+    Boolean(isGeneral && ledger.data?.type === 'PERSONAL'),
+  );
 
   return { ledger, plans, members, balance, activity, expenses, incomes };
 }
 
-export function usePlanDetailData(planId: string) {
+export type PlanDetailView =
+  | 'general'
+  | 'activity'
+  | 'balances'
+  | 'analytics'
+  | 'participants'
+  | 'settings';
+
+export function usePlanDetailData(
+  planId: string,
+  view: PlanDetailView = 'general',
+) {
   const plan = usePlan(planId);
   const participants = useQuery({
     queryKey: queryKeys.participants(planId),
-    queryFn: () => api.plans.participants(planId),
-    enabled: Boolean(planId),
+    queryFn: ({ signal }) => api.plans.participants(planId, signal),
+    enabled: Boolean(planId && view === 'participants'),
   });
   const balance = useQuery({
     queryKey: queryKeys.planBalance(planId),
-    queryFn: () => api.plans.balances(planId),
-    enabled: Boolean(planId),
+    queryFn: ({ signal }) => api.plans.balances(planId, signal),
+    enabled: Boolean(planId && view === 'balances'),
+    staleTime: 15_000,
+    refetchOnWindowFocus: true,
   });
   const expenses = useQuery({
     queryKey: queryKeys.expenses(plan.data?.ledgerId ?? '', planId),
-    queryFn: () => api.expenses.list(plan.data?.ledgerId ?? '', planId),
-    enabled: Boolean(plan.data?.ledgerId && planId),
+    queryFn: ({ signal }) =>
+      api.expenses.list(plan.data?.ledgerId ?? '', planId, signal),
+    enabled: Boolean(
+      plan.data?.ledgerId && planId && view === 'general',
+    ),
   });
 
   return { plan, participants, balance, expenses };
 }
 
-export function useExpenses(ledgerId: string, planId?: string) {
+export function useExpenses(
+  ledgerId: string,
+  planId?: string,
+  enabled = true,
+) {
   return useQuery({
     queryKey: queryKeys.expenses(ledgerId, planId),
-    queryFn: () => api.expenses.list(ledgerId, planId),
-    enabled: Boolean(ledgerId),
+    queryFn: ({ signal }) => api.expenses.list(ledgerId, planId, signal),
+    enabled: Boolean(ledgerId && enabled),
   });
 }
 
@@ -248,7 +289,7 @@ export function useCreateExpense() {
 export function useExpense(expenseId: string) {
   return useQuery({
     queryKey: queryKeys.expense(expenseId),
-    queryFn: () => api.expenses.get(expenseId),
+    queryFn: ({ signal }) => api.expenses.get(expenseId, signal),
     enabled: Boolean(expenseId),
   });
 }
@@ -316,7 +357,7 @@ export function useVoidExpense(expenseId: string) {
 export function useExpenseAttachments(expenseId: string) {
   return useQuery({
     queryKey: queryKeys.attachments(expenseId),
-    queryFn: () => api.expenses.attachments(expenseId),
+    queryFn: ({ signal }) => api.expenses.attachments(expenseId, signal),
     enabled: Boolean(expenseId),
   });
 }
@@ -324,26 +365,31 @@ export function useExpenseAttachments(expenseId: string) {
 export function useCategories(ledgerId: string) {
   return useQuery({
     queryKey: queryKeys.categories(ledgerId),
-    queryFn: () => api.categories.list(ledgerId),
+    queryFn: ({ signal }) => api.categories.list(ledgerId, signal),
     enabled: Boolean(ledgerId),
   });
 }
 
-export function useIncomes(ledgerId: string, planId?: string) {
+export function useIncomes(
+  ledgerId: string,
+  planId?: string,
+  enabled = true,
+) {
   return useQuery({
     queryKey: queryKeys.incomes(ledgerId, planId),
-    queryFn: () => api.incomes.list(ledgerId, planId),
-    enabled: Boolean(ledgerId),
+    queryFn: ({ signal }) => api.incomes.list(ledgerId, planId, signal),
+    enabled: Boolean(ledgerId && enabled),
   });
 }
 
 export function useActivityFeed(ledgerId: string, planId?: string) {
   return useInfiniteQuery({
     queryKey: queryKeys.activityFeed(ledgerId, planId),
-    queryFn: ({ pageParam }) =>
-      api.ledgers.activity(ledgerId, 20, pageParam, planId),
+    queryFn: ({ pageParam, signal }) =>
+      api.ledgers.activity(ledgerId, 20, pageParam, planId, signal),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (page) => page.nextCursor ?? undefined,
+    maxPages: 5,
     enabled: Boolean(ledgerId),
   });
 }

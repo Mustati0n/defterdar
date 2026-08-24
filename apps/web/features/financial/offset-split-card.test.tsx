@@ -40,10 +40,6 @@ function setup(targetSplit: ExpenseSplit = split) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
-  client.setQueryData(
-    ['offset-availability', 'ledger-1', 'split-1'],
-    availability,
-  );
   const invalidate = jest.spyOn(client, 'invalidateQueries');
   render(
     <QueryClientProvider client={client}>
@@ -78,9 +74,11 @@ describe('OffsetSplitCard financial refresh', () => {
     });
     const invalidate = setup();
 
+    expect(api.offsets.availability).not.toHaveBeenCalled();
     const trigger = screen.getByRole('button', { name: 'Borçtan düş' });
     fireEvent.click(trigger);
-    const dialog = screen.getByRole('dialog');
+    const dialog = await screen.findByRole('dialog');
+    expect(api.offsets.availability).toHaveBeenCalledTimes(1);
     await waitFor(() =>
       expect(within(dialog).getByLabelText('Borçtan düşülecek tutar')).toHaveFocus(),
     );

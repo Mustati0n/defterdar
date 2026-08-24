@@ -1,9 +1,15 @@
 'use client';
 
-import { Archive, BookOpenCheck, Search, Sparkles } from 'lucide-react';
+import {
+  Archive,
+  BookOpenCheck,
+  BookPlus,
+  Search,
+  Sparkles,
+} from 'lucide-react';
+import dynamic from 'next/dynamic';
 import { useSearchParams } from 'next/navigation';
 import { Suspense, useMemo, useState } from 'react';
-import { CreateLedgerDialog } from '@/features/ledgers/create-ledger-dialog';
 import { LedgerCard } from '@/components/ledger-card';
 import { PageHeading } from '@/components/page-heading';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/states';
@@ -12,11 +18,21 @@ import { LedgerEmptyState } from '@/features/empty-states/collection-empty-state
 
 type Filter = 'recent' | 'mine' | 'archived';
 
+const CreateLedgerDialog = dynamic(
+  () =>
+    import('@/features/ledgers/create-ledger-dialog').then(
+      (module) => module.CreateLedgerDialog,
+    ),
+  { ssr: false },
+);
+
 function LedgersContent() {
   const searchParams = useSearchParams();
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<Filter>('recent');
+  const [creatorRequested, setCreatorRequested] = useState(false);
   const ledgers = useLedgers(true);
+  const createFromUrl = searchParams.get('create') === '1';
   const filtered = useMemo(() => {
     const query = search.trim().toLocaleLowerCase('tr-TR');
     return (ledgers.data ?? [])
@@ -40,10 +56,20 @@ function LedgersContent() {
         title="Kişisel ve ortak hesapların"
         description="Harcamaları ait oldukları Defterde düzenle."
         action={
-          <CreateLedgerDialog
-            key={searchParams.get('create') ?? 'closed'}
-            defaultOpen={searchParams.get('create') === '1'}
-          />
+          creatorRequested || createFromUrl ? (
+            <CreateLedgerDialog
+              key={searchParams.get('create') ?? 'manual'}
+              defaultOpen
+            />
+          ) : (
+            <button
+              className="button button--primary"
+              type="button"
+              onClick={() => setCreatorRequested(true)}
+            >
+              <BookPlus /> Yeni Defter
+            </button>
+          )
         }
       />
       <section className="collection-toolbar" aria-label="Defter filtreleri">

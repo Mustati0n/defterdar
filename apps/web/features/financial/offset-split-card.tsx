@@ -43,19 +43,45 @@ export function OffsetSplitCard({
   const [voidId, setVoidId] = useState<string | null>(null);
   const availability = useQuery({
     queryKey: queryKeys.offsetAvailability(expense.ledgerId, split.id),
-    queryFn: () => api.offsets.availability(split.id),
-    enabled: Boolean(
-      split.isReimbursable && !expense.isGift && !expense.voidedAt,
-    ),
+    queryFn: ({ signal }) => api.offsets.availability(split.id, signal),
+    enabled: false,
+    staleTime: 30_000,
   });
   const canManage = canManageOffset(role, currentUserId, expense);
-  const showAction = shouldShowOffsetAction({
-    availability: availability.data,
-    isGift: expense.isGift,
-    isReimbursable: split.isReimbursable,
-    canManage,
-    disabled,
-  });
+  const canRequestAvailability = Boolean(
+    split.isReimbursable &&
+      !expense.isGift &&
+      !expense.voidedAt &&
+      !disabled &&
+      canManage &&
+      BigInt(split.remainingReimbursableMinor) > 0n,
+  );
+
+  async function openOffsetDialog() {
+    setDialogError(null);
+    const result = availability.data
+      ? { data: availability.data, error: null }
+      : await availability.refetch();
+    if (
+      result.data &&
+      shouldShowOffsetAction({
+        availability: result.data,
+        isGift: expense.isGift,
+        isReimbursable: split.isReimbursable,
+        canManage,
+        disabled,
+      })
+    ) {
+      setDialogOpen(true);
+      return;
+    }
+    toast(
+      result.error instanceof ApiError
+        ? result.error.message
+        : 'Bu pay şu anda Borçtan düş için uygun değil.',
+      'error',
+    );
+  }
 
   async function refresh() {
     await invalidateFinancialData(queryClient, {
@@ -145,16 +171,15 @@ export function OffsetSplitCard({
           </span>
         </div>
       ) : null}
-      {showAction ? (
+      {canRequestAvailability ? (
         <button
           className="button button--quiet button--small"
           type="button"
-          onClick={() => {
-            setDialogError(null);
-            setDialogOpen(true);
-          }}
+          disabled={availability.isFetching}
+          onClick={() => void openOffsetDialog()}
         >
-          <Scissors /> Borçtan düş
+          <Scissors />
+          {availability.isFetching ? 'Kontrol ediliyor…' : 'Borçtan düş'}
         </button>
       ) : null}
       {history.length ? (

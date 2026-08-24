@@ -1,6 +1,5 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
 import {
   ArrowRight,
   AlertCircle,
@@ -17,58 +16,55 @@ import { PageHeading } from '@/components/page-heading';
 import { PlanCard } from '@/components/plan-card';
 import { ErrorState, LoadingState } from '@/components/ui/states';
 import {
-  useAllPlans,
-  useLedgerBalances,
-  useLedgers,
-  queryKeys,
-  usePlanBalances,
+  useOverview,
 } from '@/features/data/hooks';
 import { useAuth } from '@/features/auth/auth-provider';
-import { api } from '@/lib/api-client';
 import { formatMoneyFromMinor } from '@/lib/format';
 import { activitySentence } from '@/lib/activity';
 
 export default function OverviewPage() {
   const { user } = useAuth();
-  const ledgersQuery = useLedgers();
-  const activeLedgers = ledgersQuery.data?.filter(
+  const overview = useOverview();
+  const activeLedgers = overview.data?.ledgers.filter(
     (ledger) => !ledger.archivedAt,
   );
-  const allPlans = useAllPlans(activeLedgers);
-  const ledgerBalances = useLedgerBalances(activeLedgers);
-  const activePlans = allPlans.plans.filter((plan) => plan.status === 'ACTIVE');
-  const planBalances = usePlanBalances(activePlans);
+  const activePlans = (overview.data?.plans ?? []).filter(
+    (plan) => plan.status === 'ACTIVE',
+  );
   const firstLedgerId = activeLedgers?.[0]?.id ?? '';
-  const activity = useQuery({
-    queryKey: queryKeys.activityPreview(firstLedgerId),
-    queryFn: () => api.ledgers.activity(firstLedgerId, 5),
-    enabled: Boolean(firstLedgerId),
-  });
 
-  if (ledgersQuery.isLoading)
+  if (overview.isLoading)
     return <LoadingState label="Özet hazırlanıyor…" />;
-  if (ledgersQuery.isError)
-    return <ErrorState onRetry={() => void ledgersQuery.refetch()} />;
+  if (overview.isError)
+    return <ErrorState onRetry={() => void overview.refetch()} />;
 
   const personalLedger = activeLedgers?.find(
     (ledger) => ledger.type === 'PERSONAL',
   );
-  const owedBalances = ledgerBalances.entries.flatMap(({ ledger, balance }) => {
-    const position = balance.positions.find(
-      (item) => item.user.id === user?.id,
-    );
-    return position && position.netMinor < 0
-      ? [{ ledger, balance, position }]
-      : [];
-  });
-  const openPlanAccounts = planBalances.entries.flatMap(({ plan, balance }) => {
-    const position = balance.positions.find(
-      (item) => item.user.id === user?.id,
-    );
-    return position && position.netMinor !== 0
-      ? [{ plan, balance, position }]
-      : [];
-  });
+  const owedBalances = (overview.data?.ledgerBalances ?? []).flatMap(
+    ({ ledgerId, balance }) => {
+      const ledger = activeLedgers?.find((item) => item.id === ledgerId);
+      if (!ledger) return [];
+      const position = balance.positions.find(
+        (item) => item.user.id === user?.id,
+      );
+      return position && position.netMinor < 0
+        ? [{ ledger, balance, position }]
+        : [];
+    },
+  );
+  const openPlanAccounts = (overview.data?.planBalances ?? []).flatMap(
+    ({ planId, balance }) => {
+      const plan = activePlans.find((item) => item.id === planId);
+      if (!plan) return [];
+      const position = balance.positions.find(
+        (item) => item.user.id === user?.id,
+      );
+      return position && position.netMinor !== 0
+        ? [{ plan, balance, position }]
+        : [];
+    },
+  );
   return (
     <>
       <PageHeading
@@ -217,7 +213,7 @@ export default function OverviewPage() {
         </section>
       ) : null}
 
-      {activity.data?.items.length ? (
+      {overview.data?.activity?.items.length ? (
         <section className="activity-paper">
           <div className="section-heading">
             <div>
@@ -229,7 +225,7 @@ export default function OverviewPage() {
             </Link>
           </div>
           <ol className="activity-list">
-            {(activity.data?.items ?? []).map((item) => (
+            {(overview.data.activity?.items ?? []).map((item) => (
               <li key={item.id}>
                 <span />
                 <div>

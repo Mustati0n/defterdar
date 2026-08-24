@@ -8,6 +8,7 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -27,6 +28,7 @@ import {
   PlanResponseDto,
 } from './dto/plan-response.dto.js';
 import { UpdatePlanDto } from './dto/update-plan.dto.js';
+import { ListPlansQueryDto } from './dto/list-plans-query.dto.js';
 import { PlansService } from './plans.service.js';
 
 @ApiTags('plans')
@@ -35,6 +37,16 @@ import { PlansService } from './plans.service.js';
 @Controller('plans')
 export class PlansController {
   constructor(private readonly plansService: PlansService) {}
+
+  @Get()
+  @ApiOperation({ summary: 'List plans in active ledgers for the current user' })
+  @ApiOkResponse({ type: PlanResponseDto, isArray: true })
+  list(
+    @CurrentUser() user: SafeUser,
+    @Query() query: ListPlansQueryDto,
+  ): Promise<PlanResponseDto[]> {
+    return this.plansService.listForUser(user.id, query.includeArchived);
+  }
 
   @Get(':planId')
   @ApiOperation({ summary: 'Read a plan through its ledger membership' })
