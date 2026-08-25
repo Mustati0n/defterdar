@@ -95,6 +95,14 @@ describe('Ledger, membership, invitation, and authorization API', () => {
       users.set(name, await register(name));
     }
 
+    const personal = await api('owner').post('/ledgers/personal').send({
+      currency: 'try',
+      description: 'Yalnız bana ait kayıtlar',
+      name: '  Kişisel Defterim  ',
+    });
+    expect(personal.status).toBe(201);
+    identity('owner').personalLedgerId = personal.body.id as string;
+
     const creation = await api('owner').post('/ledgers').send({
       currency: 'try',
       description: 'Ortak ev giderleri',
@@ -135,14 +143,17 @@ describe('Ledger, membership, invitation, and authorization API', () => {
   });
 
   describe('PERSONAL ledger and SHARED creation', () => {
-    it('creates exactly one PERSONAL ledger and OWNER membership on register', async () => {
+    it('keeps registration ledger-free and creates PERSONAL only by opt-in', async () => {
       const owner = identity('owner');
+      const empty = await api('outsider').get('/ledgers');
       const response = await api('owner').get('/ledgers');
       const personal = response.body.find(
         (ledger: { type: string }) => ledger.type === 'PERSONAL',
       );
 
       expect(response.status).toBe(200);
+      expect(empty.status).toBe(200);
+      expect(empty.body).toEqual([]);
       expect(personal).toMatchObject({
         currency: 'TRY',
         id: owner.personalLedgerId,
@@ -168,7 +179,15 @@ describe('Ledger, membership, invitation, and authorization API', () => {
       expect(invariant.rows[0]).toEqual({ ledgers: 1, owners: 1 });
     });
 
-    it('rejects client attempts to create a second PERSONAL ledger', async () => {
+    it('rejects a second explicit PERSONAL ledger', async () => {
+      const response = await api('owner').post('/ledgers/personal').send({
+        currency: 'TRY',
+        name: 'İkinci Kişisel',
+      });
+      expect(response.status).toBe(409);
+    });
+
+    it('does not let the generic SHARED endpoint select PERSONAL type', async () => {
       const response = await api('owner').post('/ledgers').send({
         currency: 'TRY',
         name: 'İkinci Kişisel',
@@ -594,15 +613,12 @@ describe('Ledger, membership, invitation, and authorization API', () => {
       .get('/ledgers')
       .set('Authorization', `Bearer ${response.body.accessToken}`);
     expect(ledgers.status).toBe(200);
-    const personal = ledgers.body.find(
-      (ledger: { type: string }) => ledger.type === 'PERSONAL',
-    );
-    if (!personal) throw new Error(`PERSONAL ledger missing for ${name}`);
+    expect(ledgers.body).toEqual([]);
     return {
       accessToken: response.body.accessToken as string,
       email,
       id: response.body.user.id as string,
-      personalLedgerId: personal.id as string,
+      personalLedgerId: '',
     };
   }
 

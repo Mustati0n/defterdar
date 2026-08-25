@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { CreateLedgerDto } from './dto/create-ledger.dto.js';
 import type { LedgerResponseDto } from './dto/ledger-response.dto.js';
@@ -81,13 +85,60 @@ export class LedgersService {
         data: { ledgerId: created.id, role: 'OWNER', userId },
       });
       await this.activity.record(
-        { ledgerId: created.id, actorUserId: userId, entityType: 'Ledger', entityId: created.id, action: 'ledger.created' },
+        {
+          ledgerId: created.id,
+          actorUserId: userId,
+          entityType: 'Ledger',
+          entityId: created.id,
+          action: 'ledger.created',
+        },
         transaction,
       );
       return created;
     });
 
     return { ...ledger, role: 'OWNER' };
+  }
+
+  async createPersonal(
+    userId: string,
+    input: CreateLedgerDto,
+  ): Promise<LedgerResponseDto> {
+    try {
+      const ledger = await this.prisma.$transaction(async (transaction) => {
+        const created = await transaction.ledger.create({
+          data: {
+            currency: input.currency,
+            description: input.description ?? null,
+            name: input.name,
+            ownerId: userId,
+            type: 'PERSONAL',
+          },
+        });
+        await transaction.ledgerMembership.create({
+          data: { ledgerId: created.id, role: 'OWNER', userId },
+        });
+        await this.activity.record(
+          {
+            ledgerId: created.id,
+            actorUserId: userId,
+            entityType: 'Ledger',
+            entityId: created.id,
+            action: 'ledger.created',
+            metadata: { type: 'PERSONAL' },
+          },
+          transaction,
+        );
+        return created;
+      });
+
+      return { ...ledger, role: 'OWNER' };
+    } catch (error) {
+      if ((error as { code?: unknown }).code === 'P2002') {
+        throw new ConflictException('A PERSONAL ledger already exists');
+      }
+      throw error;
+    }
   }
 
   async update(
@@ -108,11 +159,19 @@ export class LedgersService {
         where: { id: ledgerId },
         data: {
           ...(input.name !== undefined ? { name: input.name } : {}),
-          ...(input.description !== undefined ? { description: input.description } : {}),
+          ...(input.description !== undefined
+            ? { description: input.description }
+            : {}),
         },
       });
       await this.activity.record(
-        { ledgerId, actorUserId: userId, entityType: 'Ledger', entityId: ledgerId, action: 'ledger.updated' },
+        {
+          ledgerId,
+          actorUserId: userId,
+          entityType: 'Ledger',
+          entityId: ledgerId,
+          action: 'ledger.updated',
+        },
         tx,
       );
       return updated;
@@ -135,9 +194,18 @@ export class LedgersService {
     }
 
     const ledger = await this.prisma.$transaction(async (tx) => {
-      const updated = await tx.ledger.update({ where: { id: ledgerId }, data: { archivedAt: new Date() } });
+      const updated = await tx.ledger.update({
+        where: { id: ledgerId },
+        data: { archivedAt: new Date() },
+      });
       await this.activity.record(
-        { ledgerId, actorUserId: userId, entityType: 'Ledger', entityId: ledgerId, action: 'ledger.archived' },
+        {
+          ledgerId,
+          actorUserId: userId,
+          entityType: 'Ledger',
+          entityId: ledgerId,
+          action: 'ledger.archived',
+        },
         tx,
       );
       return updated;
@@ -163,9 +231,18 @@ export class LedgersService {
     }
 
     const ledger = await this.prisma.$transaction(async (tx) => {
-      const updated = await tx.ledger.update({ where: { id: ledgerId }, data: { archivedAt: null } });
+      const updated = await tx.ledger.update({
+        where: { id: ledgerId },
+        data: { archivedAt: null },
+      });
       await this.activity.record(
-        { ledgerId, actorUserId: userId, entityType: 'Ledger', entityId: ledgerId, action: 'ledger.unarchived' },
+        {
+          ledgerId,
+          actorUserId: userId,
+          entityType: 'Ledger',
+          entityId: ledgerId,
+          action: 'ledger.unarchived',
+        },
         tx,
       );
       return updated;

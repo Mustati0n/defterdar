@@ -10,6 +10,7 @@ import { useToast } from '@/components/ui/toast';
 import { useCreateLedger } from '@/features/data/hooks';
 import { ApiError } from '@/lib/api-client';
 import { useModalDialog } from '@/components/ui/use-modal-dialog';
+import type { Ledger } from '@/lib/types';
 
 const schema = z.object({
   name: z.string().trim().min(1, 'Deftere bir ad verin.').max(80),
@@ -24,11 +25,14 @@ type Values = z.infer<typeof schema>;
 
 export function CreateLedgerDialog({
   defaultOpen = false,
+  defaultType = 'SHARED',
 }: {
   defaultOpen?: boolean;
+  defaultType?: Ledger['type'];
 }) {
   const [open, setOpen] = useState(defaultOpen);
-  const mutation = useCreateLedger();
+  const [type, setType] = useState<Ledger['type']>(defaultType);
+  const mutation = useCreateLedger(type);
   const toast = useToast();
   const router = useRouter();
   const {
@@ -105,6 +109,32 @@ export function CreateLedgerDialog({
             <h2 id="new-ledger-title">Bir defter açalım.</h2>
             <p>Para birimi defterin sabit dili olur; sonra değiştirilemez.</p>
             <form onSubmit={handleSubmit(onSubmit)} className="stack-form">
+              <fieldset className="field">
+                <legend>Defter türü</legend>
+                <div className="segmented-control">
+                  <button
+                    className={type === 'PERSONAL' ? 'is-active' : ''}
+                    type="button"
+                    aria-pressed={type === 'PERSONAL'}
+                    onClick={() => setType('PERSONAL')}
+                  >
+                    Kişisel
+                  </button>
+                  <button
+                    className={type === 'SHARED' ? 'is-active' : ''}
+                    type="button"
+                    aria-pressed={type === 'SHARED'}
+                    onClick={() => setType('SHARED')}
+                  >
+                    Ortak
+                  </button>
+                </div>
+                <small>
+                  {type === 'PERSONAL'
+                    ? 'Yalnız sana ait; hesabında en fazla bir tane olabilir.'
+                    : 'Üyeler davet ederek birlikte hesap tutabilirsin.'}
+                </small>
+              </fieldset>
               <label className="field">
                 <span>Defter adı</span>
                 <input
@@ -117,7 +147,9 @@ export function CreateLedgerDialog({
                   className="input"
                   placeholder="Ev arkadaşları"
                   aria-invalid={Boolean(errors.name)}
-                  aria-describedby={errors.name ? 'ledger-name-error' : undefined}
+                  aria-describedby={
+                    errors.name ? 'ledger-name-error' : undefined
+                  }
                 />
                 {errors.name ? (
                   <small id="ledger-name-error">{errors.name.message}</small>

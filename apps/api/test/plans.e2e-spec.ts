@@ -75,6 +75,12 @@ describe('Plan lifecycle and participant API', () => {
     ]) {
       users.set(name, await register(name));
     }
+    const personal = await api('owner').post('/ledgers/personal').send({
+      currency: 'TRY',
+      name: 'Kişisel Defterim',
+    });
+    expect(personal.status).toBe(201);
+    identity('owner').personalLedgerId = personal.body.id as string;
     sourceLedgerId = await createLedger('owner', 'Kaynak Defter');
     targetLedgerId = await createLedger('owner', 'Hedef Defter');
     for (const name of ['admin', 'member', 'other-member'])
@@ -560,7 +566,9 @@ describe('Plan lifecycle and participant API', () => {
       });
     expect(partial.status).toBe(201);
     expect(partial.body.currency).toBe('TRY');
-    const afterPartial = await api('owner').get(`/ledgers/${ledgerId}/balances`);
+    const afterPartial = await api('owner').get(
+      `/ledgers/${ledgerId}/balances`,
+    );
     expect(afterPartial.body.suggestions[0].amountMinor).toBe(6_000);
     expect(
       (
@@ -583,11 +591,22 @@ describe('Plan lifecycle and participant API', () => {
         settledAt: '2026-08-23T15:00:00.000Z',
       });
     expect(full.status).toBe(201);
-    expect((await api('owner').get(`/ledgers/${ledgerId}/balances`)).body.positions).toEqual([]);
-    expect((await api('owner').post(`/settlements/${full.body.id}/void`)).status).toBe(201);
-    expect((await api('owner').post(`/settlements/${full.body.id}/void`)).status).toBe(201);
-    expect((await api('owner').get(`/ledgers/${ledgerId}/balances`)).body.suggestions[0].amountMinor).toBe(6_000);
-    expect((await api('outsider').get(`/settlements/${partial.body.id}`)).status).toBe(404);
+    expect(
+      (await api('owner').get(`/ledgers/${ledgerId}/balances`)).body.positions,
+    ).toEqual([]);
+    expect(
+      (await api('owner').post(`/settlements/${full.body.id}/void`)).status,
+    ).toBe(201);
+    expect(
+      (await api('owner').post(`/settlements/${full.body.id}/void`)).status,
+    ).toBe(201);
+    expect(
+      (await api('owner').get(`/ledgers/${ledgerId}/balances`)).body
+        .suggestions[0].amountMinor,
+    ).toBe(6_000);
+    expect(
+      (await api('outsider').get(`/settlements/${partial.body.id}`)).status,
+    ).toBe(404);
   });
 
   it('serializes concurrent settlements so accepted payments never overpay', async () => {
@@ -603,7 +622,10 @@ describe('Plan lifecycle and participant API', () => {
             payerUserId: identity('owner').id,
             expenseDate: '2026-08-23T13:00:00.000Z',
             isGift: false,
-            split: { method: 'EXACT', entries: [{ userId: identity('admin').id, amountMinor: 10_000 }] },
+            split: {
+              method: 'EXACT',
+              entries: [{ userId: identity('admin').id, amountMinor: 10_000 }],
+            },
           })
       ).status,
     ).toBe(201);
@@ -619,13 +641,19 @@ describe('Plan lifecycle and participant API', () => {
     ]);
     expect(results.map((result) => result.status).sort()).toEqual([201, 409]);
     const list = await api('owner').get(`/ledgers/${ledgerId}/settlements`);
-    expect(list.body.filter((item: { voidedAt: string | null }) => !item.voidedAt)).toHaveLength(1);
+    expect(
+      list.body.filter((item: { voidedAt: string | null }) => !item.voidedAt),
+    ).toHaveLength(1);
   });
 
   it('allows scoped settlements on completed plans but rejects archived plans', async () => {
     const ledgerId = await createLedger('owner', 'Plan Settlement Defteri');
     await inviteTo(ledgerId, 'admin');
-    const planId = await createPlan('owner', ledgerId, 'Completed Settlement Plan');
+    const planId = await createPlan(
+      'owner',
+      ledgerId,
+      'Completed Settlement Plan',
+    );
     expect(
       (
         await api('owner')
@@ -644,11 +672,16 @@ describe('Plan lifecycle and participant API', () => {
             planId,
             expenseDate: '2026-08-23T13:00:00.000Z',
             isGift: false,
-            split: { method: 'EXACT', entries: [{ userId: identity('admin').id, amountMinor: 5_000 }] },
+            split: {
+              method: 'EXACT',
+              entries: [{ userId: identity('admin').id, amountMinor: 5_000 }],
+            },
           })
       ).status,
     ).toBe(201);
-    expect((await api('owner').post(`/plans/${planId}/complete`)).status).toBe(201);
+    expect((await api('owner').post(`/plans/${planId}/complete`)).status).toBe(
+      201,
+    );
     const settled = await api('admin')
       .post(`/ledgers/${ledgerId}/settlements`)
       .send({
@@ -659,9 +692,19 @@ describe('Plan lifecycle and participant API', () => {
         settledAt: '2026-08-23T15:00:00.000Z',
       });
     expect(settled.status).toBe(201);
-    expect((await api('owner').get(`/plans/${planId}/balances`)).body.positions).toEqual([]);
-    expect((await api('owner').get(`/ledgers/${ledgerId}/settlements?planId=${planId}`)).body).toHaveLength(1);
-    expect((await api('owner').post(`/plans/${planId}/archive`)).status).toBe(201);
+    expect(
+      (await api('owner').get(`/plans/${planId}/balances`)).body.positions,
+    ).toEqual([]);
+    expect(
+      (
+        await api('owner').get(
+          `/ledgers/${ledgerId}/settlements?planId=${planId}`,
+        )
+      ).body,
+    ).toHaveLength(1);
+    expect((await api('owner').post(`/plans/${planId}/archive`)).status).toBe(
+      201,
+    );
     expect(
       (
         await api('admin')
@@ -690,7 +733,10 @@ describe('Plan lifecycle and participant API', () => {
             payerUserId: identity('admin').id,
             expenseDate: '2026-08-23T10:00:00.000Z',
             isGift: false,
-            split: { method: 'EXACT', entries: [{ userId: identity('owner').id, amountMinor: 10_000 }] },
+            split: {
+              method: 'EXACT',
+              entries: [{ userId: identity('owner').id, amountMinor: 10_000 }],
+            },
           })
       ).status,
     ).toBe(201);
@@ -702,19 +748,31 @@ describe('Plan lifecycle and participant API', () => {
         payerUserId: identity('owner').id,
         expenseDate: '2026-08-23T11:00:00.000Z',
         isGift: false,
-        split: { method: 'EXACT', entries: [{ userId: identity('admin').id, amountMinor: 8_000 }] },
+        split: {
+          method: 'EXACT',
+          entries: [{ userId: identity('admin').id, amountMinor: 8_000 }],
+        },
       });
     expect(target.status).toBe(201);
     const splitId = target.body.splits[0].id as string;
-    const before = (await api('owner').get(`/ledgers/${ledgerId}/balances`)).body;
-    const availability = await api('owner').get(`/expense-splits/${splitId}/offset-availability`);
+    const before = (await api('owner').get(`/ledgers/${ledgerId}/balances`))
+      .body;
+    const availability = await api('owner').get(
+      `/expense-splits/${splitId}/offset-availability`,
+    );
     expect(availability.status).toBe(200);
     expect(availability.body.maxOffsetMinor).toBe('8000');
     const concurrent = await Promise.all([
-      api('owner').post(`/expense-splits/${splitId}/offsets`).send({ amountMinor: 6_000 }),
-      api('owner').post(`/expense-splits/${splitId}/offsets`).send({ amountMinor: 6_000 }),
+      api('owner')
+        .post(`/expense-splits/${splitId}/offsets`)
+        .send({ amountMinor: 6_000 }),
+      api('owner')
+        .post(`/expense-splits/${splitId}/offsets`)
+        .send({ amountMinor: 6_000 }),
     ]);
-    expect(concurrent.map((result) => result.status).sort()).toEqual([201, 409]);
+    expect(concurrent.map((result) => result.status).sort()).toEqual([
+      201, 409,
+    ]);
     const active = concurrent.find((result) => result.status === 201)!;
     const activeHistory = await api('owner').get(`/expenses/${target.body.id}`);
     expect(activeHistory.body.splits[0]).toMatchObject({
@@ -728,18 +786,38 @@ describe('Plan lifecycle and participant API', () => {
         }),
       ],
     });
-    const after = (await api('owner').get(`/ledgers/${ledgerId}/balances`)).body;
+    const after = (await api('owner').get(`/ledgers/${ledgerId}/balances`))
+      .body;
     expect(after).toEqual(before);
     expect(
       (
         await api('owner')
           .patch(`/expenses/${target.body.id}`)
-          .send({ expectedVersion: 1, amountMinor: 9_000, split: { method: 'EXACT', entries: [{ userId: identity('admin').id, amountMinor: 9_000 }] } })
+          .send({
+            expectedVersion: 1,
+            amountMinor: 9_000,
+            split: {
+              method: 'EXACT',
+              entries: [{ userId: identity('admin').id, amountMinor: 9_000 }],
+            },
+          })
       ).status,
     ).toBe(409);
-    expect((await api('owner').patch(`/expenses/${target.body.id}`).send({ title: 'Metadata ok', expectedVersion: 1 })).status).toBe(200);
-    expect((await api('admin').post(`/expense-split-offsets/${active.body.id}/void`)).status).toBe(403);
-    expect((await api('owner').post(`/expense-split-offsets/${active.body.id}/void`)).status).toBe(201);
+    expect(
+      (
+        await api('owner')
+          .patch(`/expenses/${target.body.id}`)
+          .send({ title: 'Metadata ok', expectedVersion: 1 })
+      ).status,
+    ).toBe(200);
+    expect(
+      (await api('admin').post(`/expense-split-offsets/${active.body.id}/void`))
+        .status,
+    ).toBe(403);
+    expect(
+      (await api('owner').post(`/expense-split-offsets/${active.body.id}/void`))
+        .status,
+    ).toBe(201);
     const voidedHistory = await api('owner').get(`/expenses/${target.body.id}`);
     expect(voidedHistory.body.splits[0].offsetAppliedMinor).toBe('0');
     expect(voidedHistory.body.splits[0].offsets[0]).toMatchObject({
@@ -747,11 +825,24 @@ describe('Plan lifecycle and participant API', () => {
       amountMinor: '6000',
     });
     expect(voidedHistory.body.splits[0].offsets[0].voidedAt).not.toBeNull();
-    const reapplied = await api('owner').post(`/expense-splits/${splitId}/offsets`).send({});
+    const reapplied = await api('owner')
+      .post(`/expense-splits/${splitId}/offsets`)
+      .send({});
     expect(reapplied.status).toBe(201);
-    expect((await api('owner').post(`/expenses/${target.body.id}/void`)).status).toBe(201);
-    expect((await api('owner').get(`/expenses/${target.body.id}`)).body.splits[0].remainingReimbursableMinor).toBe('0');
-    expect((await api('owner').post(`/expense-split-offsets/${reapplied.body.id}/void`)).status).toBe(201);
+    expect(
+      (await api('owner').post(`/expenses/${target.body.id}/void`)).status,
+    ).toBe(201);
+    expect(
+      (await api('owner').get(`/expenses/${target.body.id}`)).body.splits[0]
+        .remainingReimbursableMinor,
+    ).toBe('0');
+    expect(
+      (
+        await api('owner').post(
+          `/expense-split-offsets/${reapplied.body.id}/void`,
+        )
+      ).status,
+    ).toBe(201);
   });
 
   it('manages ledger categories and tracks Income without changing Balance', async () => {
@@ -775,7 +866,9 @@ describe('Plan lifecycle and participant API', () => {
       ).status,
     ).toBe(403);
 
-    const before = (await api('member').get(`/ledgers/${sourceLedgerId}/balances`)).body;
+    const before = (
+      await api('member').get(`/ledgers/${sourceLedgerId}/balances`)
+    ).body;
     const income = await api('member')
       .post(`/ledgers/${sourceLedgerId}/incomes`)
       .send({
@@ -787,8 +880,12 @@ describe('Plan lifecycle and participant API', () => {
     expect(income.status).toBe(201);
     expect(income.body.title).toBe('Salary');
     expect(income.body.currency).toBe('TRY');
-    expect((await api('member').get(`/ledgers/${sourceLedgerId}/balances`)).body).toEqual(before);
-    expect((await api('outsider').get(`/incomes/${income.body.id}`)).status).toBe(404);
+    expect(
+      (await api('member').get(`/ledgers/${sourceLedgerId}/balances`)).body,
+    ).toEqual(before);
+    expect(
+      (await api('outsider').get(`/incomes/${income.body.id}`)).status,
+    ).toBe(404);
     expect(
       (
         await api('other-member')
@@ -803,20 +900,25 @@ describe('Plan lifecycle and participant API', () => {
           .send({ amountMinor: 130_000 })
       ).status,
     ).toBe(200);
-    expect((await api('member').post(`/incomes/${income.body.id}/void`)).status).toBe(201);
-    expect((await api('member').post(`/incomes/${income.body.id}/void`)).status).toBe(201);
+    expect(
+      (await api('member').post(`/incomes/${income.body.id}/void`)).status,
+    ).toBe(201);
+    expect(
+      (await api('member').post(`/incomes/${income.body.id}/void`)).status,
+    ).toBe(201);
 
-    expect((await api('owner').post(`/categories/${incomeCategory.body.id}/archive`)).status).toBe(201);
+    expect(
+      (await api('owner').post(`/categories/${incomeCategory.body.id}/archive`))
+        .status,
+    ).toBe(201);
     expect(
       (
-        await api('owner')
-          .post(`/ledgers/${sourceLedgerId}/incomes`)
-          .send({
-            title: 'Archived category',
-            amountMinor: 1_000,
-            categoryId: incomeCategory.body.id,
-            incomeDate: '2026-08-23T09:00:00.000Z',
-          })
+        await api('owner').post(`/ledgers/${sourceLedgerId}/incomes`).send({
+          title: 'Archived category',
+          amountMinor: 1_000,
+          categoryId: incomeCategory.body.id,
+          incomeDate: '2026-08-23T09:00:00.000Z',
+        })
       ).status,
     ).toBe(400);
 
@@ -852,22 +954,29 @@ describe('Plan lifecycle and participant API', () => {
         categoryId: expenseCategory.body.id,
         expenseDate: '2026-08-23T10:00:00.000Z',
         isGift: false,
-        split: { method: 'EXACT', entries: [{ userId: identity('member').id, amountMinor: 1_000 }] },
+        split: {
+          method: 'EXACT',
+          entries: [{ userId: identity('member').id, amountMinor: 1_000 }],
+        },
       });
     expect(expense.status).toBe(201);
     expect(expense.body.category.id).toBe(expenseCategory.body.id);
-    const planId = await createPlan('member', sourceLedgerId, 'Income lifecycle');
-    expect((await api('member').post(`/plans/${planId}/complete`)).status).toBe(201);
+    const planId = await createPlan(
+      'member',
+      sourceLedgerId,
+      'Income lifecycle',
+    );
+    expect((await api('member').post(`/plans/${planId}/complete`)).status).toBe(
+      201,
+    );
     expect(
       (
-        await api('member')
-          .post(`/ledgers/${sourceLedgerId}/incomes`)
-          .send({
-            title: 'Completed Plan income',
-            amountMinor: 1_000,
-            planId,
-            incomeDate: '2026-08-23T10:00:00.000Z',
-          })
+        await api('member').post(`/ledgers/${sourceLedgerId}/incomes`).send({
+          title: 'Completed Plan income',
+          amountMinor: 1_000,
+          planId,
+          incomeDate: '2026-08-23T10:00:00.000Z',
+        })
       ).status,
     ).toBe(400);
   });
@@ -881,37 +990,73 @@ describe('Plan lifecycle and participant API', () => {
         payerUserId: identity('member').id,
         expenseDate: '2026-08-23T10:00:00.000Z',
         isGift: false,
-        split: { method: 'EXACT', entries: [{ userId: identity('member').id, amountMinor: 5_000 }] },
+        split: {
+          method: 'EXACT',
+          entries: [{ userId: identity('member').id, amountMinor: 5_000 }],
+        },
       });
     expect(expense.status).toBe(201);
     const path = `/expenses/${expense.body.id}/attachments`;
-    const payload = { fileName: '../receipt.webp', mimeType: 'image/webp', sizeBytes: 1_024 };
-    expect((await api('other-member').post(path).send(payload)).status).toBe(403);
-    expect((await api('member').post(path).send({ ...payload, mimeType: 'image/gif' })).status).toBe(400);
-    expect((await api('member').post(path).send({ ...payload, sizeBytes: 10 * 1024 * 1024 + 1 })).status).toBe(400);
+    const payload = {
+      fileName: '../receipt.webp',
+      mimeType: 'image/webp',
+      sizeBytes: 1_024,
+    };
+    expect((await api('other-member').post(path).send(payload)).status).toBe(
+      403,
+    );
+    expect(
+      (
+        await api('member')
+          .post(path)
+          .send({ ...payload, mimeType: 'image/gif' })
+      ).status,
+    ).toBe(400);
+    expect(
+      (
+        await api('member')
+          .post(path)
+          .send({ ...payload, sizeBytes: 10 * 1024 * 1024 + 1 })
+      ).status,
+    ).toBe(400);
 
     const uploads = await Promise.all(
       Array.from({ length: 5 }, (_, index) =>
-        api('member').post(path).send({ ...payload, fileName: `receipt-${index}.webp` }),
+        api('member')
+          .post(path)
+          .send({ ...payload, fileName: `receipt-${index}.webp` }),
       ),
     );
     expect(uploads.every((upload) => upload.status === 201)).toBe(true);
     expect(uploads[0]!.body.uploadUrl).toMatch(/^memory:\/\/upload\//);
     expect((await api('member').post(path).send(payload)).status).toBe(409);
     const attachmentId = uploads[0]!.body.attachmentId as string;
-    const completed = await api('member').post(`/attachments/${attachmentId}/complete`);
+    const completed = await api('member').post(
+      `/attachments/${attachmentId}/complete`,
+    );
     expect(completed.status).toBe(201);
     expect(completed.body.status).toBe('READY');
-    expect((await api('other-member').get(`/attachments/${attachmentId}/url`)).status).toBe(200);
-    expect((await api('outsider').get(`/attachments/${attachmentId}/url`)).status).toBe(404);
-    expect((await api('owner').delete(`/attachments/${attachmentId}`)).status).toBe(204);
+    expect(
+      (await api('other-member').get(`/attachments/${attachmentId}/url`))
+        .status,
+    ).toBe(200);
+    expect(
+      (await api('outsider').get(`/attachments/${attachmentId}/url`)).status,
+    ).toBe(404);
+    expect(
+      (await api('owner').delete(`/attachments/${attachmentId}`)).status,
+    ).toBe(204);
     expect((await api('member').post(path).send(payload)).status).toBe(201);
-    expect((await api('member').post(`/expenses/${expense.body.id}/void`)).status).toBe(201);
+    expect(
+      (await api('member').post(`/expenses/${expense.body.id}/void`)).status,
+    ).toBe(201);
     expect((await api('member').post(path).send(payload)).status).toBe(409);
   });
 
   it('serves immutable cursor-paginated activity without leaking secrets', async () => {
-    const first = await api('member').get(`/ledgers/${sourceLedgerId}/activity?limit=2`);
+    const first = await api('member').get(
+      `/ledgers/${sourceLedgerId}/activity?limit=2`,
+    );
     expect(first.status).toBe(200);
     expect(first.body.items).toHaveLength(2);
     expect(first.body.nextCursor).toBeTruthy();
@@ -920,8 +1065,12 @@ describe('Plan lifecycle and participant API', () => {
     );
     expect(second.status).toBe(200);
     expect(second.body.items[0]?.id).not.toBe(first.body.items[0]?.id);
-    expect(JSON.stringify(first.body)).not.toMatch(/passwordHash|refreshTokenHash|tokenHash|storageKey/i);
-    expect((await api('outsider').get(`/ledgers/${sourceLedgerId}/activity`)).status).toBe(404);
+    expect(JSON.stringify(first.body)).not.toMatch(
+      /passwordHash|refreshTokenHash|tokenHash|storageKey/i,
+    );
+    expect(
+      (await api('outsider').get(`/ledgers/${sourceLedgerId}/activity`)).status,
+    ).toBe(404);
 
     const actions = (
       await api('owner').get(`/ledgers/${sourceLedgerId}/activity?limit=100`)
@@ -936,15 +1085,19 @@ describe('Plan lifecycle and participant API', () => {
     );
     const activityId = first.body.items[0].id as string;
     await expect(
-      database.query(`UPDATE "${TEST_SCHEMA}"."ActivityLog" SET "action" = $1 WHERE "id" = $2`, [
-        'tampered',
-        activityId,
-      ]),
+      database.query(
+        `UPDATE "${TEST_SCHEMA}"."ActivityLog" SET "action" = $1 WHERE "id" = $2`,
+        ['tampered', activityId],
+      ),
     ).rejects.toThrow(/immutable/);
 
     const archivedLedger = await createLedger('owner', 'Archived activity');
-    expect((await api('owner').post(`/ledgers/${archivedLedger}/archive`)).status).toBe(201);
-    expect((await api('owner').get(`/ledgers/${archivedLedger}/activity`)).status).toBe(200);
+    expect(
+      (await api('owner').post(`/ledgers/${archivedLedger}/archive`)).status,
+    ).toBe(201);
+    expect(
+      (await api('owner').get(`/ledgers/${archivedLedger}/activity`)).status,
+    ).toBe(200);
   });
 
   it('filters Plan activity without leaking unrelated Ledger events and preserves pagination', async () => {
@@ -964,9 +1117,7 @@ describe('Plan lifecycle and participant API', () => {
         isGift: false,
         split: {
           method: 'EXACT',
-          entries: [
-            { userId: identity('owner').id, amountMinor: 2_000 },
-          ],
+          entries: [{ userId: identity('owner').id, amountMinor: 2_000 }],
         },
       });
     expect(planExpense.status).toBe(201);
@@ -980,9 +1131,7 @@ describe('Plan lifecycle and participant API', () => {
         isGift: false,
         split: {
           method: 'EXACT',
-          entries: [
-            { userId: identity('owner').id, amountMinor: 1_000 },
-          ],
+          entries: [{ userId: identity('owner').id, amountMinor: 1_000 }],
         },
       });
     expect(unrelatedExpense.status).toBe(201);
@@ -1021,16 +1170,29 @@ describe('Plan lifecycle and participant API', () => {
       payerUserId: identity('owner').id,
       expenseDate: '2026-08-23T10:00:00.000Z',
       isGift: false,
-      split: { method: 'EXACT', entries: [{ userId: identity('admin').id, amountMinor: 10_000 }] },
+      split: {
+        method: 'EXACT',
+        entries: [{ userId: identity('admin').id, amountMinor: 10_000 }],
+      },
     };
     const expenseKey = 'concurrent-expense-key';
     const duplicateExpenses = await Promise.all([
-      api('owner').post(`/ledgers/${ledgerId}/expenses`).set('Idempotency-Key', expenseKey).send(expensePayload),
-      api('owner').post(`/ledgers/${ledgerId}/expenses`).set('Idempotency-Key', expenseKey).send(expensePayload),
+      api('owner')
+        .post(`/ledgers/${ledgerId}/expenses`)
+        .set('Idempotency-Key', expenseKey)
+        .send(expensePayload),
+      api('owner')
+        .post(`/ledgers/${ledgerId}/expenses`)
+        .set('Idempotency-Key', expenseKey)
+        .send(expensePayload),
     ]);
-    expect(duplicateExpenses.map((result) => result.status)).toEqual([201, 201]);
+    expect(duplicateExpenses.map((result) => result.status)).toEqual([
+      201, 201,
+    ]);
     expect(duplicateExpenses[0]!.body.id).toBe(duplicateExpenses[1]!.body.id);
-    expect((await api('owner').get(`/ledgers/${ledgerId}/expenses`)).body).toHaveLength(1);
+    expect(
+      (await api('owner').get(`/ledgers/${ledgerId}/expenses`)).body,
+    ).toHaveLength(1);
     expect(
       (
         await api('owner')
@@ -1053,7 +1215,9 @@ describe('Plan lifecycle and participant API', () => {
           .send({ title: 'Stale write', expectedVersion: 1 })
       ).status,
     ).toBe(409);
-    expect((await api('owner').get(`/expenses/${expenseId}`)).body.title).toBe('Version two');
+    expect((await api('owner').get(`/expenses/${expenseId}`)).body.title).toBe(
+      'Version two',
+    );
 
     const settlementPayload = {
       fromUserId: identity('admin').id,
@@ -1071,7 +1235,9 @@ describe('Plan lifecycle and participant API', () => {
       .send(settlementPayload);
     expect(firstSettlement.status).toBe(201);
     expect(replayedSettlement.body.id).toBe(firstSettlement.body.id);
-    expect((await api('owner').get(`/ledgers/${ledgerId}/settlements`)).body).toHaveLength(1);
+    expect(
+      (await api('owner').get(`/ledgers/${ledgerId}/settlements`)).body,
+    ).toHaveLength(1);
 
     const prior = await api('admin')
       .post(`/ledgers/${ledgerId}/expenses`)
@@ -1081,7 +1247,10 @@ describe('Plan lifecycle and participant API', () => {
         payerUserId: identity('admin').id,
         expenseDate: '2026-08-23T08:00:00.000Z',
         isGift: false,
-        split: { method: 'EXACT', entries: [{ userId: identity('owner').id, amountMinor: 20_000 }] },
+        split: {
+          method: 'EXACT',
+          entries: [{ userId: identity('owner').id, amountMinor: 20_000 }],
+        },
       });
     expect(prior.status).toBe(201);
     const target = await api('owner')
@@ -1092,20 +1261,41 @@ describe('Plan lifecycle and participant API', () => {
         payerUserId: identity('owner').id,
         expenseDate: '2026-08-23T12:00:00.000Z',
         isGift: false,
-        split: { method: 'EXACT', entries: [{ userId: identity('admin').id, amountMinor: 5_000 }] },
+        split: {
+          method: 'EXACT',
+          entries: [{ userId: identity('admin').id, amountMinor: 5_000 }],
+        },
       });
     const offsetPath = `/expense-splits/${target.body.splits[0].id}/offsets`;
-    const firstOffset = await api('owner').post(offsetPath).set('Idempotency-Key', 'offset-key').send({ amountMinor: 2_000 });
-    const replayedOffset = await api('owner').post(offsetPath).set('Idempotency-Key', 'offset-key').send({ amountMinor: 2_000 });
+    const firstOffset = await api('owner')
+      .post(offsetPath)
+      .set('Idempotency-Key', 'offset-key')
+      .send({ amountMinor: 2_000 });
+    const replayedOffset = await api('owner')
+      .post(offsetPath)
+      .set('Idempotency-Key', 'offset-key')
+      .send({ amountMinor: 2_000 });
     expect(firstOffset.status).toBe(201);
     expect(replayedOffset.body.id).toBe(firstOffset.body.id);
 
-    const incomePayload = { title: 'Retry income', amountMinor: 3_000, incomeDate: '2026-08-23T09:00:00.000Z' };
-    const incomeOne = await api('owner').post(`/ledgers/${ledgerId}/incomes`).set('Idempotency-Key', 'income-key').send(incomePayload);
-    const incomeTwo = await api('owner').post(`/ledgers/${ledgerId}/incomes`).set('Idempotency-Key', 'income-key').send(incomePayload);
+    const incomePayload = {
+      title: 'Retry income',
+      amountMinor: 3_000,
+      incomeDate: '2026-08-23T09:00:00.000Z',
+    };
+    const incomeOne = await api('owner')
+      .post(`/ledgers/${ledgerId}/incomes`)
+      .set('Idempotency-Key', 'income-key')
+      .send(incomePayload);
+    const incomeTwo = await api('owner')
+      .post(`/ledgers/${ledgerId}/incomes`)
+      .set('Idempotency-Key', 'income-key')
+      .send(incomePayload);
     expect(incomeOne.status).toBe(201);
     expect(incomeTwo.body.id).toBe(incomeOne.body.id);
-    expect((await api('owner').get(`/ledgers/${ledgerId}/incomes`)).body).toHaveLength(1);
+    expect(
+      (await api('owner').get(`/ledgers/${ledgerId}/incomes`)).body,
+    ).toHaveLength(1);
   });
 
   it('derives ledger/Plan analytics with date, category, Gift, void and reconciliation rules', async () => {
@@ -1123,12 +1313,14 @@ describe('Plan lifecycle and participant API', () => {
       ).status,
     ).toBe(201);
     const createExpense = (actor: string, body: Record<string, unknown>) =>
-      api(actor).post(`/ledgers/${ledgerId}/expenses`).send({
-        categoryId: category.body.id,
-        expenseDate: '2026-01-10T10:00:00.000Z',
-        isGift: false,
-        ...body,
-      });
+      api(actor)
+        .post(`/ledgers/${ledgerId}/expenses`)
+        .send({
+          categoryId: category.body.id,
+          expenseDate: '2026-01-10T10:00:00.000Z',
+          isGift: false,
+          ...body,
+        });
     expect(
       (
         await createExpense('owner', {
@@ -1136,7 +1328,10 @@ describe('Plan lifecycle and participant API', () => {
           amountMinor: 1_000,
           payerUserId: identity('owner').id,
           planId,
-          split: { method: 'EXACT', entries: [{ userId: identity('admin').id, amountMinor: 1_000 }] },
+          split: {
+            method: 'EXACT',
+            entries: [{ userId: identity('admin').id, amountMinor: 1_000 }],
+          },
         })
       ).status,
     ).toBe(201);
@@ -1148,7 +1343,10 @@ describe('Plan lifecycle and participant API', () => {
           payerUserId: identity('owner').id,
           expenseDate: '2026-02-10T10:00:00.000Z',
           isGift: true,
-          split: { method: 'EXACT', entries: [{ userId: identity('admin').id, amountMinor: 2_000 }] },
+          split: {
+            method: 'EXACT',
+            entries: [{ userId: identity('admin').id, amountMinor: 2_000 }],
+          },
         })
       ).status,
     ).toBe(201);
@@ -1158,7 +1356,10 @@ describe('Plan lifecycle and participant API', () => {
           title: 'Reverse debt',
           amountMinor: 4_000,
           payerUserId: identity('admin').id,
-          split: { method: 'EXACT', entries: [{ userId: identity('owner').id, amountMinor: 4_000 }] },
+          split: {
+            method: 'EXACT',
+            entries: [{ userId: identity('owner').id, amountMinor: 4_000 }],
+          },
         })
       ).status,
     ).toBe(201);
@@ -1167,7 +1368,10 @@ describe('Plan lifecycle and participant API', () => {
       amountMinor: 1_000,
       payerUserId: identity('owner').id,
       expenseDate: '2026-02-15T10:00:00.000Z',
-      split: { method: 'EXACT', entries: [{ userId: identity('admin').id, amountMinor: 1_000 }] },
+      split: {
+        method: 'EXACT',
+        entries: [{ userId: identity('admin').id, amountMinor: 1_000 }],
+      },
     });
     expect(offsetTarget.status).toBe(201);
     expect(
@@ -1182,50 +1386,75 @@ describe('Plan lifecycle and participant API', () => {
       amountMinor: 4_000,
       payerUserId: identity('owner').id,
       expenseDate: '2026-03-10T10:00:00.000Z',
-      split: { method: 'EXACT', entries: [{ userId: identity('owner').id, amountMinor: 4_000 }] },
+      split: {
+        method: 'EXACT',
+        entries: [{ userId: identity('owner').id, amountMinor: 4_000 }],
+      },
     });
-    expect((await api('owner').post(`/expenses/${voidedExpense.body.id}/void`)).status).toBe(201);
+    expect(
+      (await api('owner').post(`/expenses/${voidedExpense.body.id}/void`))
+        .status,
+    ).toBe(201);
 
-    const planIncome = await api('owner').post(`/ledgers/${ledgerId}/incomes`).send({
-      title: 'Plan income', amountMinor: 3_000, planId, categoryId: category.body.id,
-      incomeDate: '2026-01-20T10:00:00.000Z',
-    });
+    const planIncome = await api('owner')
+      .post(`/ledgers/${ledgerId}/incomes`)
+      .send({
+        title: 'Plan income',
+        amountMinor: 3_000,
+        planId,
+        categoryId: category.body.id,
+        incomeDate: '2026-01-20T10:00:00.000Z',
+      });
     expect(planIncome.status).toBe(201);
     expect(
       (
         await api('owner').post(`/ledgers/${ledgerId}/incomes`).send({
-          title: 'Ledger income', amountMinor: 5_000, categoryId: category.body.id,
+          title: 'Ledger income',
+          amountMinor: 5_000,
+          categoryId: category.body.id,
           incomeDate: '2026-02-20T10:00:00.000Z',
         })
       ).status,
     ).toBe(201);
-    const voidedIncome = await api('owner').post(`/ledgers/${ledgerId}/incomes`).send({
-      title: 'Voided income', amountMinor: 7_000, categoryId: category.body.id,
-      incomeDate: '2026-03-20T10:00:00.000Z',
-    });
-    expect((await api('owner').post(`/incomes/${voidedIncome.body.id}/void`)).status).toBe(201);
+    const voidedIncome = await api('owner')
+      .post(`/ledgers/${ledgerId}/incomes`)
+      .send({
+        title: 'Voided income',
+        amountMinor: 7_000,
+        categoryId: category.body.id,
+        incomeDate: '2026-03-20T10:00:00.000Z',
+      });
+    expect(
+      (await api('owner').post(`/incomes/${voidedIncome.body.id}/void`)).status,
+    ).toBe(201);
     expect(
       (
-        await api('admin').post(`/ledgers/${ledgerId}/settlements`).send({
-          planId,
-          fromUserId: identity('admin').id,
-          toUserId: identity('owner').id,
-          amountMinor: 1_000,
-          settledAt: '2026-01-30T10:00:00.000Z',
-        })
+        await api('admin')
+          .post(`/ledgers/${ledgerId}/settlements`)
+          .send({
+            planId,
+            fromUserId: identity('admin').id,
+            toUserId: identity('owner').id,
+            amountMinor: 1_000,
+            settledAt: '2026-01-30T10:00:00.000Z',
+          })
       ).status,
     ).toBe(201);
 
-    const summary = await api('owner').get(`/ledgers/${ledgerId}/analytics/summary`);
+    const summary = await api('owner').get(
+      `/ledgers/${ledgerId}/analytics/summary`,
+    );
     expect(summary.status).toBe(200);
-    expect(summary.body).toEqual(expect.objectContaining({
-      currency: 'TRY',
-      totalExpenseMinor: '8000',
-      totalIncomeMinor: '8000',
-      netCashflowMinor: '0',
-      expenseCount: 4,
-      incomeCount: 2,
-    }));
+    expect(summary.body).toEqual(
+      expect.objectContaining({
+        currency: 'TRY',
+        totalExpenseMinor: '8000',
+        totalIncomeMinor: '8000',
+        netCashflowMinor: '0',
+        expenseCount: 4,
+        incomeCount: 2,
+      }),
+    );
     expect(summary.body.byCategory).toEqual([
       expect.objectContaining({ expenseMinor: '8000', incomeMinor: '8000' }),
     ]);
@@ -1234,7 +1463,9 @@ describe('Plan lifecycle and participant API', () => {
       { month: '2026-02', expenseMinor: '3000', incomeMinor: '5000' },
     ]);
     expect(summary.body.currentBalances.positions).not.toEqual([]);
-    const planSummary = await api('admin').get(`/plans/${planId}/analytics/summary`);
+    const planSummary = await api('admin').get(
+      `/plans/${planId}/analytics/summary`,
+    );
     expect(planSummary.body.totalExpenseMinor).toBe('1000');
     expect(planSummary.body.totalIncomeMinor).toBe('3000');
     expect(planSummary.body.currentBalances.positions).toEqual([]);
@@ -1250,8 +1481,17 @@ describe('Plan lifecycle and participant API', () => {
         )
       ).status,
     ).toBe(400);
-    expect((await api('outsider').get(`/ledgers/${ledgerId}/analytics/summary`)).status).toBe(404);
-    expect((await api('owner').get(`/ledgers/${identity('owner').personalLedgerId}/analytics/summary`)).status).toBe(200);
+    expect(
+      (await api('outsider').get(`/ledgers/${ledgerId}/analytics/summary`))
+        .status,
+    ).toBe(404);
+    expect(
+      (
+        await api('owner').get(
+          `/ledgers/${identity('owner').personalLedgerId}/analytics/summary`,
+        )
+      ).status,
+    ).toBe(200);
   });
 
   it('exposes readiness, security headers, complete Swagger paths, and safe responses', async () => {
@@ -1272,7 +1512,8 @@ describe('Plan lifecycle and participant API', () => {
       '/ledgers/{ledgerId}/analytics/summary',
       '/plans/{planId}/analytics/summary',
       '/health/ready',
-    ]) expect(openApi.body.paths[path]).toBeDefined();
+    ])
+      expect(openApi.body.paths[path]).toBeDefined();
     const responses = await Promise.all([
       api('owner').get(`/ledgers/${sourceLedgerId}/expenses`),
       api('owner').get(`/ledgers/${sourceLedgerId}/settlements`),
@@ -1281,8 +1522,12 @@ describe('Plan lifecycle and participant API', () => {
       api('owner').get(`/ledgers/${sourceLedgerId}/activity?limit=100`),
       api('owner').get(`/ledgers/${sourceLedgerId}/analytics/summary`),
     ]);
-    const serialized = JSON.stringify(responses.map((response) => response.body));
-    expect(serialized).not.toMatch(/passwordHash|refreshTokenHash|tokenHash|AuthSession|JWT_ACCESS_SECRET|S3_SECRET_ACCESS_KEY|storageKey/i);
+    const serialized = JSON.stringify(
+      responses.map((response) => response.body),
+    );
+    expect(serialized).not.toMatch(
+      /passwordHash|refreshTokenHash|tokenHash|AuthSession|JWT_ACCESS_SECRET|S3_SECRET_ACCESS_KEY|storageKey/i,
+    );
   });
 
   async function register(name: string): Promise<Identity> {
@@ -1297,13 +1542,12 @@ describe('Plan lifecycle and participant API', () => {
     const ledgers = await request(API_URL)
       .get('/ledgers')
       .set('Authorization', `Bearer ${response.body.accessToken}`);
-    const personal = ledgers.body.find(
-      (ledger: { type: string }) => ledger.type === 'PERSONAL',
-    );
+    expect(ledgers.status).toBe(200);
+    expect(ledgers.body).toEqual([]);
     return {
       accessToken: response.body.accessToken,
       id: response.body.user.id,
-      personalLedgerId: personal.id,
+      personalLedgerId: '',
     };
   }
 

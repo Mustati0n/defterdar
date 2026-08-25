@@ -32,7 +32,8 @@ function LedgersContent() {
   const [filter, setFilter] = useState<Filter>('recent');
   const [creatorRequested, setCreatorRequested] = useState(false);
   const ledgers = useLedgers(true);
-  const createFromUrl = searchParams.get('create') === '1';
+  const createParam = searchParams.get('create');
+  const createFromUrl = createParam === '1' || createParam === 'personal';
   const filtered = useMemo(() => {
     const query = search.trim().toLocaleLowerCase('tr-TR');
     return (ledgers.data ?? [])
@@ -60,6 +61,7 @@ function LedgersContent() {
             <CreateLedgerDialog
               key={searchParams.get('create') ?? 'manual'}
               defaultOpen
+              defaultType={createParam === 'personal' ? 'PERSONAL' : 'SHARED'}
             />
           ) : (
             <button

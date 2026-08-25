@@ -60,6 +60,18 @@ export class LedgersController {
     return this.ledgersService.createShared(user.id, input);
   }
 
+  @Post('personal')
+  @ApiOperation({
+    summary: "Create the current user's optional PERSONAL ledger",
+  })
+  @ApiCreatedResponse({ type: LedgerResponseDto })
+  createPersonal(
+    @CurrentUser() user: SafeUser,
+    @Body() input: CreateLedgerDto,
+  ): Promise<LedgerResponseDto> {
+    return this.ledgersService.createPersonal(user.id, input);
+  }
+
   @Get(':ledgerId')
   @ApiOperation({ summary: 'Read a ledger as an active member' })
   @ApiOkResponse({ type: LedgerResponseDto })

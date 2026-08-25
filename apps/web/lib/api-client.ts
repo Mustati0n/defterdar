@@ -241,6 +241,8 @@ export const api = {
       apiRequest<Ledger>(`/ledgers/${ledgerId}`, { signal }),
     create: (input: CreateLedgerInput) =>
       apiRequest<Ledger>('/ledgers', { method: 'POST', body: input }),
+    createPersonal: (input: CreateLedgerInput) =>
+      apiRequest<Ledger>('/ledgers/personal', { method: 'POST', body: input }),
     update: (
       ledgerId: string,
       input: { name?: string; description?: string | null },
@@ -333,20 +335,15 @@ export const api = {
     },
   },
   plans: {
-    list: (
-      ledgerId: string,
-      includeArchived = false,
-      signal?: AbortSignal,
-    ) =>
+    list: (ledgerId: string, includeArchived = false, signal?: AbortSignal) =>
       apiRequest<Plan[]>(
         `/ledgers/${ledgerId}/plans?includeArchived=${String(includeArchived)}`,
         { signal },
       ),
     listAll: (includeArchived = false, signal?: AbortSignal) =>
-      apiRequest<Plan[]>(
-        `/plans?includeArchived=${String(includeArchived)}`,
-        { signal },
-      ),
+      apiRequest<Plan[]>(`/plans?includeArchived=${String(includeArchived)}`, {
+        signal,
+      }),
     get: (planId: string, signal?: AbortSignal) =>
       apiRequest<Plan>(`/plans/${planId}`, { signal }),
     create: (ledgerId: string, input: CreatePlanInput) =>

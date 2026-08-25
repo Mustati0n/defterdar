@@ -5,7 +5,6 @@ import {
 } from './onboarding-experience';
 import { useOnboarding } from './use-onboarding';
 import { useAuth } from '@/features/auth/auth-provider';
-import { useLedgers } from '@/features/data/hooks';
 
 const push = jest.fn();
 const complete = jest.fn();
@@ -14,7 +13,6 @@ jest.mock('next/navigation', () => ({
   useRouter: () => ({ push }),
 }));
 jest.mock('@/features/auth/auth-provider', () => ({ useAuth: jest.fn() }));
-jest.mock('@/features/data/hooks', () => ({ useLedgers: jest.fn() }));
 jest.mock('./use-onboarding', () => ({ useOnboarding: jest.fn() }));
 
 describe('guided domain tour', () => {
@@ -43,25 +41,6 @@ describe('guided domain tour', () => {
       complete,
       replay: jest.fn(),
     });
-    jest.mocked(useLedgers).mockReturnValue({
-      data: [
-        {
-          id: 'personal-1',
-          name: 'Kişisel Defterim',
-          description: null,
-          type: 'PERSONAL',
-          currency: 'TRY',
-          ownerId: 'u1',
-          role: 'OWNER',
-          createdAt: '2026-01-01',
-          updatedAt: '2026-01-01',
-          archivedAt: null,
-        },
-      ],
-      isLoading: false,
-      isError: false,
-      refetch: jest.fn(),
-    } as unknown as ReturnType<typeof useLedgers>);
   });
 
   afterEach(() => jest.useRealTimers());
@@ -92,10 +71,10 @@ describe('guided domain tour', () => {
     forward();
     forward();
     fireEvent.click(
-      screen.getByRole('button', { name: /Kişisel Defterime git/ }),
+      screen.getByRole('button', { name: /Kişisel Defter oluştur/ }),
     );
     expect(complete).toHaveBeenCalled();
-    expect(push).toHaveBeenCalledWith('/ledgers/personal-1');
+    expect(push).toHaveBeenCalledWith('/ledgers?create=personal');
   });
 
   it('uses opposite direction states and updates completed progress', () => {
@@ -161,13 +140,13 @@ describe('guided domain tour', () => {
     expect(screen.queryByText(/Settlement/i)).not.toBeInTheDocument();
   });
 
-  it('disables the global Ledger query after onboarding is complete', () => {
+  it('renders nothing after onboarding is complete', () => {
     jest.mocked(useOnboarding).mockReturnValue({
       pending: false,
       complete,
       replay: jest.fn(),
     });
-    render(<OnboardingExperience />);
-    expect(useLedgers).toHaveBeenCalledWith(false, false);
+    const { container } = render(<OnboardingExperience />);
+    expect(container).toBeEmptyDOMElement();
   });
 });

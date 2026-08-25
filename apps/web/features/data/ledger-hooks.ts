@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api-client';
-import type { CreateLedgerInput } from '@/lib/types';
+import type { CreateLedgerInput, Ledger } from '@/lib/types';
 import { useExpenses } from './expense-hooks';
 import { useIncomes } from './income-hooks';
 import { usePlans } from './plan-hooks';
@@ -22,10 +22,13 @@ export function useLedger(ledgerId: string, enabled = true) {
   });
 }
 
-export function useCreateLedger() {
+export function useCreateLedger(type: Ledger['type'] = 'SHARED') {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (input: CreateLedgerInput) => api.ledgers.create(input),
+    mutationFn: (input: CreateLedgerInput) =>
+      type === 'PERSONAL'
+        ? api.ledgers.createPersonal(input)
+        : api.ledgers.create(input),
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.ledgersRoot }),

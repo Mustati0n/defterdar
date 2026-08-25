@@ -8,7 +8,6 @@ import {
   UsersRound,
 } from 'lucide-react';
 import type { RefObject, ReactNode } from 'react';
-import type { Ledger } from '@/lib/types';
 
 function StepFrame({ children }: { children: ReactNode }) {
   return <div className="onboarding-step__body">{children}</div>;
@@ -17,14 +16,12 @@ function StepFrame({ children }: { children: ReactNode }) {
 interface OnboardingStepContentProps {
   step: number;
   headingRef: RefObject<HTMLHeadingElement | null>;
-  personalLedger?: Ledger;
   finish: (path?: string) => void;
 }
 
 export function OnboardingStepContent({
   step,
   headingRef,
-  personalLedger,
   finish,
 }: OnboardingStepContentProps) {
   if (step === 0) {
@@ -136,19 +133,14 @@ export function OnboardingStepContent({
       <div className="first-action-grid">
         <button
           type="button"
-          disabled={!personalLedger}
-          onClick={() =>
-            finish(
-              personalLedger ? `/ledgers/${personalLedger.id}` : '/ledgers',
-            )
-          }
+          onClick={() => finish('/ledgers?create=personal')}
         >
           <span>
             <UserRound />
           </span>
           <div>
-            <strong>Kişisel Defterime git</strong>
-            <small>Gelir ve giderlerini kaydet</small>
+            <strong>Kişisel Defter oluştur</strong>
+            <small>İstersen yalnız sana ait hesabı aç</small>
           </div>
           <ArrowRight />
         </button>
@@ -164,18 +156,14 @@ export function OnboardingStepContent({
         </button>
         <button
           type="button"
-          onClick={() =>
-            finish(
-              `/plans?create=1${personalLedger ? `&ledgerId=${personalLedger.id}` : ''}`,
-            )
-          }
+          onClick={() => finish('/plans?create=1&standalone=1')}
         >
           <span>
             <NotebookTabs />
           </span>
           <div>
-            <strong>Bir Plan oluştur</strong>
-            <small>Gezi veya etkinlik ekle</small>
+            <strong>Bağımsız Plan oluştur</strong>
+            <small>Deftere bağlamadan gezi veya etkinlik ekle</small>
           </div>
           <ArrowRight />
         </button>

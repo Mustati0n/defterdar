@@ -3,7 +3,6 @@
 import { ArrowLeft, ArrowRight, BookOpenText, Check, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
-import { useLedgers } from '@/features/data/hooks';
 import { useAuth } from '@/features/auth/auth-provider';
 import { useOnboarding } from './use-onboarding';
 import { useModalDialog } from '@/components/ui/use-modal-dialog';
@@ -23,7 +22,6 @@ export const onboardingStepNames = [
 export function OnboardingExperience() {
   const { user } = useAuth();
   const { pending, complete } = useOnboarding(user?.id);
-  const ledgers = useLedgers(false, Boolean(pending && user));
   const router = useRouter();
   const [step, setStep] = useState(0);
   const [direction, setDirection] = useState<OnboardingDirection>(1);
@@ -49,10 +47,6 @@ export function OnboardingExperience() {
   );
 
   if (!pending || !user) return null;
-
-  const personalLedger = ledgers.data?.find(
-    (ledger) => ledger.type === 'PERSONAL',
-  );
 
   function finish(path = '/overview') {
     complete();
@@ -144,7 +138,6 @@ export function OnboardingExperience() {
           <OnboardingStepContent
             step={step}
             headingRef={headingRef}
-            personalLedger={personalLedger}
             finish={finish}
           />
         </section>

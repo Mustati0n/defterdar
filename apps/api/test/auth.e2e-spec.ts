@@ -115,6 +115,12 @@ describe('Authentication and user identity API', () => {
       expect(result.rows[0]?.refreshTokenHash).not.toBe(
         registered.refreshToken,
       );
+
+      const ledgers = await request(API_URL)
+        .get('/ledgers')
+        .set('Authorization', `Bearer ${registered.accessToken}`);
+      expect(ledgers.status).toBe(200);
+      expect(ledgers.body).toEqual([]);
     });
 
     it('rejects a duplicate normalized email', async () => {

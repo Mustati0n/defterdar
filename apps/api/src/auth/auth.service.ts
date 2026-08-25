@@ -3,8 +3,6 @@ import {
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import type { Environment } from '../config/environment.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { SafeUser } from '../users/dto/user-response.dto.js';
 import type {
@@ -28,7 +26,6 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly passwordService: PasswordService,
     private readonly tokenService: TokenService,
-    private readonly configService: ConfigService<Environment, true>,
   ) {}
 
   async register(input: RegisterDto): Promise<AuthResponseDto> {
@@ -46,36 +43,6 @@ export class AuthService {
             passwordHash,
           },
           select: SAFE_USER_SELECT,
-        });
-
-        const personalLedger = await transaction.ledger.create({
-          data: {
-            currency: this.configService.get('DEFAULT_CURRENCY', {
-              infer: true,
-            }),
-            name: 'Kişisel Defterim',
-            ownerId: createdUser.id,
-            type: 'PERSONAL',
-          },
-        });
-
-        await transaction.ledgerMembership.create({
-          data: {
-            ledgerId: personalLedger.id,
-            role: 'OWNER',
-            userId: createdUser.id,
-          },
-        });
-
-        await transaction.activityLog.create({
-          data: {
-            ledgerId: personalLedger.id,
-            actorUserId: createdUser.id,
-            entityType: 'Ledger',
-            entityId: personalLedger.id,
-            action: 'ledger.created',
-            metadata: { type: 'PERSONAL' },
-          },
         });
 
         await transaction.authSession.create({
