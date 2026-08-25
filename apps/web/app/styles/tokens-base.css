@@ -28,6 +28,8 @@
   --space-8: 2rem;
   --space-10: 2.5rem;
   --space-12: 3rem;
+  --layout-section-gap: clamp(2.2rem, 4vw, 3.6rem);
+  --layout-card-gap: clamp(1rem, 2vw, 1.6rem);
   --radius-sm: 8px;
   --radius-md: 14px;
   --radius-lg: 22px;

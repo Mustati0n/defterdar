@@ -6,7 +6,6 @@ import {
   BookOpenText,
   CircleDollarSign,
   Clock3,
-  Crown,
   Plus,
   ReceiptText,
   Settings,
@@ -59,12 +58,7 @@ const secondaryPersonalViews = [
   { id: 'settings', label: 'Ayarlar', icon: Settings },
 ] as const;
 type LedgerView =
-  | 'general'
-  | 'activity'
-  | 'balances'
-  | 'analytics'
-  | 'members'
-  | 'settings';
+  'general' | 'activity' | 'balances' | 'analytics' | 'members' | 'settings';
 
 export default function LedgerDetailPage() {
   const { ledgerId } = useParams<{ ledgerId: string }>();
@@ -121,12 +115,6 @@ export default function LedgerDetailPage() {
           </span>
           <h1>{data.name}</h1>
           {data.description ? <p>{data.description}</p> : null}
-        </div>
-        <div className="detail-cover__stamp">
-          <Crown />
-          <span>
-            {ledgerRoleLabel(data.role)}
-          </span>
         </div>
       </section>
       <DetailNavigation
@@ -256,7 +244,7 @@ export default function LedgerDetailPage() {
                       <strong>{expense.title}</strong>
                       <small>
                         {data.type === 'PERSONAL'
-                          ? expense.category?.name ?? 'Kategorisiz'
+                          ? (expense.category?.name ?? 'Kategorisiz')
                           : `${expense.payer.displayName} ödedi · ${expense.splits.length} kişi paylaştı`}
                       </small>
                       <ExpenseIndicators expense={expense} />

@@ -6,7 +6,7 @@ Baseline: `f211a9c chore: complete ux performance remediation`
 - [x] B — Standalone Plan domain
 - [x] C — Standalone finance integration
 - [x] D — Global adaptive UI system
-- [ ] E — Overview / cards / spacing redesign
+- [x] E — Overview / cards / spacing redesign
 - [ ] F — Page intros + interface preferences
 - [ ] G — Analytics / scope redesign
 - [ ] H — Full QA / regression / final push

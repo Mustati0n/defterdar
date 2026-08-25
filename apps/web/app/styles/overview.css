@@ -252,7 +252,7 @@
   font-size: 0.82rem;
 }
 .overview-plans {
-  margin-top: 1rem;
+  margin-top: 0;
 }
 .plan-grid--compact {
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -265,4 +265,50 @@
   border: 1px dashed var(--color-line);
   place-items: center;
   text-align: center;
+}
+.overview-section {
+  margin-block: var(--layout-section-gap);
+}
+.overview-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 420px));
+  justify-content: start;
+  gap: var(--layout-card-gap);
+}
+.overview-card-grid .ledger-card,
+.overview-card-grid .plan-card {
+  width: 100%;
+  min-height: 270px;
+}
+.overview-empty {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 0.8rem;
+  margin-block: var(--layout-section-gap);
+  padding: 1rem 1.1rem;
+  color: var(--color-muted);
+  border: 1px dashed var(--color-line);
+  border-radius: var(--radius-md);
+  background: rgba(255, 253, 245, 0.55);
+}
+.overview-empty > svg {
+  color: var(--color-wine);
+}
+.overview-empty strong {
+  color: var(--color-ink);
+}
+.overview-empty p {
+  max-width: 620px;
+  margin: 0.2rem 0 0;
+  font-size: 0.78rem;
+}
+@media (max-width: 760px) {
+  .overview-empty {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+  .overview-empty .button {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
 }

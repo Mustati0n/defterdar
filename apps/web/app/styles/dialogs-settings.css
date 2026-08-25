@@ -381,7 +381,6 @@
   .ledger-grid,
   .plan-grid,
   .mini-card-grid,
-  .plan-grid--compact,
   .stat-grid {
     grid-template-columns: 1fr;
   }

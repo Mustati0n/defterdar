@@ -304,12 +304,6 @@
 }
 
 @media (max-width: 1100px) {
-  .overview-quick {
-    grid-template-columns: 1fr;
-  }
-  .overview-quick__actions {
-    grid-template-columns: repeat(2, 1fr);
-  }
   .smart-form {
     grid-template-columns: 1fr;
   }
@@ -404,7 +398,6 @@
   .offset-note > p {
     grid-column: 1;
   }
-  .overview-quick__actions,
   .attention-strip__items {
     grid-template-columns: 1fr;
   }

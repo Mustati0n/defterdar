@@ -48,7 +48,9 @@ function detailData(type: 'PERSONAL' | 'SHARED') {
   return {
     ledger: { data: { ...ledger, type }, isLoading: false, isError: false },
     plans: { data: [] },
-    members: { data: [{ user: { id: 'me', displayName: 'Ece' }, role: 'OWNER' }] },
+    members: {
+      data: [{ user: { id: 'me', displayName: 'Ece' }, role: 'OWNER' }],
+    },
     balance: { data: { currency: 'TRY', positions: [], suggestions: [] } },
     activity: { data: { items: [], nextCursor: null } },
     expenses: { data: [] },
@@ -64,10 +66,16 @@ describe('Ledger detail information architecture', () => {
 
   it('hides shared-only destinations and group language for PERSONAL Ledger', () => {
     render(<LedgerDetailPage />);
-    expect(screen.getByRole('heading', { name: 'Kişisel özet' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Kişisel özet' }),
+    ).toBeInTheDocument();
     expect(screen.queryByText('Aktif üyeler')).not.toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: /Bakiyeler/ })).not.toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: /Üyeler/ })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: /Bakiyeler/ }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: /Üyeler/ }),
+    ).not.toBeInTheDocument();
   });
 
   it('retains valid shared capabilities at secondary weight', () => {
@@ -82,6 +90,7 @@ describe('Ledger detail information architecture', () => {
       '/ledgers/ledger-1?view=members',
     );
     expect(screen.getByText('Aktif üyeler')).toBeInTheDocument();
+    expect(screen.getAllByText('Sahip')).toHaveLength(1);
   });
 
   it('derives its rendered view from URL state on rerender and defaults invalid state', () => {
@@ -91,6 +100,8 @@ describe('Ledger detail information architecture', () => {
     expect(screen.getByText('İstatistik alanı')).toBeInTheDocument();
     view = 'invalid';
     rendered.rerender(<LedgerDetailPage />);
-    expect(screen.getByRole('heading', { name: 'Kişisel özet' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Kişisel özet' }),
+    ).toBeInTheDocument();
   });
 });

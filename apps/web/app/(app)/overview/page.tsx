@@ -4,10 +4,7 @@ import {
   ArrowRight,
   AlertCircle,
   BookOpenText,
-  CircleDollarSign,
   NotebookTabs,
-  Plus,
-  ReceiptText,
   WalletCards,
 } from 'lucide-react';
 import Link from 'next/link';
@@ -15,9 +12,7 @@ import { LedgerCard } from '@/components/ledger-card';
 import { PageHeading } from '@/components/page-heading';
 import { PlanCard } from '@/components/plan-card';
 import { ErrorState, LoadingState } from '@/components/ui/states';
-import {
-  useOverview,
-} from '@/features/data/hooks';
+import { useOverview } from '@/features/data/hooks';
 import { useAuth } from '@/features/auth/auth-provider';
 import { formatMoneyFromMinor } from '@/lib/format';
 import { activitySentence } from '@/lib/activity';
@@ -31,16 +26,11 @@ export default function OverviewPage() {
   const activePlans = (overview.data?.plans ?? []).filter(
     (plan) => plan.status === 'ACTIVE',
   );
-  const firstLedgerId = activeLedgers?.[0]?.id ?? '';
 
-  if (overview.isLoading)
-    return <LoadingState label="Özet hazırlanıyor…" />;
+  if (overview.isLoading) return <LoadingState label="Özet hazırlanıyor…" />;
   if (overview.isError)
     return <ErrorState onRetry={() => void overview.refetch()} />;
 
-  const personalLedger = activeLedgers?.find(
-    (ledger) => ledger.type === 'PERSONAL',
-  );
   const owedBalances = (overview.data?.ledgerBalances ?? []).flatMap(
     ({ ledgerId, balance }) => {
       const ledger = activeLedgers?.find((item) => item.id === ledgerId);
@@ -65,6 +55,11 @@ export default function OverviewPage() {
         : [];
     },
   );
+  const activityTarget = activeLedgers?.[0]
+    ? `/ledgers/${activeLedgers[0].id}?view=activity`
+    : activePlans[0]
+      ? `/plans/${activePlans[0].id}?view=activity`
+      : null;
   return (
     <>
       <PageHeading
@@ -84,7 +79,10 @@ export default function OverviewPage() {
           </div>
           <div className="attention-strip__items">
             {owedBalances.slice(0, 2).map(({ ledger, balance, position }) => (
-              <Link href={`/ledgers/${ledger.id}?view=balances`} key={ledger.id}>
+              <Link
+                href={`/ledgers/${ledger.id}?view=balances`}
+                key={ledger.id}
+              >
                 <WalletCards />
                 <span>
                   <strong>
@@ -121,55 +119,8 @@ export default function OverviewPage() {
         </section>
       ) : null}
 
-      <section className="overview-quick" aria-label="Hızlı işlemler">
-        <div>
-          <span className="eyebrow">Tek tık uzağında</span>
-          <h2>Şimdi ne yapmak istersin?</h2>
-        </div>
-        <div className="overview-quick__actions">
-          <Link
-            href={`/expenses/new${personalLedger ? `?ledgerId=${personalLedger.id}` : ''}`}
-          >
-            <span>
-              <ReceiptText />
-            </span>
-            <strong>Harcama ekle</strong>
-            <small>Giderini kaydet</small>
-            <Plus />
-          </Link>
-          <Link
-            href={`/plans?create=1${personalLedger ? `&ledgerId=${personalLedger.id}` : ''}`}
-          >
-            <span>
-              <NotebookTabs />
-            </span>
-            <strong>Plan oluştur</strong>
-            <small>Etkinlik ekle</small>
-            <Plus />
-          </Link>
-          <Link href="/ledgers?create=1">
-            <span>
-              <BookOpenText />
-            </span>
-            <strong>Defter oluştur</strong>
-            <small>Yeni kayıt alanı aç</small>
-            <Plus />
-          </Link>
-          <Link
-            href={`/incomes/new${personalLedger ? `?ledgerId=${personalLedger.id}` : ''}`}
-          >
-            <span>
-              <CircleDollarSign />
-            </span>
-            <strong>Gelir ekle</strong>
-            <small>Nakit akışını yaz</small>
-            <Plus />
-          </Link>
-        </div>
-      </section>
-
       {activeLedgers?.length ? (
-        <section>
+        <section className="overview-section">
           <div className="section-heading">
             <div>
               <span className="eyebrow">Aktif alanlar</span>
@@ -179,16 +130,39 @@ export default function OverviewPage() {
               Tümünü gör <ArrowRight />
             </Link>
           </div>
-          <div className="mini-card-grid">
-            {activeLedgers.slice(0, 2).map((ledger, index) => (
+          <div className="overview-card-grid overview-card-grid--ledgers">
+            {activeLedgers.slice(0, 3).map((ledger, index) => (
               <LedgerCard ledger={ledger} index={index} key={ledger.id} />
             ))}
           </div>
         </section>
-      ) : null}
+      ) : (
+        <section className="overview-empty" aria-label="Defter başlangıcı">
+          <BookOpenText />
+          <div>
+            <strong>Henüz Defterin yok.</strong>
+            <p>
+              Kişisel kayıt alanını isteğe bağlı açabilir veya doğrudan bağımsız
+              bir Planla başlayabilirsin.
+            </p>
+          </div>
+          <Link
+            className="button button--quiet button--small"
+            href="/ledgers?create=1"
+          >
+            Defter oluştur
+          </Link>
+          <Link
+            className="button button--quiet button--small"
+            href="/plans?create=1&standalone=1"
+          >
+            Bağımsız Plan
+          </Link>
+        </section>
+      )}
 
       {activePlans.length ? (
-        <section className="overview-plans">
+        <section className="overview-section overview-plans">
           <div className="section-heading">
             <div>
               <span className="eyebrow">Aktif alanlar</span>
@@ -198,7 +172,7 @@ export default function OverviewPage() {
               Tüm planlar <ArrowRight />
             </Link>
           </div>
-          <div className="plan-grid plan-grid--compact">
+          <div className="overview-card-grid overview-card-grid--plans">
             {activePlans.slice(0, 3).map((plan, index) => (
               <PlanCard
                 key={plan.id}
@@ -214,15 +188,17 @@ export default function OverviewPage() {
       ) : null}
 
       {overview.data?.activity?.items.length ? (
-        <section className="activity-paper">
+        <section className="activity-paper overview-section">
           <div className="section-heading">
             <div>
               <span className="eyebrow">Son kayıtlar</span>
-              <h2>{activeLedgers?.[0]?.name} hareketleri</h2>
+              <h2>Son hareketler</h2>
             </div>
-            <Link href={`/ledgers/${firstLedgerId}?view=activity`}>
-              Tümünü gör <ArrowRight />
-            </Link>
+            {activityTarget ? (
+              <Link href={activityTarget}>
+                Tümünü gör <ArrowRight />
+              </Link>
+            ) : null}
           </div>
           <ol className="activity-list">
             {(overview.data.activity?.items ?? []).map((item) => (

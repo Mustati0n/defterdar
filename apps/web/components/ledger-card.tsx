@@ -9,15 +9,12 @@ import Link from 'next/link';
 import type { Ledger } from '@/lib/types';
 import { ledgerRoleLabel } from '@/lib/format';
 
-export function LedgerCard({
-  ledger,
-  index = 0,
-}: {
+interface LedgerCardProps {
   ledger: Ledger;
   index?: number;
-}) {
-  const variants = ['notebook', 'paper', 'stitched'] as const;
-  const variant = variants[index % variants.length];
+}
+
+export function LedgerNotebookCard({ ledger }: LedgerCardProps) {
   const RoleIcon =
     ledger.role === 'OWNER'
       ? Crown
@@ -27,16 +24,14 @@ export function LedgerCard({
 
   return (
     <Link
-      className={`ledger-card ledger-card--${variant}${ledger.archivedAt ? ' ledger-card--archived' : ''}`}
+      className={`ledger-card ledger-card--${ledger.type.toLowerCase()}${ledger.archivedAt ? ' ledger-card--archived' : ''}`}
       href={`/ledgers/${ledger.id}`}
     >
-      {variant === 'notebook' ? (
-        <span className="ledger-card__rings" aria-hidden="true">
-          {Array.from({ length: 7 }, (_, ring) => (
-            <i key={ring} />
-          ))}
-        </span>
-      ) : null}
+      <span className="ledger-card__rings" aria-hidden="true">
+        {Array.from({ length: 7 }, (_, ring) => (
+          <i key={ring} />
+        ))}
+      </span>
       <div className="ledger-card__top">
         <span className="ledger-card__label">
           {ledger.type === 'PERSONAL' ? 'Kişisel defter' : 'Ortak defter'}
@@ -66,4 +61,8 @@ export function LedgerCard({
       </div>
     </Link>
   );
+}
+
+export function LedgerCard(props: LedgerCardProps) {
+  return <LedgerNotebookCard {...props} />;
 }
