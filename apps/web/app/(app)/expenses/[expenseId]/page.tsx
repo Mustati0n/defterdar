@@ -32,9 +32,7 @@ export default function ExpenseDetailPage() {
     voidMutation.mutate(undefined, {
       onSuccess: () => {
         setConfirmVoid(false);
-        toast(
-          'Harcama iptal edildi; kayıt geçmişte görünmeye devam edecek.',
-        );
+        toast('Harcama iptal edildi; kayıt geçmişte görünmeye devam edecek.');
       },
       onError: (error) =>
         toast(
@@ -57,7 +55,12 @@ export default function ExpenseDetailPage() {
   const canManage =
     ledger.data?.role === 'OWNER' ||
     ledger.data?.role === 'ADMIN' ||
+    plan.data?.createdById === user?.id ||
     data.createdById === user?.id;
+  const financialRole =
+    plan.data?.createdById === user?.id
+      ? 'OWNER'
+      : (ledger.data?.role ?? 'MEMBER');
   return (
     <>
       <Link
@@ -123,7 +126,7 @@ export default function ExpenseDetailPage() {
                 key={split.id}
                 expense={data}
                 split={split}
-                role={ledger.data?.role ?? 'MEMBER'}
+                role={financialRole}
                 currentUserId={user?.id ?? ''}
                 disabled={Boolean(
                   data.voidedAt ||

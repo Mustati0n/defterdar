@@ -79,10 +79,9 @@ export function usePlanDetailData(
     refetchOnWindowFocus: true,
   });
   const expenses = useQuery({
-    queryKey: queryKeys.expenses(plan.data?.ledgerId ?? '', planId),
-    queryFn: ({ signal }) =>
-      api.expenses.list(plan.data?.ledgerId ?? '', planId, signal),
-    enabled: Boolean(plan.data?.ledgerId && planId && view === 'general'),
+    queryKey: queryKeys.planExpenses(planId),
+    queryFn: ({ signal }) => api.expenses.listForPlan(planId, signal),
+    enabled: Boolean(planId && view === 'general'),
   });
 
   return { plan, participants, balance, expenses };

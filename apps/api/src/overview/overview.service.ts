@@ -38,7 +38,11 @@ export class OverviewService {
       ),
       firstLedger
         ? this.activityService.list(firstLedger.id, userId, { limit: 5 })
-        : null,
+        : activePlans[0]
+          ? this.activityService.listPlan(activePlans[0].id, userId, {
+              limit: 5,
+            })
+          : null,
     ]);
 
     const activity = activityResult

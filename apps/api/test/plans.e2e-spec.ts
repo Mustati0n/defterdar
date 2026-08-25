@@ -459,6 +459,311 @@ describe('Plan lifecycle and participant API', () => {
     });
   });
 
+  describe('standalone Plan finance', () => {
+    it('supports every split method, Ismarla, income, attachments, analytics, activity, idempotency, settlement and linking', async () => {
+      const createdPlan = await api('owner').post('/plans').send({
+        currency: 'TRY',
+        name: 'Bağımsız Finans',
+      });
+      const planId = createdPlan.body.id as string;
+      expect(
+        (
+          await api('owner')
+            .post(`/plans/${planId}/participants`)
+            .send({ userId: identity('admin').id })
+        ).status,
+      ).toBe(201);
+
+      const base = {
+        payerUserId: identity('owner').id,
+        expenseDate: '2026-08-24T10:00:00.000Z',
+        isGift: false,
+      };
+      const payloads = [
+        {
+          ...base,
+          title: 'Equal',
+          amountMinor: 1001,
+          split: {
+            method: 'EQUAL',
+            participantUserIds: [identity('owner').id, identity('admin').id],
+          },
+        },
+        {
+          ...base,
+          title: 'Exact',
+          amountMinor: 2000,
+          split: {
+            method: 'EXACT',
+            entries: [{ userId: identity('admin').id, amountMinor: 2000 }],
+          },
+        },
+        {
+          ...base,
+          title: 'Percentage',
+          amountMinor: 1000,
+          split: {
+            method: 'PERCENTAGE',
+            entries: [
+              { userId: identity('owner').id, percentageBps: 2500 },
+              { userId: identity('admin').id, percentageBps: 7500 },
+            ],
+          },
+        },
+        {
+          ...base,
+          title: 'Shares',
+          amountMinor: 1000,
+          split: {
+            method: 'SHARES',
+            entries: [
+              { userId: identity('owner').id, shares: 1 },
+              { userId: identity('admin').id, shares: 3 },
+            ],
+          },
+        },
+      ];
+      for (const payload of payloads) {
+        const response = await api('owner')
+          .post(`/plans/${planId}/expenses`)
+          .send(payload);
+        expect(response.status).toBe(201);
+        expect(response.body).toMatchObject({
+          ledgerId: null,
+          planId,
+          currency: 'TRY',
+        });
+        expect(
+          response.body.splits.reduce(
+            (sum: number, split: { amountMinor: string }) =>
+              sum + Number(split.amountMinor),
+            0,
+          ),
+        ).toBe(payload.amountMinor);
+      }
+
+      const giftPayload = {
+        ...base,
+        title: 'Ismarla',
+        amountMinor: 3000,
+        isGift: true,
+        split: {
+          method: 'EXACT',
+          entries: [{ userId: identity('admin').id, amountMinor: 3000 }],
+        },
+      };
+      const gift = await api('owner')
+        .post(`/plans/${planId}/expenses`)
+        .set('Idempotency-Key', 'standalone-gift')
+        .send(giftPayload);
+      const giftRetry = await api('owner')
+        .post(`/plans/${planId}/expenses`)
+        .set('Idempotency-Key', 'standalone-gift')
+        .send(giftPayload);
+      expect(gift.status).toBe(201);
+      expect(giftRetry.body.id).toBe(gift.body.id);
+      expect(
+        gift.body.splits.every(
+          (split: { isReimbursable: boolean }) => !split.isReimbursable,
+        ),
+      ).toBe(true);
+
+      const attachment = await api('owner')
+        .post(`/expenses/${gift.body.id}/attachments`)
+        .send({
+          fileName: 'standalone.webp',
+          mimeType: 'image/webp',
+          sizeBytes: 64,
+        });
+      expect(attachment.status).toBe(201);
+      expect(attachment.body.uploadUrl).toMatch(/^memory:\/\/upload\//);
+
+      const income = await api('admin').post(`/plans/${planId}/incomes`).send({
+        title: 'Plan desteği',
+        amountMinor: 5000,
+        incomeDate: '2026-08-24T11:00:00.000Z',
+      });
+      expect(income.status).toBe(201);
+      expect(income.body).toMatchObject({
+        ledgerId: null,
+        planId,
+        currency: 'TRY',
+      });
+
+      const balance = await api('admin').get(`/plans/${planId}/balances`);
+      expect(balance.status).toBe(200);
+      expect(
+        balance.body.positions.reduce(
+          (sum: number, item: { netMinor: number }) => sum + item.netMinor,
+          0,
+        ),
+      ).toBe(0);
+      const suggestion = balance.body.suggestions[0] as {
+        fromUserId: string;
+        toUserId: string;
+        amountMinor: number;
+      };
+      const partialAmount = Math.max(1, Math.floor(suggestion.amountMinor / 2));
+      const partial = await api('owner')
+        .post(`/plans/${planId}/settlements`)
+        .send({
+          ...suggestion,
+          amountMinor: partialAmount,
+          settledAt: '2026-08-24T12:00:00.000Z',
+        });
+      expect(partial.status).toBe(201);
+      expect(partial.body).toMatchObject({ ledgerId: null, planId });
+      const afterPartial = await api('owner').get(`/plans/${planId}/balances`);
+      const remaining = afterPartial.body.suggestions[0];
+      if (remaining) {
+        expect(
+          (
+            await api('owner')
+              .post(`/plans/${planId}/settlements`)
+              .send({
+                ...remaining,
+                settledAt: '2026-08-24T12:30:00.000Z',
+              })
+          ).status,
+        ).toBe(201);
+      }
+
+      expect((await api('owner').get(`/plans/${planId}/activity`)).status).toBe(
+        200,
+      );
+      const analytics = await api('admin').get(
+        `/plans/${planId}/analytics/summary`,
+      );
+      expect(analytics.status).toBe(200);
+      expect(analytics.body).toMatchObject({
+        currency: 'TRY',
+        expenseCount: 5,
+        incomeCount: 1,
+      });
+      expect(
+        (await api('outsider').get(`/plans/${planId}/expenses`)).status,
+      ).toBe(404);
+
+      const linked = await api('owner')
+        .post(`/plans/${planId}/link-ledger`)
+        .send({ ledgerId: targetLedgerId });
+      expect(linked.status).toBe(201);
+      const linkedExpenses = await api('owner').get(
+        `/plans/${planId}/expenses`,
+      );
+      expect(
+        linkedExpenses.body.every(
+          (expense: { ledgerId: string }) =>
+            expense.ledgerId === targetLedgerId,
+        ),
+      ).toBe(true);
+      expect(
+        (await api('owner').get(`/plans/${planId}/incomes`)).body[0].ledgerId,
+      ).toBe(targetLedgerId);
+      expect(
+        (await api('owner').get(`/plans/${planId}/settlements`)).body[0]
+          .ledgerId,
+      ).toBe(targetLedgerId);
+    });
+
+    it('serializes standalone Settlement and Borçtan düş races', async () => {
+      const createdPlan = await api('owner').post('/plans').send({
+        currency: 'TRY',
+        name: 'Bağımsız Yarış',
+      });
+      const planId = createdPlan.body.id as string;
+      expect(
+        (
+          await api('owner')
+            .post(`/plans/${planId}/participants`)
+            .send({ userId: identity('admin').id })
+        ).status,
+      ).toBe(201);
+      const exact = (
+        title: string,
+        payerUserId: string,
+        userId: string,
+        amountMinor: number,
+      ) => ({
+        title,
+        amountMinor,
+        payerUserId,
+        expenseDate: '2026-08-24T13:00:00.000Z',
+        isGift: false,
+        split: { method: 'EXACT', entries: [{ userId, amountMinor }] },
+      });
+      const debt = await api('owner')
+        .post(`/plans/${planId}/expenses`)
+        .send(
+          exact('Borç', identity('owner').id, identity('admin').id, 10_000),
+        );
+      expect(debt.status).toBe(201);
+      const settlementPayload = {
+        fromUserId: identity('admin').id,
+        toUserId: identity('owner').id,
+        amountMinor: 8000,
+        settledAt: '2026-08-24T14:00:00.000Z',
+      };
+      const settlementRace = await Promise.all([
+        api('admin')
+          .post(`/plans/${planId}/settlements`)
+          .send(settlementPayload),
+        api('admin')
+          .post(`/plans/${planId}/settlements`)
+          .send(settlementPayload),
+      ]);
+      expect(settlementRace.map(({ status }) => status).sort()).toEqual([
+        201, 409,
+      ]);
+
+      const offsetPlan = await api('owner').post('/plans').send({
+        currency: 'TRY',
+        name: 'Bağımsız Mahsup',
+      });
+      const offsetPlanId = offsetPlan.body.id as string;
+      await api('owner')
+        .post(`/plans/${offsetPlanId}/participants`)
+        .send({ userId: identity('admin').id });
+      await api('admin')
+        .post(`/plans/${offsetPlanId}/expenses`)
+        .send(
+          exact(
+            'Ters borç',
+            identity('admin').id,
+            identity('owner').id,
+            10_000,
+          ),
+        );
+      const target = await api('owner')
+        .post(`/plans/${offsetPlanId}/expenses`)
+        .send(
+          exact(
+            'Mahsup hedefi',
+            identity('owner').id,
+            identity('admin').id,
+            8000,
+          ),
+        );
+      const splitId = target.body.splits[0].id as string;
+      expect(
+        (
+          await api('owner').get(
+            `/expense-splits/${splitId}/offset-availability`,
+          )
+        ).body.maxOffsetMinor,
+      ).toBe('8000');
+      const offsetRace = await Promise.all([
+        api('owner')
+          .post(`/expense-splits/${splitId}/offsets`)
+          .send({ amountMinor: 6000 }),
+        api('owner')
+          .post(`/expense-splits/${splitId}/offsets`)
+          .send({ amountMinor: 6000 }),
+      ]);
+      expect(offsetRace.map(({ status }) => status).sort()).toEqual([201, 409]);
+    });
+  });
+
   it('enforces move access, same-ledger, and archived-ledger rules', async () => {
     const planId = await createPlan('owner', sourceLedgerId, 'Taşıma Yetkisi');
     expect(

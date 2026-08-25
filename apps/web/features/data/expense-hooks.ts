@@ -12,6 +12,14 @@ export function useExpenses(ledgerId: string, planId?: string, enabled = true) {
   });
 }
 
+export function usePlanExpenses(planId: string, enabled = true) {
+  return useQuery({
+    queryKey: queryKeys.planExpenses(planId),
+    queryFn: ({ signal }) => api.expenses.listForPlan(planId, signal),
+    enabled: Boolean(planId && enabled),
+  });
+}
+
 export function useCreateExpense() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -19,15 +27,23 @@ export function useCreateExpense() {
       ledgerId,
       input,
     }: {
-      ledgerId: string;
+      ledgerId: string | null;
       input: CreateExpenseInput;
-    }) => api.expenses.create(ledgerId, input),
+    }) =>
+      ledgerId
+        ? api.expenses.create(ledgerId, input)
+        : api.expenses.createForPlan(input.planId ?? '', input),
     onSuccess: async (_, variables) => {
       await invalidateFinancialData(queryClient, {
         ledgerId: variables.ledgerId,
         planIds: [variables.input.planId],
         expenses: true,
       });
+      if (!variables.ledgerId && variables.input.planId) {
+        await queryClient.invalidateQueries({
+          queryKey: queryKeys.planExpenses(variables.input.planId),
+        });
+      }
     },
   });
 }

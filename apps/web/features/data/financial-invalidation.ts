@@ -2,7 +2,7 @@ import type { QueryClient } from '@tanstack/react-query';
 import { queryKeys } from './query-keys';
 
 export interface FinancialInvalidationInput {
-  ledgerId: string;
+  ledgerId: string | null;
   planIds?: ReadonlyArray<string | null | undefined>;
   expenseId?: string;
   balances?: boolean;
@@ -31,25 +31,30 @@ export async function invalidateFinancialData(
   ];
   const work = [
     queryClient.invalidateQueries({ queryKey: queryKeys.overview }),
-    queryClient.invalidateQueries({
-      queryKey: queryKeys.ledgerAnalyticsPrefix(input.ledgerId),
-    }),
-    queryClient.invalidateQueries({
-      queryKey: queryKeys.activityPreview(input.ledgerId),
-    }),
-    queryClient.invalidateQueries({
-      queryKey: queryKeys.activityFeedPrefix(input.ledgerId),
-    }),
   ];
 
-  if (input.balances !== false) {
+  if (input.ledgerId) {
+    work.push(
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.ledgerAnalyticsPrefix(input.ledgerId),
+      }),
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.activityPreview(input.ledgerId),
+      }),
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.activityFeedPrefix(input.ledgerId),
+      }),
+    );
+  }
+
+  if (input.balances !== false && input.ledgerId) {
     work.push(
       queryClient.invalidateQueries({
         queryKey: queryKeys.ledgerBalance(input.ledgerId),
       }),
     );
   }
-  if (input.expenses) {
+  if (input.expenses && input.ledgerId) {
     work.push(
       queryClient.invalidateQueries({
         queryKey: queryKeys.expensesPrefix(input.ledgerId),
@@ -63,21 +68,21 @@ export async function invalidateFinancialData(
       }),
     );
   }
-  if (input.incomes) {
+  if (input.incomes && input.ledgerId) {
     work.push(
       queryClient.invalidateQueries({
         queryKey: queryKeys.incomesPrefix(input.ledgerId),
       }),
     );
   }
-  if (input.settlements) {
+  if (input.settlements && input.ledgerId) {
     work.push(
       queryClient.invalidateQueries({
         queryKey: queryKeys.settlementsPrefix(input.ledgerId),
       }),
     );
   }
-  if (input.offsetAvailability !== false) {
+  if (input.offsetAvailability !== false && input.ledgerId) {
     work.push(
       queryClient.invalidateQueries({
         queryKey: queryKeys.offsetAvailabilityPrefix(input.ledgerId),
@@ -98,7 +103,38 @@ export async function invalidateFinancialData(
       queryClient.invalidateQueries({
         queryKey: queryKeys.planAnalyticsPrefix(planId),
       }),
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.planActivity(planId),
+      }),
     );
+    if (input.expenses) {
+      work.push(
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.planExpenses(planId),
+        }),
+      );
+    }
+    if (input.incomes) {
+      work.push(
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.planIncomes(planId),
+        }),
+      );
+    }
+    if (input.settlements) {
+      work.push(
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.planSettlements(planId),
+        }),
+      );
+    }
+    if (input.offsetAvailability !== false) {
+      work.push(
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.planOffsetAvailabilityPrefix(planId),
+        }),
+      );
+    }
   }
 
   await Promise.all(work);

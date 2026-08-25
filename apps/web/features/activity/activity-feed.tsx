@@ -7,7 +7,7 @@ export function ActivityFeed({
   ledgerId,
   planId,
 }: {
-  ledgerId: string;
+  ledgerId: string | null;
   planId?: string;
 }) {
   const activity = useActivityFeed(ledgerId, planId);

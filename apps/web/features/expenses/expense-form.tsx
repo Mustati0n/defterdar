@@ -11,6 +11,7 @@ import {
   queryKeys,
   useCreateExpense,
   useLedgers,
+  usePlan,
   usePlans,
 } from '@/features/data/hooks';
 import { useAuth } from '@/features/auth/auth-provider';
@@ -44,6 +45,7 @@ export function ExpenseForm() {
   const lastPeopleScope = useRef('');
   const requestedLedgerId = searchParams.get('ledgerId') ?? '';
   const requestedPlanId = searchParams.get('planId') ?? '';
+  const requestedPlan = usePlan(requestedPlanId);
 
   const {
     register,
@@ -75,7 +77,10 @@ export function ExpenseForm() {
   const isGift = useWatch({ control, name: 'isGift' });
   const amount = useWatch({ control, name: 'amount' });
   const selectedLedger = ledgers.data?.find((ledger) => ledger.id === ledgerId);
-  const plans = usePlans(ledgerId);
+  const standalonePlan = requestedPlan.data?.scope === 'STANDALONE';
+  const selectedCurrency =
+    selectedLedger?.currency ?? requestedPlan.data?.currency;
+  const plans = usePlans(ledgerId, false, Boolean(ledgerId));
   const categories = useCategories(ledgerId);
   const members = useQuery({
     queryKey: queryKeys.members(ledgerId),
@@ -130,13 +135,19 @@ export function ExpenseForm() {
   }
 
   useEffect(() => {
-    if (!ledgerId && ledgers.data?.length) {
+    if (!ledgerId && !requestedPlanId && ledgers.data?.length) {
       const defaultLedger =
         ledgers.data.find((ledger) => ledger.type === 'PERSONAL') ??
         ledgers.data[0];
       if (defaultLedger) setValue('ledgerId', defaultLedger.id);
     }
-  }, [ledgerId, ledgers.data, setValue]);
+  }, [ledgerId, ledgers.data, requestedPlanId, setValue]);
+
+  useEffect(() => {
+    if (requestedPlan.data?.ledgerId && !ledgerId) {
+      setValue('ledgerId', requestedPlan.data.ledgerId);
+    }
+  }, [ledgerId, requestedPlan.data?.ledgerId, setValue]);
 
   useEffect(() => {
     const scope = `${ledgerId}:${planId ?? ''}:${people.map((person) => person.id).join(',')}`;
@@ -176,7 +187,7 @@ export function ExpenseForm() {
 
     try {
       const expense = await createExpense.mutateAsync({
-        ledgerId: values.ledgerId,
+        ledgerId: values.ledgerId || null,
         input: {
           title: values.title,
           description: values.description || null,
@@ -249,7 +260,7 @@ export function ExpenseForm() {
             aria-describedby={`expense-amount-help${errors.amount ? ' expense-amount-error' : ''}`}
             {...register('amount')}
           />
-          <strong>{selectedLedger?.currency ?? 'TRY'}</strong>
+          <strong>{selectedCurrency ?? 'TRY'}</strong>
         </div>
         {errors.amount ? (
           <p className="field-error" id="expense-amount-error" role="alert">
@@ -257,13 +268,22 @@ export function ExpenseForm() {
           </p>
         ) : null}
         <p className="form-hint" id="expense-amount-help">
-          Para birimi Defterden gelir ve bu harcama için değiştirilemez.
+          Para birimi {standalonePlan ? 'Plandan' : 'Defterden'} gelir ve bu
+          harcama için değiştirilemez.
         </p>
 
         <div className="form-divider" />
         <label className="field">
-          <span>Defter</span>
-          {requestedLedgerId ? (
+          <span>{standalonePlan ? 'Plan' : 'Defter'}</span>
+          {standalonePlan ? (
+            <>
+              <input type="hidden" {...register('ledgerId')} />
+              <div className="context-note">
+                {requestedPlan.data?.name ?? 'Seçili bağımsız Plan'} içinde
+                oluşturulacak.
+              </div>
+            </>
+          ) : requestedLedgerId ? (
             <>
               <input type="hidden" {...register('ledgerId')} />
               <div className="context-note">
@@ -323,43 +343,48 @@ export function ExpenseForm() {
                 </select>
               </label>
             ) : null}
-            <label className="field">
-              <span>Kategori</span>
-              <select className="input" {...register('categoryId')}>
-                <option value="">Kategorisiz</option>
-                {categories.data
-                  ?.filter(
-                    (category) =>
-                      !category.archivedAt &&
-                      (category.kind === 'EXPENSE' || category.kind === 'BOTH'),
-                  )
-                  .map((category) => (
-                    <option value={category.id} key={category.id}>
-                      {category.name}
-                    </option>
-                  ))}
-              </select>
-            </label>
-            <details className="nested-disclosure">
-              <summary>Yeni kategori oluştur</summary>
-              <div className="add-row">
-                <input
-                  className="input"
-                  value={newCategory}
-                  onChange={(event) => setNewCategory(event.target.value)}
-                  placeholder="Yeni kategori adı"
-                  aria-label="Yeni kategori adı"
-                />
-                <button
-                  className="button button--quiet button--small"
-                  type="button"
-                  disabled={!newCategory.trim()}
-                  onClick={() => void createCategory()}
-                >
-                  Kategori ekle
-                </button>
-              </div>
-            </details>
+            {!standalonePlan ? (
+              <label className="field">
+                <span>Kategori</span>
+                <select className="input" {...register('categoryId')}>
+                  <option value="">Kategorisiz</option>
+                  {categories.data
+                    ?.filter(
+                      (category) =>
+                        !category.archivedAt &&
+                        (category.kind === 'EXPENSE' ||
+                          category.kind === 'BOTH'),
+                    )
+                    .map((category) => (
+                      <option value={category.id} key={category.id}>
+                        {category.name}
+                      </option>
+                    ))}
+                </select>
+              </label>
+            ) : null}
+            {!standalonePlan ? (
+              <details className="nested-disclosure">
+                <summary>Yeni kategori oluştur</summary>
+                <div className="add-row">
+                  <input
+                    className="input"
+                    value={newCategory}
+                    onChange={(event) => setNewCategory(event.target.value)}
+                    placeholder="Yeni kategori adı"
+                    aria-label="Yeni kategori adı"
+                  />
+                  <button
+                    className="button button--quiet button--small"
+                    type="button"
+                    disabled={!newCategory.trim()}
+                    onClick={() => void createCategory()}
+                  >
+                    Kategori ekle
+                  </button>
+                </div>
+              </details>
+            ) : null}
             <label className="field field--date">
               <span>Harcama tarihi</span>
               <input
@@ -393,7 +418,7 @@ export function ExpenseForm() {
           preview={preview}
           people={people}
           splitMethod={splitMethod}
-          currency={selectedLedger?.currency}
+          currency={selectedCurrency}
         />
 
         <SplitMethodSection
@@ -401,7 +426,7 @@ export function ExpenseForm() {
           people={people}
           selectedPeople={selectedPeople}
           allocations={allocations}
-          currency={selectedLedger?.currency}
+          currency={selectedCurrency}
           register={register}
           updateAllocation={updateAllocation}
         />

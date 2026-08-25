@@ -43,7 +43,7 @@ export function BalanceExperience({
   planStatus,
 }: {
   scope: 'ledger' | 'plan';
-  ledgerId: string;
+  ledgerId: string | null;
   planId?: string;
   balance: BalanceResponse | undefined;
   isLoading: boolean;
@@ -60,10 +60,14 @@ export function BalanceExperience({
   const [paymentError, setPaymentError] = useState<string | null>(null);
   const [voidTarget, setVoidTarget] = useState<Settlement | null>(null);
   const settlements = useQuery({
-    queryKey: queryKeys.settlements(ledgerId, planId),
+    queryKey: ledgerId
+      ? queryKeys.settlements(ledgerId, planId)
+      : queryKeys.planSettlements(planId ?? ''),
     queryFn: ({ signal }) =>
-      api.settlements.list(ledgerId, planId, signal),
-    enabled: Boolean(ledgerId),
+      ledgerId
+        ? api.settlements.list(ledgerId, planId, signal)
+        : api.settlements.listForPlan(planId ?? '', signal),
+    enabled: Boolean(ledgerId || planId),
     staleTime: 15_000,
     refetchOnWindowFocus: true,
   });
@@ -84,14 +88,17 @@ export function BalanceExperience({
       suggestion: Suggestion;
       draft: PaymentDraft;
     }) =>
-      api.settlements.create(ledgerId, {
-        fromUserId: suggestion.fromUserId,
-        toUserId: suggestion.toUserId,
-        amountMinor: draft.amountMinor,
-        planId: planId ?? null,
-        note: draft.note,
-        settledAt: draft.settledAt,
-      }),
+      (ledgerId ? api.settlements.create : api.settlements.createForPlan)(
+        ledgerId ?? planId ?? '',
+        {
+          fromUserId: suggestion.fromUserId,
+          toUserId: suggestion.toUserId,
+          amountMinor: draft.amountMinor,
+          planId: planId ?? null,
+          note: draft.note,
+          settledAt: draft.settledAt,
+        },
+      ),
     onSuccess: async () => {
       setPayment(null);
       setPaymentError(null);

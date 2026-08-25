@@ -3,7 +3,10 @@ import type { Prisma } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { BalanceCalculator } from './balance-calculator.js';
 
-type ProjectionClient = Pick<Prisma.TransactionClient, 'expense' | 'settlement'>;
+type ProjectionClient = Pick<
+  Prisma.TransactionClient,
+  'expense' | 'settlement'
+>;
 
 @Injectable()
 export class FinancialProjectionService {
@@ -13,7 +16,7 @@ export class FinancialProjectionService {
   ) {}
 
   async positions(
-    ledgerId: string,
+    ledgerId: string | null,
     options: {
       planId?: string;
       excludeExpenseId?: string;
@@ -39,7 +42,10 @@ export class FinancialProjectionService {
         },
       }),
       client.settlement.findMany({
-        where: { ledgerId, ...(options.planId ? { planId: options.planId } : {}) },
+        where: {
+          ledgerId,
+          ...(options.planId ? { planId: options.planId } : {}),
+        },
         select: {
           fromUserId: true,
           toUserId: true,

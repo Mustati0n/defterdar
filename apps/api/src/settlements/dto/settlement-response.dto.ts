@@ -7,11 +7,14 @@ class SafeSettlementUserDto {
 
 export class SettlementResponseDto {
   @ApiProperty({ format: 'uuid' }) id!: string;
-  @ApiProperty({ format: 'uuid' }) ledgerId!: string;
-  @ApiPropertyOptional({ format: 'uuid', nullable: true }) planId!: string | null;
+  @ApiPropertyOptional({ format: 'uuid', nullable: true })
+  ledgerId!: string | null;
+  @ApiPropertyOptional({ format: 'uuid', nullable: true }) planId!:
+    string | null;
   @ApiProperty({ format: 'uuid' }) fromUserId!: string;
   @ApiProperty({ format: 'uuid' }) toUserId!: string;
-  @ApiProperty({ type: SafeSettlementUserDto }) fromUser!: SafeSettlementUserDto;
+  @ApiProperty({ type: SafeSettlementUserDto })
+  fromUser!: SafeSettlementUserDto;
   @ApiProperty({ type: SafeSettlementUserDto }) toUser!: SafeSettlementUserDto;
   @ApiProperty({ type: String }) amountMinor!: string;
   @ApiProperty({ example: 'TRY' }) currency!: string;

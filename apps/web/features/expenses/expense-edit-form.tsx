@@ -75,11 +75,12 @@ function LoadedExpenseEditForm({
   const [splitTouched, setSplitTouched] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const ledgerId = data.ledgerId;
-  const plans = usePlans(ledgerId);
-  const categories = useCategories(ledgerId);
+  const standalonePlan = !ledgerId && Boolean(data.planId);
+  const plans = usePlans(ledgerId ?? '', false, Boolean(ledgerId));
+  const categories = useCategories(ledgerId ?? '');
   const members = useQuery({
-    queryKey: queryKeys.members(ledgerId),
-    queryFn: ({ signal }) => api.ledgers.members(ledgerId, signal),
+    queryKey: queryKeys.members(ledgerId ?? ''),
+    queryFn: ({ signal }) => api.ledgers.members(ledgerId ?? '', signal),
     enabled: Boolean(ledgerId),
   });
   const participants = useQuery({
@@ -146,7 +147,8 @@ function LoadedExpenseEditForm({
       onSubmit={(event) => void submit(event)}
     >
       <div className="context-note">
-        Defter ve para birimi kilitli: {data.currency}
+        {standalonePlan ? 'Plan' : 'Defter'} ve para birimi kilitli:{' '}
+        {data.currency}
       </div>
       <label className="field">
         <span>Harcama adı</span>
@@ -188,43 +190,51 @@ function LoadedExpenseEditForm({
             />
           </label>
           <div className="field-row">
-            <label className="field">
-              <span>Plan</span>
-              <select
-                className="input"
-                value={planId}
-                onChange={(event) => setPlanId(event.target.value)}
-              >
-                <option value="">Plana bağlı değil</option>
-                {plans.data
-                  ?.filter(
-                    (plan) =>
-                      plan.status === 'ACTIVE' || plan.id === data.planId,
-                  )
-                  .map((plan) => (
-                    <option value={plan.id} key={plan.id}>
-                      {plan.name}
-                    </option>
-                  ))}
-              </select>
-            </label>
-            <label className="field">
-              <span>Kategori</span>
-              <select
-                className="input"
-                value={categoryId}
-                onChange={(event) => setCategoryId(event.target.value)}
-              >
-                <option value="">Kategorisiz</option>
-                {categories.data
-                  ?.filter((category) => !category.archivedAt)
-                  .map((category) => (
-                    <option value={category.id} key={category.id}>
-                      {category.name}
-                    </option>
-                  ))}
-              </select>
-            </label>
+            {!standalonePlan ? (
+              <label className="field">
+                <span>Plan</span>
+                <select
+                  className="input"
+                  value={planId}
+                  onChange={(event) => setPlanId(event.target.value)}
+                >
+                  <option value="">Plana bağlı değil</option>
+                  {plans.data
+                    ?.filter(
+                      (plan) =>
+                        plan.status === 'ACTIVE' || plan.id === data.planId,
+                    )
+                    .map((plan) => (
+                      <option value={plan.id} key={plan.id}>
+                        {plan.name}
+                      </option>
+                    ))}
+                </select>
+              </label>
+            ) : (
+              <div className="context-note">
+                Bağımsız Plan bağlantısı korunur.
+              </div>
+            )}
+            {!standalonePlan ? (
+              <label className="field">
+                <span>Kategori</span>
+                <select
+                  className="input"
+                  value={categoryId}
+                  onChange={(event) => setCategoryId(event.target.value)}
+                >
+                  <option value="">Kategorisiz</option>
+                  {categories.data
+                    ?.filter((category) => !category.archivedAt)
+                    .map((category) => (
+                      <option value={category.id} key={category.id}>
+                        {category.name}
+                      </option>
+                    ))}
+                </select>
+              </label>
+            ) : null}
           </div>
         </div>
       </details>
@@ -284,7 +294,10 @@ function LoadedExpenseEditForm({
               <small>Seçilen kişiler arasında eşit paylaştır</small>
             </span>
           </label>
-          <details className="advanced-split" open={method !== 'EQUAL' || undefined}>
+          <details
+            className="advanced-split"
+            open={method !== 'EQUAL' || undefined}
+          >
             <summary>Diğer paylaşım yöntemleri</summary>
             <div>
               {(['EXACT', 'PERCENTAGE', 'SHARES'] as const).map((value) => (

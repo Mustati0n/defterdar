@@ -9,17 +9,19 @@ import {
   useCategories,
   useCreateExpense,
   useLedgers,
+  usePlan,
   usePlans,
 } from '@/features/data/hooks';
 import { ExpenseForm } from './expense-form';
 
 const push = jest.fn();
 const mutateAsync = jest.fn();
+const requestedScope = { ledgerId: 'ledger-1', planId: '' };
 
 jest.mock('next/navigation', () => ({
   useRouter: () => ({ push }),
   useSearchParams: () => ({
-    get: (key: string) => (key === 'ledgerId' ? 'ledger-1' : ''),
+    get: (key: 'ledgerId' | 'planId') => requestedScope[key],
   }),
 }));
 jest.mock('@tanstack/react-query', () => ({
@@ -30,6 +32,7 @@ jest.mock('@/features/data/hooks', () => ({
   useCategories: jest.fn(),
   useCreateExpense: jest.fn(),
   useLedgers: jest.fn(),
+  usePlan: jest.fn(),
   usePlans: jest.fn(),
   queryKeys: {
     members: (ledgerId: string) => ['members', ledgerId],
@@ -69,6 +72,8 @@ function setup() {
 
 describe('simple-first Expense form', () => {
   beforeEach(() => {
+    requestedScope.ledgerId = 'ledger-1';
+    requestedScope.planId = '';
     push.mockClear();
     mutateAsync.mockReset().mockResolvedValue({ id: 'expense-1' });
     jest
@@ -79,6 +84,11 @@ describe('simple-first Expense form', () => {
     jest
       .mocked(usePlans)
       .mockReturnValue({ data: [] } as unknown as ReturnType<typeof usePlans>);
+    jest
+      .mocked(usePlan)
+      .mockReturnValue({ data: undefined } as unknown as ReturnType<
+        typeof usePlan
+      >);
     jest.mocked(useCategories).mockReturnValue({
       data: [],
       refetch: jest.fn(),
@@ -198,6 +208,54 @@ describe('simple-first Expense form', () => {
     expect(document.getElementById('expense-amount-error')).toHaveAttribute(
       'role',
       'alert',
+    );
+  });
+
+  it('creates an Expense directly in a standalone Plan', async () => {
+    requestedScope.ledgerId = '';
+    requestedScope.planId = 'plan-standalone';
+    jest.mocked(usePlan).mockReturnValue({
+      data: {
+        id: 'plan-standalone',
+        name: 'Roma',
+        scope: 'STANDALONE',
+        ledgerId: null,
+        currency: 'EUR',
+      },
+    } as unknown as ReturnType<typeof usePlan>);
+    jest.mocked(useQuery).mockImplementation((options) => {
+      const key = options.queryKey as unknown[];
+      return {
+        data:
+          key[0] === 'participants'
+            ? [
+                { user: { id: 'me', displayName: 'Ece' } },
+                { user: { id: 'ada', displayName: 'Ada' } },
+              ]
+            : [],
+      } as ReturnType<typeof useQuery>;
+    });
+
+    setup();
+    await waitFor(() =>
+      expect(screen.getByText(/Roma içinde oluşturulacak/)).toBeInTheDocument(),
+    );
+    expect(screen.getByText('EUR')).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Harcama'), {
+      target: { value: 'Tren' },
+    });
+    fireEvent.change(screen.getByLabelText('Harcama tutarı'), {
+      target: { value: '80' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /Harcamayı kaydet/ }));
+
+    await waitFor(() =>
+      expect(mutateAsync).toHaveBeenCalledWith(
+        expect.objectContaining({
+          ledgerId: null,
+          input: expect.objectContaining({ planId: 'plan-standalone' }),
+        }),
+      ),
     );
   });
 });

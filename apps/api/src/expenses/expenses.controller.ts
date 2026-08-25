@@ -49,6 +49,33 @@ export class ExpensesController {
       this.service.create(id, u.id, d),
     );
   }
+  @ApiOperation({ summary: 'Create an expense in a Plan scope' })
+  @ApiCreatedResponse({ type: ExpenseResponseDto })
+  @ApiHeader({ name: 'Idempotency-Key', required: false })
+  @Post('plans/:planId/expenses')
+  createForPlan(
+    @Param('planId', new ParseUUIDPipe({ version: '4' })) id: string,
+    @CurrentUser() u: SafeUser,
+    @Body() d: CreateExpenseDto,
+    @Headers('idempotency-key') key?: string,
+  ) {
+    return this.idempotency.execute(
+      u.id,
+      `expense.create:plan:${id}`,
+      key,
+      d,
+      () => this.service.createForPlan(id, u.id, d),
+    );
+  }
+  @ApiOperation({ summary: 'List expenses in an accessible Plan' })
+  @ApiOkResponse({ type: ExpenseResponseDto, isArray: true })
+  @Get('plans/:planId/expenses')
+  listForPlan(
+    @Param('planId', new ParseUUIDPipe({ version: '4' })) id: string,
+    @CurrentUser() u: SafeUser,
+  ) {
+    return this.service.listForPlan(id, u.id);
+  }
   @ApiOperation({ summary: 'List ledger expenses' })
   @ApiOkResponse({ type: ExpenseResponseDto, isArray: true })
   @Get('ledgers/:ledgerId/expenses')

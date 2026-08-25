@@ -10,6 +10,7 @@ import { LedgerAuthorizationService } from '../ledgers/ledger-authorization.serv
 import { FinancialProjectionService } from '../balances/financial-projection.service.js';
 import type { CreateExpenseSplitOffsetDto } from './dto/create-expense-split-offset.dto.js';
 import { ActivityLogService } from '../activity/activity-log.service.js';
+import { PlanAuthorizationService } from '../plans/plan-authorization.service.js';
 
 type OffsetTarget = Awaited<ReturnType<ExpenseSplitOffsetsService['target']>>;
 
@@ -18,13 +19,18 @@ export class ExpenseSplitOffsetsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly authorization: LedgerAuthorizationService,
+    private readonly plans: PlanAuthorizationService,
     private readonly projection: FinancialProjectionService,
     private readonly activity: ActivityLogService,
   ) {}
 
   async availability(expenseSplitId: string, actorId: string) {
     const target = await this.target(expenseSplitId, this.prisma);
-    await this.authorization.requireMember(target.expense.ledgerId, actorId);
+    await this.authorizeScope(
+      target.expense.ledgerId,
+      target.expense.planId,
+      actorId,
+    );
     const result = await this.calculateAvailability(target, this.prisma);
     return {
       ...result,
@@ -36,18 +42,33 @@ export class ExpenseSplitOffsetsService {
     };
   }
 
-  async create(expenseSplitId: string, actorId: string, dto: CreateExpenseSplitOffsetDto) {
+  async create(
+    expenseSplitId: string,
+    actorId: string,
+    dto: CreateExpenseSplitOffsetDto,
+  ) {
     const initial = await this.target(expenseSplitId, this.prisma);
-    const access = await this.authorization.requireMember(initial.expense.ledgerId, actorId);
+    const access = await this.authorizeScope(
+      initial.expense.ledgerId,
+      initial.expense.planId,
+      actorId,
+    );
     this.canManage(initial, actorId, access.role, false);
-    if (initial.expense.ledger.archivedAt)
+    if (initial.expense.ledger?.archivedAt)
       throw new ConflictException('Ledger is archived');
+    if (initial.expense.plan?.archivedAt)
+      throw new ConflictException('Plan is archived');
     const id = await this.serializable(async (tx) => {
       const target = await this.target(expenseSplitId, tx);
       const availability = await this.calculateAvailability(target, tx);
       if (!availability.eligible)
-        throw new ConflictException(availability.reason ?? 'Offset is not available');
-      const requested = dto.amountMinor === undefined ? availability.maxOffsetMinor : BigInt(dto.amountMinor);
+        throw new ConflictException(
+          availability.reason ?? 'Offset is not available',
+        );
+      const requested =
+        dto.amountMinor === undefined
+          ? availability.maxOffsetMinor
+          : BigInt(dto.amountMinor);
       if (requested <= 0n || requested > availability.maxOffsetMinor)
         throw new ConflictException('Offset exceeds current availability');
       const created = await tx.expenseSplitOffset.create({
@@ -57,6 +78,7 @@ export class ExpenseSplitOffsetsService {
       await this.activity.record(
         {
           ledgerId: target.expense.ledgerId,
+          planId: target.expense.planId,
           actorUserId: actorId,
           entityType: 'ExpenseSplitOffset',
           entityId: created.id,
@@ -75,12 +97,25 @@ export class ExpenseSplitOffsetsService {
       where: { id },
       include: {
         expenseSplit: {
-          include: { expense: { select: { ledgerId: true, createdById: true, payerId: true } } },
+          include: {
+            expense: {
+              select: {
+                ledgerId: true,
+                planId: true,
+                createdById: true,
+                payerId: true,
+              },
+            },
+          },
         },
       },
     });
     if (!offset) throw new NotFoundException('Expense split offset not found');
-    const access = await this.authorization.requireMember(offset.expenseSplit.expense.ledgerId, actorId);
+    const access = await this.authorizeScope(
+      offset.expenseSplit.expense.ledgerId,
+      offset.expenseSplit.expense.planId,
+      actorId,
+    );
     const expense = offset.expenseSplit.expense;
     if (
       access.role !== 'OWNER' &&
@@ -92,10 +127,14 @@ export class ExpenseSplitOffsetsService {
       throw new ForbiddenException('Insufficient offset permissions');
     if (!offset.voidedAt)
       await this.prisma.$transaction(async (tx) => {
-        await tx.expenseSplitOffset.update({ where: { id }, data: { voidedAt: new Date() } });
+        await tx.expenseSplitOffset.update({
+          where: { id },
+          data: { voidedAt: new Date() },
+        });
         await this.activity.record(
           {
             ledgerId: expense.ledgerId,
+            planId: expense.planId,
             actorUserId: actorId,
             entityType: 'ExpenseSplitOffset',
             entityId: id,
@@ -110,10 +149,18 @@ export class ExpenseSplitOffsetsService {
   private async response(id: string, actorId: string) {
     const offset = await this.prisma.expenseSplitOffset.findUnique({
       where: { id },
-      include: { expenseSplit: { include: { expense: { select: { ledgerId: true } } } } },
+      include: {
+        expenseSplit: {
+          include: { expense: { select: { ledgerId: true, planId: true } } },
+        },
+      },
     });
     if (!offset) throw new NotFoundException('Expense split offset not found');
-    await this.authorization.requireMember(offset.expenseSplit.expense.ledgerId, actorId);
+    await this.authorizeScope(
+      offset.expenseSplit.expense.ledgerId,
+      offset.expenseSplit.expense.planId,
+      actorId,
+    );
     return {
       id: offset.id,
       expenseSplitId: offset.expenseSplitId,
@@ -124,13 +171,19 @@ export class ExpenseSplitOffsetsService {
     };
   }
 
-  private async target(expenseSplitId: string, client: Pick<Prisma.TransactionClient, 'expenseSplit'>) {
+  private async target(
+    expenseSplitId: string,
+    client: Pick<Prisma.TransactionClient, 'expenseSplit'>,
+  ) {
     const target = await client.expenseSplit.findUnique({
       where: { id: expenseSplitId },
       include: {
         offsets: { where: { voidedAt: null }, select: { amountMinor: true } },
         expense: {
-          include: { ledger: { select: { archivedAt: true } } },
+          include: {
+            ledger: { select: { archivedAt: true } },
+            plan: { select: { archivedAt: true } },
+          },
         },
       },
     });
@@ -142,20 +195,32 @@ export class ExpenseSplitOffsetsService {
     target: OffsetTarget,
     client: Prisma.TransactionClient | PrismaService,
   ) {
-    const applied = target.offsets.reduce((sum, item) => sum + item.amountMinor, 0n);
-    const remaining = target.isReimbursable && !target.expense.voidedAt
-      ? target.amountMinor - applied
-      : 0n;
+    const applied = target.offsets.reduce(
+      (sum, item) => sum + item.amountMinor,
+      0n,
+    );
+    const remaining =
+      target.isReimbursable && !target.expense.voidedAt
+        ? target.amountMinor - applied
+        : 0n;
     let suggestion = 0n;
     if (remaining > 0n) {
-      const positions = await this.projection.positions(target.expense.ledgerId, {
-        planId: target.expense.planId ?? undefined,
-        excludeExpenseId: target.expense.id,
-        client,
-      });
-      suggestion = this.projection.suggestions(positions).find(
-        (item) => item.fromUserId === target.expense.payerId && item.toUserId === target.userId,
-      )?.amountMinor ?? 0n;
+      const positions = await this.projection.positions(
+        target.expense.ledgerId,
+        {
+          planId: target.expense.planId ?? undefined,
+          excludeExpenseId: target.expense.id,
+          client,
+        },
+      );
+      suggestion =
+        this.projection
+          .suggestions(positions)
+          .find(
+            (item) =>
+              item.fromUserId === target.expense.payerId &&
+              item.toUserId === target.userId,
+          )?.amountMinor ?? 0n;
     }
     const maximum = remaining < suggestion ? remaining : suggestion;
     const reason = !target.isReimbursable
@@ -179,21 +244,32 @@ export class ExpenseSplitOffsetsService {
     };
   }
 
-  private canManage(target: OffsetTarget, actorId: string, role: string, includeCreator: boolean) {
+  private canManage(
+    target: OffsetTarget,
+    actorId: string,
+    role: string,
+    includeCreator: boolean,
+  ) {
     if (
       role === 'OWNER' ||
       role === 'ADMIN' ||
+      role === 'PLAN_CREATOR' ||
       target.expense.createdById === actorId ||
       target.expense.payerId === actorId ||
       includeCreator
-    ) return;
+    )
+      return;
     throw new ForbiddenException('Insufficient offset permissions');
   }
 
-  private async serializable<T>(operation: (tx: Prisma.TransactionClient) => Promise<T>) {
+  private async serializable<T>(
+    operation: (tx: Prisma.TransactionClient) => Promise<T>,
+  ) {
     for (let attempt = 0; attempt < 3; attempt += 1) {
       try {
-        return await this.prisma.$transaction(operation, { isolationLevel: 'Serializable' });
+        return await this.prisma.$transaction(operation, {
+          isolationLevel: 'Serializable',
+        });
       } catch (error: unknown) {
         if (!this.isRetryable(error) || attempt === 2) throw error;
       }
@@ -201,15 +277,35 @@ export class ExpenseSplitOffsetsService {
     throw new ConflictException('Concurrent financial update');
   }
 
+  private async authorizeScope(
+    ledgerId: string | null,
+    planId: string | null,
+    actorId: string,
+  ): Promise<{ role: string }> {
+    if (ledgerId) return this.authorization.requireMember(ledgerId, actorId);
+    if (!planId) throw new NotFoundException('Expense split not found');
+    const access = await this.plans.requireAccess(planId, actorId);
+    return { role: access.isCreator ? 'PLAN_CREATOR' : 'PARTICIPANT' };
+  }
+
   private isRetryable(error: unknown): boolean {
     if (typeof error !== 'object' || error === null) return false;
-    const code = 'code' in error ? (error as { code?: unknown }).code : undefined;
-    const cause = 'cause' in error
-      ? (error as { cause?: { originalCode?: unknown; kind?: unknown } }).cause
-      : undefined;
+    const code =
+      'code' in error ? (error as { code?: unknown }).code : undefined;
+    const cause =
+      'cause' in error
+        ? (error as { cause?: { originalCode?: unknown; kind?: unknown } })
+            .cause
+        : undefined;
     const message = error instanceof Error ? error.message.toLowerCase() : '';
-    return code === 'P2034' || code === '40001' || cause?.originalCode === '40001' ||
-      cause?.kind === 'TransactionWriteConflict' || message.includes('40001') ||
-      message.includes('serializ') || message.includes('writeconflict');
+    return (
+      code === 'P2034' ||
+      code === '40001' ||
+      cause?.originalCode === '40001' ||
+      cause?.kind === 'TransactionWriteConflict' ||
+      message.includes('40001') ||
+      message.includes('serializ') ||
+      message.includes('writeconflict')
+    );
   }
 }

@@ -1,5 +1,17 @@
-import { Controller, Get, Param, ParseUUIDPipe, Query, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  Controller,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import { AccessTokenGuard } from '../auth/guards/access-token.guard.js';
 import { CurrentUser } from '../auth/decorators/current-user.decorator.js';
 import type { SafeUser } from '../users/dto/user-response.dto.js';
@@ -15,9 +27,27 @@ export class ActivityController {
   constructor(private readonly service: ActivityLogService) {}
 
   @Get('ledgers/:ledgerId/activity')
-  @ApiOperation({ summary: 'Read immutable Ledger or Plan-scoped activity with cursor pagination' })
+  @ApiOperation({
+    summary:
+      'Read immutable Ledger or Plan-scoped activity with cursor pagination',
+  })
   @ApiOkResponse({ type: ActivityPageDto })
-  list(@Param('ledgerId', new ParseUUIDPipe({ version: '4' })) ledgerId: string, @CurrentUser() user: SafeUser, @Query() query: ActivityQueryDto) {
+  list(
+    @Param('ledgerId', new ParseUUIDPipe({ version: '4' })) ledgerId: string,
+    @CurrentUser() user: SafeUser,
+    @Query() query: ActivityQueryDto,
+  ) {
     return this.service.list(ledgerId, user.id, query);
+  }
+
+  @Get('plans/:planId/activity')
+  @ApiOperation({ summary: 'Read immutable activity for an accessible Plan' })
+  @ApiOkResponse({ type: ActivityPageDto })
+  listPlan(
+    @Param('planId', new ParseUUIDPipe({ version: '4' })) planId: string,
+    @CurrentUser() user: SafeUser,
+    @Query() query: ActivityQueryDto,
+  ) {
+    return this.service.listPlan(planId, user.id, query);
   }
 }

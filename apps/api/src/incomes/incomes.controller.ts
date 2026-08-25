@@ -1,5 +1,23 @@
-import { Body, Controller, Get, Headers, Param, ParseUUIDPipe, Patch, Post, Query, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiCreatedResponse, ApiHeader, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  Body,
+  Controller,
+  Get,
+  Headers,
+  Param,
+  ParseUUIDPipe,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiCreatedResponse,
+  ApiHeader,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import { AccessTokenGuard } from '../auth/guards/access-token.guard.js';
 import { CurrentUser } from '../auth/decorators/current-user.decorator.js';
 import type { SafeUser } from '../users/dto/user-response.dto.js';
@@ -14,40 +32,96 @@ import { IdempotencyService } from '../idempotency/idempotency.service.js';
 @UseGuards(AccessTokenGuard)
 @Controller()
 export class IncomesController {
-  constructor(private readonly service: IncomesService, private readonly idempotency: IdempotencyService) {}
+  constructor(
+    private readonly service: IncomesService,
+    private readonly idempotency: IdempotencyService,
+  ) {}
 
   @Post('ledgers/:ledgerId/incomes')
-  @ApiOperation({ summary: 'Create cashflow income; does not alter interpersonal balance' })
+  @ApiOperation({
+    summary: 'Create cashflow income; does not alter interpersonal balance',
+  })
   @ApiCreatedResponse({ type: IncomeResponseDto })
   @ApiHeader({ name: 'Idempotency-Key', required: false })
-  create(@Param('ledgerId', new ParseUUIDPipe({ version: '4' })) ledgerId: string, @CurrentUser() user: SafeUser, @Body() dto: CreateIncomeDto, @Headers('idempotency-key') key?: string) {
-    return this.idempotency.execute(user.id, `income.create:${ledgerId}`, key, dto, () =>
-      this.service.create(ledgerId, user.id, dto),
+  create(
+    @Param('ledgerId', new ParseUUIDPipe({ version: '4' })) ledgerId: string,
+    @CurrentUser() user: SafeUser,
+    @Body() dto: CreateIncomeDto,
+    @Headers('idempotency-key') key?: string,
+  ) {
+    return this.idempotency.execute(
+      user.id,
+      `income.create:${ledgerId}`,
+      key,
+      dto,
+      () => this.service.create(ledgerId, user.id, dto),
     );
+  }
+
+  @Post('plans/:planId/incomes')
+  @ApiOperation({ summary: 'Create income in a Plan scope' })
+  @ApiCreatedResponse({ type: IncomeResponseDto })
+  @ApiHeader({ name: 'Idempotency-Key', required: false })
+  createForPlan(
+    @Param('planId', new ParseUUIDPipe({ version: '4' })) planId: string,
+    @CurrentUser() user: SafeUser,
+    @Body() dto: CreateIncomeDto,
+    @Headers('idempotency-key') key?: string,
+  ) {
+    return this.idempotency.execute(
+      user.id,
+      `income.create:plan:${planId}`,
+      key,
+      dto,
+      () => this.service.createForPlan(planId, user.id, dto),
+    );
+  }
+
+  @Get('plans/:planId/incomes')
+  @ApiOkResponse({ type: IncomeResponseDto, isArray: true })
+  listForPlan(
+    @Param('planId', new ParseUUIDPipe({ version: '4' })) planId: string,
+    @CurrentUser() user: SafeUser,
+  ) {
+    return this.service.listForPlan(planId, user.id);
   }
 
   @Get('ledgers/:ledgerId/incomes')
   @ApiOkResponse({ type: IncomeResponseDto, isArray: true })
-  list(@Param('ledgerId', new ParseUUIDPipe({ version: '4' })) ledgerId: string, @CurrentUser() user: SafeUser, @Query('planId') planId?: string) {
+  list(
+    @Param('ledgerId', new ParseUUIDPipe({ version: '4' })) ledgerId: string,
+    @CurrentUser() user: SafeUser,
+    @Query('planId') planId?: string,
+  ) {
     return this.service.list(ledgerId, user.id, planId);
   }
 
   @Get('incomes/:incomeId')
   @ApiOkResponse({ type: IncomeResponseDto })
-  get(@Param('incomeId', new ParseUUIDPipe({ version: '4' })) id: string, @CurrentUser() user: SafeUser) {
+  get(
+    @Param('incomeId', new ParseUUIDPipe({ version: '4' })) id: string,
+    @CurrentUser() user: SafeUser,
+  ) {
     return this.service.get(id, user.id);
   }
 
   @Patch('incomes/:incomeId')
   @ApiOkResponse({ type: IncomeResponseDto })
-  update(@Param('incomeId', new ParseUUIDPipe({ version: '4' })) id: string, @CurrentUser() user: SafeUser, @Body() dto: UpdateIncomeDto) {
+  update(
+    @Param('incomeId', new ParseUUIDPipe({ version: '4' })) id: string,
+    @CurrentUser() user: SafeUser,
+    @Body() dto: UpdateIncomeDto,
+  ) {
     return this.service.update(id, user.id, dto);
   }
 
   @Post('incomes/:incomeId/void')
   @ApiOperation({ summary: 'Void income without deleting financial history' })
   @ApiOkResponse({ type: IncomeResponseDto })
-  void(@Param('incomeId', new ParseUUIDPipe({ version: '4' })) id: string, @CurrentUser() user: SafeUser) {
+  void(
+    @Param('incomeId', new ParseUUIDPipe({ version: '4' })) id: string,
+    @CurrentUser() user: SafeUser,
+  ) {
     return this.service.void(id, user.id);
   }
 }

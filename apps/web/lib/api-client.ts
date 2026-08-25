@@ -423,6 +423,19 @@ export const api = {
         { signal },
       );
     },
+    activity: (
+      planId: string,
+      limit = 20,
+      cursor?: string,
+      signal?: AbortSignal,
+    ) => {
+      const params = new URLSearchParams({ limit: String(limit) });
+      if (cursor) params.set('cursor', cursor);
+      return apiRequest<ActivityPage>(
+        `/plans/${planId}/activity?${params.toString()}`,
+        { signal },
+      );
+    },
   },
   expenses: {
     list: (ledgerId: string, planId?: string, signal?: AbortSignal) =>
@@ -432,6 +445,14 @@ export const api = {
       ),
     create: (ledgerId: string, input: CreateExpenseInput) =>
       apiRequest<Expense>(`/ledgers/${ledgerId}/expenses`, {
+        method: 'POST',
+        body: input,
+        headers: { 'Idempotency-Key': crypto.randomUUID() },
+      }),
+    listForPlan: (planId: string, signal?: AbortSignal) =>
+      apiRequest<Expense[]>(`/plans/${planId}/expenses`, { signal }),
+    createForPlan: (planId: string, input: CreateExpenseInput) =>
+      apiRequest<Expense>(`/plans/${planId}/expenses`, {
         method: 'POST',
         body: input,
         headers: { 'Idempotency-Key': crypto.randomUUID() },
@@ -479,6 +500,14 @@ export const api = {
       ),
     create: (ledgerId: string, input: CreateSettlementInput) =>
       apiRequest<Settlement>(`/ledgers/${ledgerId}/settlements`, {
+        method: 'POST',
+        body: input,
+        headers: { 'Idempotency-Key': crypto.randomUUID() },
+      }),
+    listForPlan: (planId: string, signal?: AbortSignal) =>
+      apiRequest<Settlement[]>(`/plans/${planId}/settlements`, { signal }),
+    createForPlan: (planId: string, input: CreateSettlementInput) =>
+      apiRequest<Settlement>(`/plans/${planId}/settlements`, {
         method: 'POST',
         body: input,
         headers: { 'Idempotency-Key': crypto.randomUUID() },
@@ -538,6 +567,14 @@ export const api = {
       ),
     create: (ledgerId: string, input: CreateIncomeInput) =>
       apiRequest<Income>(`/ledgers/${ledgerId}/incomes`, {
+        method: 'POST',
+        body: input,
+        headers: { 'Idempotency-Key': crypto.randomUUID() },
+      }),
+    listForPlan: (planId: string, signal?: AbortSignal) =>
+      apiRequest<Income[]>(`/plans/${planId}/incomes`, { signal }),
+    createForPlan: (planId: string, input: CreateIncomeInput) =>
+      apiRequest<Income>(`/plans/${planId}/incomes`, {
         method: 'POST',
         body: input,
         headers: { 'Idempotency-Key': crypto.randomUUID() },

@@ -72,6 +72,10 @@ describe('BalanceExperience', () => {
   beforeEach(() => {
     jest.spyOn(api.settlements, 'list').mockResolvedValue([]);
     jest.spyOn(api.settlements, 'create').mockResolvedValue(settlement);
+    jest.spyOn(api.settlements, 'listForPlan').mockResolvedValue([]);
+    jest
+      .spyOn(api.settlements, 'createForPlan')
+      .mockResolvedValue({ ...settlement, ledgerId: null, planId: 'plan-1' });
     jest
       .spyOn(api.settlements, 'void')
       .mockResolvedValue({ ...settlement, voidedAt: '2026-08-24T12:00:00Z' });
@@ -184,6 +188,28 @@ describe('BalanceExperience', () => {
     expect(invalidate).toHaveBeenCalledWith({
       queryKey: ['settlements', 'ledger-1'],
     });
+  });
+
+  it('records settlement through the standalone Plan endpoint', async () => {
+    setup(payableBalance, {
+      scope: 'plan',
+      ledgerId: null,
+      planId: 'plan-1',
+      role: 'OWNER',
+    });
+    fireEvent.click(screen.getByRole('button', { name: /ödeme kaydet/i }));
+    fireEvent.click(
+      within(screen.getByRole('dialog')).getByRole('button', {
+        name: 'Ödendi',
+      }),
+    );
+    await waitFor(() =>
+      expect(api.settlements.createForPlan).toHaveBeenCalledWith(
+        'plan-1',
+        expect.objectContaining({ amountMinor: 30000, planId: 'plan-1' }),
+      ),
+    );
+    expect(api.settlements.create).not.toHaveBeenCalled();
   });
 
   it('records a partial payment and previews the remainder', async () => {

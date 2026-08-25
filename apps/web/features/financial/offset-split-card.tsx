@@ -42,7 +42,10 @@ export function OffsetSplitCard({
   const [dialogError, setDialogError] = useState<string | null>(null);
   const [voidId, setVoidId] = useState<string | null>(null);
   const availability = useQuery({
-    queryKey: queryKeys.offsetAvailability(expense.ledgerId, split.id),
+    queryKey: queryKeys.offsetAvailability(
+      expense.ledgerId ?? `plan:${expense.planId}`,
+      split.id,
+    ),
     queryFn: ({ signal }) => api.offsets.availability(split.id, signal),
     enabled: false,
     staleTime: 30_000,
@@ -50,11 +53,11 @@ export function OffsetSplitCard({
   const canManage = canManageOffset(role, currentUserId, expense);
   const canRequestAvailability = Boolean(
     split.isReimbursable &&
-      !expense.isGift &&
-      !expense.voidedAt &&
-      !disabled &&
-      canManage &&
-      BigInt(split.remainingReimbursableMinor) > 0n,
+    !expense.isGift &&
+    !expense.voidedAt &&
+    !disabled &&
+    canManage &&
+    BigInt(split.remainingReimbursableMinor) > 0n,
   );
 
   async function openOffsetDialog() {

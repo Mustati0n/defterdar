@@ -4,7 +4,7 @@ Baseline: `f211a9c chore: complete ux performance remediation`
 
 - [x] A — Optional Personal Ledger
 - [x] B — Standalone Plan domain
-- [ ] C — Standalone finance integration
+- [x] C — Standalone finance integration
 - [ ] D — Global adaptive UI system
 - [ ] E — Overview / cards / spacing redesign
 - [ ] F — Page intros + interface preferences
@@ -27,3 +27,8 @@ Baseline: `f211a9c chore: complete ux performance remediation`
 - Activity rows remain immutable. Historical standalone events keep their Plan
   scope; the link transaction appends a target-Ledger event instead of rewriting
   audit history.
+- Standalone Plan Income is supported for cash-flow analytics and activity. As
+  with Ledger Income, it does not create interpersonal debt or affect balances.
+- Expense, Income, and Settlement require exactly one usable financial scope:
+  standalone records use the Plan; Ledger-bound records retain the Ledger (and
+  may additionally reference a Plan).

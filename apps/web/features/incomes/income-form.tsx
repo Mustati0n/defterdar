@@ -7,22 +7,37 @@ import { useEffect, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 import { useToast } from '@/components/ui/toast';
-import { useCreateIncome, useLedgers, usePlans } from '@/features/data/hooks';
+import {
+  useCreateIncome,
+  useLedgers,
+  usePlan,
+  usePlans,
+} from '@/features/data/hooks';
 import { ApiError } from '@/lib/api-client';
 
-const schema = z.object({
-  ledgerId: z.string().min(1, 'Bir Defter seç.'),
-  planId: z.string().optional(),
-  title: z.string().trim().min(1, 'Gelire kısa bir ad ver.').max(160),
-  amount: z
-    .string()
-    .refine(
-      (value) => Number(value.replace(',', '.')) > 0,
-      'Sıfırdan büyük bir tutar yaz.',
-    ),
-  incomeDate: z.string().min(1, 'Tarih seç.'),
-  description: z.string().trim().max(1000).optional(),
-});
+const schema = z
+  .object({
+    ledgerId: z.string(),
+    planId: z.string().optional(),
+    title: z.string().trim().min(1, 'Gelire kısa bir ad ver.').max(160),
+    amount: z
+      .string()
+      .refine(
+        (value) => Number(value.replace(',', '.')) > 0,
+        'Sıfırdan büyük bir tutar yaz.',
+      ),
+    incomeDate: z.string().min(1, 'Tarih seç.'),
+    description: z.string().trim().max(1000).optional(),
+  })
+  .superRefine((value, context) => {
+    if (!value.ledgerId && !value.planId) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['ledgerId'],
+        message: 'Bir Defter veya Plan seç.',
+      });
+    }
+  });
 type Values = z.infer<typeof schema>;
 
 export function IncomeForm() {
@@ -32,6 +47,8 @@ export function IncomeForm() {
   const createIncome = useCreateIncome();
   const toast = useToast();
   const [formError, setFormError] = useState<string | null>(null);
+  const requestedPlanId = searchParams.get('planId') ?? '';
+  const requestedPlan = usePlan(requestedPlanId);
   const {
     register,
     handleSubmit,
@@ -42,7 +59,7 @@ export function IncomeForm() {
     resolver: zodResolver(schema),
     defaultValues: {
       ledgerId: searchParams.get('ledgerId') ?? '',
-      planId: searchParams.get('planId') ?? '',
+      planId: requestedPlanId,
       title: '',
       amount: '',
       description: '',
@@ -51,22 +68,31 @@ export function IncomeForm() {
   });
   const ledgerId = useWatch({ control, name: 'ledgerId' });
   const selectedLedger = ledgers.data?.find((ledger) => ledger.id === ledgerId);
-  const plans = usePlans(ledgerId);
+  const standalonePlan = requestedPlan.data?.scope === 'STANDALONE';
+  const selectedCurrency =
+    selectedLedger?.currency ?? requestedPlan.data?.currency;
+  const plans = usePlans(ledgerId, false, Boolean(ledgerId));
 
   useEffect(() => {
-    if (!ledgerId && ledgers.data?.length) {
+    if (!ledgerId && !requestedPlanId && ledgers.data?.length) {
       const defaultLedger =
         ledgers.data.find((ledger) => ledger.type === 'PERSONAL') ??
         ledgers.data[0];
       if (defaultLedger) setValue('ledgerId', defaultLedger.id);
     }
-  }, [ledgerId, ledgers.data, setValue]);
+  }, [ledgerId, ledgers.data, requestedPlanId, setValue]);
+
+  useEffect(() => {
+    if (requestedPlan.data?.ledgerId && !ledgerId) {
+      setValue('ledgerId', requestedPlan.data.ledgerId);
+    }
+  }, [ledgerId, requestedPlan.data?.ledgerId, setValue]);
 
   async function onSubmit(values: Values) {
     setFormError(null);
     try {
       await createIncome.mutateAsync({
-        ledgerId: values.ledgerId,
+        ledgerId: values.ledgerId || null,
         input: {
           title: values.title,
           description: values.description || null,
@@ -77,7 +103,7 @@ export function IncomeForm() {
           incomeDate: new Date(`${values.incomeDate}T12:00:00`).toISOString(),
         },
       });
-      toast('Gelir Deftere eklendi.');
+      toast(standalonePlan ? 'Gelir Plana eklendi.' : 'Gelir Deftere eklendi.');
       router.push(
         values.planId
           ? `/plans/${values.planId}`
@@ -129,40 +155,53 @@ export function IncomeForm() {
           aria-label="Gelir tutarı"
           {...register('amount')}
         />
-        <strong>{selectedLedger?.currency ?? 'TRY'}</strong>
+        <strong>{selectedCurrency ?? 'TRY'}</strong>
       </div>
       {errors.amount ? (
         <p className="field-error">{errors.amount.message}</p>
       ) : null}
       <div className="field-row">
         <label className="field">
-          <span>Defter</span>
-          <select className="input" {...register('ledgerId')}>
-            <option value="">Defter seç</option>
-            {ledgers.data
-              ?.filter((ledger) => !ledger.archivedAt)
-              .map((ledger) => (
-                <option value={ledger.id} key={ledger.id}>
-                  {ledger.name}
-                </option>
-              ))}
-          </select>
+          <span>{standalonePlan ? 'Plan' : 'Defter'}</span>
+          {standalonePlan ? (
+            <>
+              <input type="hidden" {...register('ledgerId')} />
+              <div className="context-note">
+                {requestedPlan.data?.name ?? 'Seçili bağımsız Plan'}
+              </div>
+            </>
+          ) : (
+            <select className="input" {...register('ledgerId')}>
+              <option value="">Defter seç</option>
+              {ledgers.data
+                ?.filter((ledger) => !ledger.archivedAt)
+                .map((ledger) => (
+                  <option value={ledger.id} key={ledger.id}>
+                    {ledger.name}
+                  </option>
+                ))}
+            </select>
+          )}
         </label>
-        <label className="field">
-          <span>
-            Plan <em>isteğe bağlı</em>
-          </span>
-          <select className="input" {...register('planId')}>
-            <option value="">Bir Plana bağlı değil</option>
-            {plans.data
-              ?.filter((plan) => plan.status === 'ACTIVE')
-              .map((plan) => (
-                <option value={plan.id} key={plan.id}>
-                  {plan.name}
-                </option>
-              ))}
-          </select>
-        </label>
+        {!requestedPlanId ? (
+          <label className="field">
+            <span>
+              Plan <em>isteğe bağlı</em>
+            </span>
+            <select className="input" {...register('planId')}>
+              <option value="">Bir Plana bağlı değil</option>
+              {plans.data
+                ?.filter((plan) => plan.status === 'ACTIVE')
+                .map((plan) => (
+                  <option value={plan.id} key={plan.id}>
+                    {plan.name}
+                  </option>
+                ))}
+            </select>
+          </label>
+        ) : (
+          <input type="hidden" {...register('planId')} />
+        )}
       </div>
       <label className="field field--date">
         <span>Gelir tarihi</span>
@@ -197,7 +236,7 @@ export function IncomeForm() {
         disabled={createIncome.isPending}
       >
         <CircleDollarSign />{' '}
-        {createIncome.isPending ? 'Deftere yazılıyor…' : 'Geliri ekle'}{' '}
+        {createIncome.isPending ? 'Kaydediliyor…' : 'Geliri ekle'}{' '}
         <ArrowRight />
       </button>
     </form>

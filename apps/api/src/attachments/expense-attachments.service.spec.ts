@@ -30,6 +30,7 @@ describe('ExpenseAttachmentsService list', () => {
       authorization as never,
       {} as never,
       {} as never,
+      {} as never,
       new ConfigService({ ATTACHMENT_MAX_BYTES: 10_000_000 }) as never,
     );
 

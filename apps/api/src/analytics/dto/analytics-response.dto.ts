@@ -7,7 +7,8 @@ class AnalyticsCategoryDto {
 }
 
 class CategorySummaryDto {
-  @ApiPropertyOptional({ type: AnalyticsCategoryDto, nullable: true }) category!: AnalyticsCategoryDto | null;
+  @ApiPropertyOptional({ type: AnalyticsCategoryDto, nullable: true })
+  category!: AnalyticsCategoryDto | null;
   @ApiProperty({ type: String }) expenseMinor!: string;
   @ApiProperty({ type: String }) incomeMinor!: string;
 }
@@ -35,9 +36,14 @@ export class AnalyticsSummaryResponseDto {
   @ApiProperty({ type: String }) netCashflowMinor!: string;
   @ApiProperty() expenseCount!: number;
   @ApiProperty() incomeCount!: number;
-  @ApiProperty({ type: CategorySummaryDto, isArray: true }) byCategory!: CategorySummaryDto[];
-  @ApiProperty({ type: MonthlySummaryDto, isArray: true }) monthly!: MonthlySummaryDto[];
-  @ApiProperty({ type: MemberAmountDto, isArray: true }) paidByMember!: MemberAmountDto[];
-  @ApiProperty({ type: MemberAmountDto, isArray: true }) shareByMember!: MemberAmountDto[];
-  @ApiProperty({ type: BalanceResponseDto }) currentBalances!: BalanceResponseDto;
+  @ApiProperty({ type: CategorySummaryDto, isArray: true })
+  byCategory!: CategorySummaryDto[];
+  @ApiProperty({ type: MonthlySummaryDto, isArray: true })
+  monthly!: MonthlySummaryDto[];
+  @ApiProperty({ type: MemberAmountDto, isArray: true })
+  paidByMember!: MemberAmountDto[];
+  @ApiProperty({ type: MemberAmountDto, isArray: true })
+  shareByMember!: MemberAmountDto[];
+  @ApiProperty({ type: BalanceResponseDto })
+  currentBalances!: BalanceResponseDto;
 }

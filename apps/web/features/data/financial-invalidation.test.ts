@@ -78,4 +78,30 @@ describe('financial invalidation matrix', () => {
       client.getQueryState(['ledger-balance', 'ledger-1'])?.isInvalidated,
     ).toBe(false);
   });
+
+  it('invalidates standalone Plan finance without requiring a Ledger key', async () => {
+    const client = new QueryClient();
+    const keys = [
+      ['plan-balance', 'plan-a'],
+      ['plan-analytics', 'plan-a', { from: undefined, to: undefined }],
+      ['plan-activity', 'plan-a'],
+      ['plan-expenses', 'plan-a'],
+      ['plan-incomes', 'plan-a'],
+      ['plan-settlements', 'plan-a'],
+      ['offset-availability', 'plan:plan-a', 'split-1'],
+    ] as const;
+    keys.forEach((key) => client.setQueryData(key, { cached: true }));
+
+    await invalidateFinancialData(client, {
+      ledgerId: null,
+      planIds: ['plan-a'],
+      expenses: true,
+      incomes: true,
+      settlements: true,
+    });
+
+    keys.forEach((key) =>
+      expect(client.getQueryState(key)?.isInvalidated).toBe(true),
+    );
+  });
 });

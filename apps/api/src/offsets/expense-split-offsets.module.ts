@@ -4,9 +4,10 @@ import { BalancesModule } from '../balances/balances.module.js';
 import { LedgersModule } from '../ledgers/ledgers.module.js';
 import { ExpenseSplitOffsetsController } from './expense-split-offsets.controller.js';
 import { ExpenseSplitOffsetsService } from './expense-split-offsets.service.js';
+import { PlansModule } from '../plans/plans.module.js';
 
 @Module({
-  imports: [AuthModule, BalancesModule, LedgersModule],
+  imports: [AuthModule, BalancesModule, LedgersModule, PlansModule],
   controllers: [ExpenseSplitOffsetsController],
   providers: [ExpenseSplitOffsetsService],
 })

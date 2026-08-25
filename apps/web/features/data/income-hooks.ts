@@ -12,6 +12,14 @@ export function useIncomes(ledgerId: string, planId?: string, enabled = true) {
   });
 }
 
+export function usePlanIncomes(planId: string, enabled = true) {
+  return useQuery({
+    queryKey: queryKeys.planIncomes(planId),
+    queryFn: ({ signal }) => api.incomes.listForPlan(planId, signal),
+    enabled: Boolean(planId && enabled),
+  });
+}
+
 export function useCreateIncome() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -19,9 +27,12 @@ export function useCreateIncome() {
       ledgerId,
       input,
     }: {
-      ledgerId: string;
+      ledgerId: string | null;
       input: CreateIncomeInput;
-    }) => api.incomes.create(ledgerId, input),
+    }) =>
+      ledgerId
+        ? api.incomes.create(ledgerId, input)
+        : api.incomes.createForPlan(input.planId ?? '', input),
     onSuccess: async (_, variables) => {
       await invalidateFinancialData(queryClient, {
         ledgerId: variables.ledgerId,
@@ -30,6 +41,11 @@ export function useCreateIncome() {
         offsetAvailability: false,
         incomes: true,
       });
+      if (!variables.ledgerId && variables.input.planId) {
+        await queryClient.invalidateQueries({
+          queryKey: queryKeys.planIncomes(variables.input.planId),
+        });
+      }
     },
   });
 }

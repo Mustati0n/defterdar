@@ -4,6 +4,7 @@ import {
   ArrowLeft,
   BarChart3,
   CalendarDays,
+  CircleDollarSign,
   CheckSquare2,
   Clock3,
   Settings,
@@ -148,6 +149,14 @@ export default function PlanDetailPage() {
       {activeView === 'general' ? (
         <>
           <div className="page-actions">
+            {data.status === 'ACTIVE' ? (
+              <Link
+                className="button button--quiet"
+                href={`/incomes/new?${data.ledgerId ? `ledgerId=${data.ledgerId}&` : ''}planId=${planId}`}
+              >
+                <CircleDollarSign /> Gelir ekle
+              </Link>
+            ) : null}
             <PlanLifecycleAction plan={data} canEdit={Boolean(canEdit)} />
           </div>
           <div className="detail-grid">
@@ -196,12 +205,10 @@ export default function PlanDetailPage() {
                 <span className="eyebrow">Plan harcamaları</span>
                 <h2>Birlikte ödenenler</h2>
               </div>
-              {data.ledgerId &&
-              expenses.data?.length &&
-              data.status === 'ACTIVE' ? (
+              {expenses.data?.length && data.status === 'ACTIVE' ? (
                 <Link
                   className="button button--primary button--small"
-                  href={`/expenses/new?ledgerId=${data.ledgerId}&planId=${planId}`}
+                  href={`/expenses/new?${data.ledgerId ? `ledgerId=${data.ledgerId}&` : ''}planId=${planId}`}
                 >
                   <Plus /> Harcama ekle
                 </Link>
@@ -251,10 +258,10 @@ export default function PlanDetailPage() {
                       : 'Bu Plan tamamlandığı için yeni harcama eklenemez; mevcut kayıtlar okunmaya devam eder.'}
                   </p>
                 </div>
-                {data.ledgerId && data.status === 'ACTIVE' ? (
+                {data.status === 'ACTIVE' ? (
                   <Link
                     className="button button--primary"
-                    href={`/expenses/new?ledgerId=${data.ledgerId}&planId=${planId}`}
+                    href={`/expenses/new?${data.ledgerId ? `ledgerId=${data.ledgerId}&` : ''}planId=${planId}`}
                   >
                     <Plus /> İlk harcamayı ekle
                   </Link>
@@ -265,42 +272,28 @@ export default function PlanDetailPage() {
         </>
       ) : null}
       {activeView === 'activity' ? (
-        data.ledgerId ? (
-          <ActivityFeed ledgerId={data.ledgerId} planId={planId} />
-        ) : (
-          <section className="paper-section detail-full">
-            <h2>Plan hareketleri</h2>
-            <p className="context-note">
-              Bağımsız Plan hareketleri finans entegrasyonuyla açılacak.
-            </p>
-          </section>
-        )
+        <ActivityFeed ledgerId={data.ledgerId} planId={planId} />
       ) : null}
       {activeView === 'balances' ? (
-        data.ledgerId ? (
-          <BalanceExperience
-            scope="plan"
-            ledgerId={data.ledgerId}
-            planId={planId}
-            balance={balance.data}
-            isLoading={balance.isLoading}
-            isError={balance.isError}
-            onRetry={() => void balance.refetch()}
-            currentUserId={user?.id ?? ''}
-            role={ledger.data?.role ?? 'MEMBER'}
-            mutationsDisabled={Boolean(
-              ledger.data?.archivedAt || data.status === 'ARCHIVED',
-            )}
-            planStatus={data.status}
-          />
-        ) : (
-          <section className="paper-section detail-full">
-            <h2>Plan hesabı</h2>
-            <p className="context-note">
-              Bağımsız Plan finans entegrasyonu henüz tamamlanıyor.
-            </p>
-          </section>
-        )
+        <BalanceExperience
+          scope="plan"
+          ledgerId={data.ledgerId}
+          planId={planId}
+          balance={balance.data}
+          isLoading={balance.isLoading}
+          isError={balance.isError}
+          onRetry={() => void balance.refetch()}
+          currentUserId={user?.id ?? ''}
+          role={
+            data.scope === 'STANDALONE' && data.createdById === user?.id
+              ? 'OWNER'
+              : (ledger.data?.role ?? 'MEMBER')
+          }
+          mutationsDisabled={Boolean(
+            ledger.data?.archivedAt || data.status === 'ARCHIVED',
+          )}
+          planStatus={data.status}
+        />
       ) : null}
       {activeView === 'analytics' ? (
         <AnalyticsExperience

@@ -4,8 +4,9 @@ import { LedgersModule } from '../ledgers/ledgers.module.js';
 import { ExpensesController } from './expenses.controller.js';
 import { ExpensesService } from './expenses.service.js';
 import { ExpenseSplitCalculator } from './expense-split-calculator.js';
+import { PlansModule } from '../plans/plans.module.js';
 @Module({
-  imports: [AuthModule, LedgersModule],
+  imports: [AuthModule, LedgersModule, PlansModule],
   controllers: [ExpensesController],
   providers: [ExpensesService, ExpenseSplitCalculator],
 })

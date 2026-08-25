@@ -11,12 +11,14 @@ import { ExpenseSplitCalculator } from './expense-split-calculator.js';
 import type { CreateExpenseDto, SplitDto } from './dto/create-expense.dto.js';
 import type { UpdateExpenseDto } from './dto/update-expense.dto.js';
 import { ActivityLogService } from '../activity/activity-log.service.js';
+import { PlanAuthorizationService } from '../plans/plan-authorization.service.js';
 
 @Injectable()
 export class ExpensesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly auth: LedgerAuthorizationService,
+    private readonly plans: PlanAuthorizationService,
     private readonly calculator: ExpenseSplitCalculator,
     private readonly activity: ActivityLogService,
   ) {}
@@ -27,11 +29,47 @@ export class ExpensesService {
       'ADMIN',
       'MEMBER',
     ]);
+    return this.createScoped(
+      ledgerId,
+      dto.planId ?? null,
+      access.ledger.currency,
+      userId,
+      dto,
+    );
+  }
+
+  async createForPlan(planId: string, userId: string, dto: CreateExpenseDto) {
+    const access = await this.plans.requireAccess(planId, userId);
+    if (!access.isParticipant) {
+      throw new ForbiddenException('Only Plan participants can add expenses');
+    }
+    if (access.plan.status !== 'ACTIVE' || access.plan.archivedAt) {
+      throw new ConflictException('Plan is not active');
+    }
+    if (dto.planId && dto.planId !== planId) {
+      throw new BadRequestException('Expense Plan scope cannot be overridden');
+    }
+    return this.createScoped(
+      access.plan.ledgerId,
+      planId,
+      access.plan.currency,
+      userId,
+      dto,
+    );
+  }
+
+  private async createScoped(
+    ledgerId: string | null,
+    planId: string | null,
+    currency: string,
+    userId: string,
+    dto: CreateExpenseDto,
+  ) {
     const allocations = this.calculate(dto.amountMinor, dto.split);
     await this.validateCategory(ledgerId, dto.categoryId ?? null);
     await this.validatePeople(
       ledgerId,
-      dto.planId ?? null,
+      planId,
       dto.payerUserId,
       allocations.map((x) => x.userId),
     );
@@ -39,14 +77,14 @@ export class ExpensesService {
       const created = await tx.expense.create({
         data: {
           ledgerId,
-          planId: dto.planId ?? null,
+          planId,
           createdById: userId,
           categoryId: dto.categoryId ?? null,
           payerId: dto.payerUserId,
           title: dto.title.trim(),
           description: dto.description?.trim() ?? null,
           amountMinor: BigInt(dto.amountMinor),
-          currency: access.ledger.currency,
+          currency,
           splitMethod: dto.split.method,
           isGift: dto.isGift,
           expenseDate: dto.expenseDate,
@@ -61,12 +99,28 @@ export class ExpensesService {
         })),
       });
       await this.activity.record(
-        { ledgerId, actorUserId: userId, entityType: 'Expense', entityId: created.id, action: 'expense.created' },
+        {
+          ledgerId,
+          planId,
+          actorUserId: userId,
+          entityType: 'Expense',
+          entityId: created.id,
+          action: 'expense.created',
+        },
         tx,
       );
       return created.id;
     });
     return this.get(expense, userId);
+  }
+  async listForPlan(planId: string, userId: string) {
+    const access = await this.plans.requireAccess(planId, userId);
+    const rows = await this.prisma.expense.findMany({
+      where: { ledgerId: access.plan.ledgerId, planId },
+      orderBy: { expenseDate: 'desc' },
+      select: { id: true },
+    });
+    return Promise.all(rows.map(({ id }) => this.get(id, userId)));
   }
   async list(ledgerId: string, userId: string, planId?: string) {
     await this.auth.requireMember(ledgerId, userId);
@@ -108,7 +162,7 @@ export class ExpensesService {
       },
     });
     if (!e) throw new NotFoundException('Expense not found');
-    await this.auth.requireMember(e.ledgerId, userId);
+    await this.authorizeScope(e.ledgerId, e.planId, userId);
     return {
       ...e,
       _count: undefined,
@@ -154,7 +208,9 @@ export class ExpensesService {
         where: { expenseSplit: { expenseId: id }, voidedAt: null },
       });
       if (activeOffsets > 0)
-        throw new ConflictException('Active offsets block financial expense updates');
+        throw new ConflictException(
+          'Active offsets block financial expense updates',
+        );
     }
     if (dto.amountMinor !== undefined && !dto.split) {
       throw new BadRequestException(
@@ -168,6 +224,11 @@ export class ExpensesService {
       );
     const payer = dto.payerUserId ?? old.payerId;
     const planId = dto.planId === undefined ? old.planId : dto.planId;
+    if (!old.ledgerId && planId !== old.planId) {
+      throw new BadRequestException(
+        'Standalone Expense Plan scope cannot be changed',
+      );
+    }
     const split =
       dto.split ??
       ({
@@ -232,6 +293,7 @@ export class ExpensesService {
       await this.activity.record(
         {
           ledgerId: old.ledgerId,
+          planId: old.planId,
           actorUserId: userId,
           entityType: 'Expense',
           entityId: id,
@@ -258,7 +320,14 @@ export class ExpensesService {
           data: { voidedAt },
         });
         await this.activity.record(
-          { ledgerId: e.ledgerId, actorUserId: userId, entityType: 'Expense', entityId: id, action: 'expense.voided' },
+          {
+            ledgerId: e.ledgerId,
+            planId: e.planId,
+            actorUserId: userId,
+            entityType: 'Expense',
+            entityId: id,
+            action: 'expense.voided',
+          },
           tx,
         );
       });
@@ -276,8 +345,8 @@ export class ExpensesService {
       include: { ledger: true, plan: true },
     });
     if (!e) throw new NotFoundException('Expense not found');
-    const access = await this.auth.requireMember(e.ledgerId, userId);
-    if (e.ledger.archivedAt) throw new ConflictException('Ledger is archived');
+    const access = await this.authorizeScope(e.ledgerId, e.planId, userId);
+    if (e.ledger?.archivedAt) throw new ConflictException('Ledger is archived');
     if (!allowVoided && e.voidedAt)
       throw new ConflictException('Expense is voided');
     if (
@@ -289,7 +358,12 @@ export class ExpensesService {
     return { ...e, role: access.role };
   }
   private manage(e: { createdById: string; role: string }, userId: string) {
-    if (e.role === 'OWNER' || e.role === 'ADMIN' || e.createdById === userId)
+    if (
+      e.role === 'OWNER' ||
+      e.role === 'ADMIN' ||
+      e.role === 'PLAN_CREATOR' ||
+      e.createdById === userId
+    )
       return;
     throw new ForbiddenException('Insufficient expense permissions');
   }
@@ -321,20 +395,22 @@ export class ExpensesService {
     );
   }
   private async validatePeople(
-    ledgerId: string,
+    ledgerId: string | null,
     planId: string | null,
     payer: string,
     users: string[],
   ) {
-    const memberIds = [payer, ...users];
-    const active = await this.prisma.ledgerMembership.findMany({
-      where: { ledgerId, leftAt: null, userId: { in: memberIds } },
-      select: { userId: true },
-    });
-    if (new Set(active.map((x) => x.userId)).size !== new Set(memberIds).size)
-      throw new BadRequestException(
-        'Payer and split users must be active ledger members',
-      );
+    const memberIds = [...new Set([payer, ...users])];
+    if (ledgerId) {
+      const active = await this.prisma.ledgerMembership.findMany({
+        where: { ledgerId, leftAt: null, userId: { in: memberIds } },
+        select: { userId: true },
+      });
+      if (new Set(active.map((x) => x.userId)).size !== memberIds.length)
+        throw new BadRequestException(
+          'Payer and split users must be active ledger members',
+        );
+    }
     if (planId) {
       const p = await this.prisma.plan.findFirst({
         where: { id: planId, ledgerId, status: 'ACTIVE', archivedAt: null },
@@ -348,15 +424,23 @@ export class ExpensesService {
         where: { planId, userId: { in: memberIds } },
         select: { userId: true },
       });
-      if (new Set(ps.map((x) => x.userId)).size !== new Set(memberIds).size)
+      if (new Set(ps.map((x) => x.userId)).size !== memberIds.length)
         throw new BadRequestException(
           'Payer and split users must be plan participants',
         );
     }
   }
 
-  private async validateCategory(ledgerId: string, categoryId: string | null) {
+  private async validateCategory(
+    ledgerId: string | null,
+    categoryId: string | null,
+  ) {
     if (!categoryId) return;
+    if (!ledgerId) {
+      throw new BadRequestException(
+        'Standalone Plan expenses cannot use Ledger categories',
+      );
+    }
     const category = await this.prisma.category.findFirst({
       where: {
         id: categoryId,
@@ -367,5 +451,16 @@ export class ExpensesService {
       select: { id: true },
     });
     if (!category) throw new BadRequestException('Expense category is invalid');
+  }
+
+  private async authorizeScope(
+    ledgerId: string | null,
+    planId: string | null,
+    userId: string,
+  ): Promise<{ role: string }> {
+    if (ledgerId) return this.auth.requireMember(ledgerId, userId);
+    if (!planId) throw new NotFoundException('Expense not found');
+    const access = await this.plans.requireAccess(planId, userId);
+    return { role: access.isCreator ? 'PLAN_CREATOR' : 'PARTICIPANT' };
   }
 }

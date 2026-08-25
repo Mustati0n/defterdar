@@ -1,18 +1,16 @@
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { LedgerAuthorizationService } from '../ledgers/ledger-authorization.service.js';
 import { BalancesService } from '../balances/balances.service.js';
 import type { AnalyticsQueryDto } from './dto/analytics-query.dto.js';
+import { PlanAuthorizationService } from '../plans/plan-authorization.service.js';
 
 @Injectable()
 export class AnalyticsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly authorization: LedgerAuthorizationService,
+    private readonly plans: PlanAuthorizationService,
     private readonly balances: BalancesService,
   ) {}
 
@@ -22,20 +20,10 @@ export class AnalyticsService {
   }
 
   async plan(planId: string, actorId: string, query: AnalyticsQueryDto) {
-    const plan = await this.prisma.plan.findUnique({
-      where: { id: planId },
-      select: { ledgerId: true, ledger: { select: { currency: true } } },
-    });
-    if (!plan) throw new NotFoundException('Plan not found');
-    if (!plan.ledgerId || !plan.ledger) {
-      throw new BadRequestException(
-        'Standalone Plan analytics are not available yet',
-      );
-    }
-    await this.authorization.requireMember(plan.ledgerId, actorId);
+    const access = await this.plans.requireAccess(planId, actorId);
     return this.summary(
-      plan.ledgerId,
-      plan.ledger.currency,
+      access.plan.ledgerId,
+      access.plan.currency,
       actorId,
       query,
       planId,
@@ -43,7 +31,7 @@ export class AnalyticsService {
   }
 
   private async summary(
-    ledgerId: string,
+    ledgerId: string | null,
     currency: string,
     actorId: string,
     query: AnalyticsQueryDto,
@@ -86,7 +74,7 @@ export class AnalyticsService {
       }),
       planId
         ? this.balances.plan(planId, actorId)
-        : this.balances.ledger(ledgerId, actorId),
+        : this.balances.ledger(ledgerId!, actorId),
     ]);
     const totalExpense = expenses.reduce(
       (sum, item) => sum + item.amountMinor,

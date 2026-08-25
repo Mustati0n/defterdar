@@ -214,7 +214,7 @@ export interface OffsetAvailability {
 
 export interface Settlement {
   id: string;
-  ledgerId: string;
+  ledgerId: string | null;
   planId: string | null;
   fromUserId: string;
   toUserId: string;
@@ -240,7 +240,7 @@ export interface CreateSettlementInput {
 
 export interface Expense {
   id: string;
-  ledgerId: string;
+  ledgerId: string | null;
   planId: string | null;
   categoryId: string | null;
   category: Category | null;
@@ -313,7 +313,7 @@ export type UpdateExpenseInput = Partial<CreateExpenseInput> & {
 
 export interface Income {
   id: string;
-  ledgerId: string;
+  ledgerId: string | null;
   planId: string | null;
   categoryId: string | null;
   category: Category | null;

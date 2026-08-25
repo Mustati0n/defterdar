@@ -34,7 +34,8 @@ export class ExpenseSplitResponseDto {
 }
 export class ExpenseResponseDto {
   @ApiProperty({ format: 'uuid' }) id!: string;
-  @ApiProperty({ format: 'uuid' }) ledgerId!: string;
+  @ApiPropertyOptional({ format: 'uuid', nullable: true })
+  ledgerId!: string | null;
   @ApiPropertyOptional({ format: 'uuid', nullable: true }) planId!:
     string | null;
   @ApiPropertyOptional({ format: 'uuid', nullable: true }) categoryId!:

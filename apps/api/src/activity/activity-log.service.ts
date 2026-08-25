@@ -47,8 +47,38 @@ export class ActivityLogService {
     return { items, nextCursor: hasMore ? items.at(-1)!.id : null };
   }
 
+  async listPlan(planId: string, actorId: string, query: ActivityQueryDto) {
+    const plan = await this.prisma.plan.findUnique({
+      where: { id: planId },
+      select: { createdById: true, ledgerId: true },
+    });
+    if (!plan) throw new NotFoundException('Plan not found');
+    if (plan.ledgerId) {
+      await this.authorization.requireMember(plan.ledgerId, actorId);
+    } else {
+      const participant = await this.prisma.planParticipant.findFirst({
+        where: { planId, userId: actorId },
+        select: { id: true },
+      });
+      if (!participant && plan.createdById !== actorId) {
+        throw new NotFoundException('Plan not found');
+      }
+    }
+    const scope = await this.planScope(plan.ledgerId, planId);
+    const rows = await this.prisma.activityLog.findMany({
+      where: scope,
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: query.limit + 1,
+      ...(query.cursor ? { cursor: { id: query.cursor }, skip: 1 } : {}),
+      include: { actor: { select: { id: true, displayName: true } } },
+    });
+    const hasMore = rows.length > query.limit;
+    const items = hasMore ? rows.slice(0, query.limit) : rows;
+    return { items, nextCursor: hasMore ? items.at(-1)!.id : null };
+  }
+
   private async planScope(
-    ledgerId: string,
+    ledgerId: string | null,
     planId: string,
   ): Promise<Prisma.ActivityLogWhereInput> {
     const plan = await this.prisma.plan.findFirst({
@@ -83,6 +113,7 @@ export class ActivityLogService {
 
     return {
       OR: [
+        { planId },
         { entityType: 'Plan', entityId: planId },
         {
           entityType: 'Expense',
