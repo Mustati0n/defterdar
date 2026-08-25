@@ -18,6 +18,7 @@ export default function SettingsPage() {
         eyebrow="Defter sahibi"
         title="Ayarlar"
         description="Profil bilgilerini ve ürün yardım seçeneklerini düzenle. Defter kategorileri ilgili Defterin Ayarlar bölümündedir."
+        variant="static"
       />
       <div className="settings-hub">
         <ProfileForm />

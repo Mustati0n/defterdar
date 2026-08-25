@@ -17,6 +17,7 @@ export default function ExpenseEditPage() {
         eyebrow="Harcama düzenle"
         title="Rakamları yeniden kontrol edelim."
         description="Kaydetmeden önce harcamanın güncel sürümü ve tüm finansal kurallar yeniden doğrulanır."
+        variant="static"
       />
       <ExpenseEditForm expenseId={expenseId} />
     </>

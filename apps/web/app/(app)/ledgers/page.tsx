@@ -73,42 +73,47 @@ function LedgersContent() {
             </button>
           )
         }
+        tools={
+          <section
+            className="collection-toolbar"
+            aria-label="Defter filtreleri"
+          >
+            <label className="search-box">
+              <Search />
+              <input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Defterlerde ara…"
+                aria-label="Defterlerde ara"
+              />
+            </label>
+            <div className="segmented-control">
+              <button
+                className={filter === 'recent' ? 'is-active' : ''}
+                type="button"
+                onClick={() => setFilter('recent')}
+              >
+                <Sparkles /> Son
+              </button>
+              <button
+                className={filter === 'mine' ? 'is-active' : ''}
+                type="button"
+                onClick={() => setFilter('mine')}
+              >
+                <BookOpenCheck /> Benimkiler
+              </button>
+              <button
+                className={filter === 'archived' ? 'is-active' : ''}
+                type="button"
+                onClick={() => setFilter('archived')}
+              >
+                <Archive /> Arşiv
+              </button>
+            </div>
+            <span className="collection-count">{filtered.length} defter</span>
+          </section>
+        }
       />
-      <section className="collection-toolbar" aria-label="Defter filtreleri">
-        <label className="search-box">
-          <Search />
-          <input
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="Defterlerde ara…"
-            aria-label="Defterlerde ara"
-          />
-        </label>
-        <div className="segmented-control">
-          <button
-            className={filter === 'recent' ? 'is-active' : ''}
-            type="button"
-            onClick={() => setFilter('recent')}
-          >
-            <Sparkles /> Son
-          </button>
-          <button
-            className={filter === 'mine' ? 'is-active' : ''}
-            type="button"
-            onClick={() => setFilter('mine')}
-          >
-            <BookOpenCheck /> Benimkiler
-          </button>
-          <button
-            className={filter === 'archived' ? 'is-active' : ''}
-            type="button"
-            onClick={() => setFilter('archived')}
-          >
-            <Archive /> Arşiv
-          </button>
-        </div>
-        <span className="collection-count">{filtered.length} defter</span>
-      </section>
       {ledgers.isLoading ? <LoadingState label="Defterler açılıyor…" /> : null}
       {ledgers.isError ? (
         <ErrorState onRetry={() => void ledgers.refetch()} />

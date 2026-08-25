@@ -71,42 +71,44 @@ function PlansContent() {
             </button>
           )
         }
+        tools={
+          <section className="collection-toolbar" aria-label="Plan filtreleri">
+            <label className="search-box">
+              <Search />
+              <input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Planlarda ara…"
+                aria-label="Planlarda ara"
+              />
+            </label>
+            <div className="segmented-control">
+              <button
+                className={filter === 'ACTIVE' ? 'is-active' : ''}
+                type="button"
+                onClick={() => setFilter('ACTIVE')}
+              >
+                <Clock3 /> Aktif
+              </button>
+              <button
+                className={filter === 'COMPLETED' ? 'is-active' : ''}
+                type="button"
+                onClick={() => setFilter('COMPLETED')}
+              >
+                <CheckCircle2 /> Biten
+              </button>
+              <button
+                className={filter === 'ARCHIVED' ? 'is-active' : ''}
+                type="button"
+                onClick={() => setFilter('ARCHIVED')}
+              >
+                <Archive /> Arşiv
+              </button>
+            </div>
+            <span className="collection-count">{filtered.length} plan</span>
+          </section>
+        }
       />
-      <section className="collection-toolbar" aria-label="Plan filtreleri">
-        <label className="search-box">
-          <Search />
-          <input
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="Planlarda ara…"
-            aria-label="Planlarda ara"
-          />
-        </label>
-        <div className="segmented-control">
-          <button
-            className={filter === 'ACTIVE' ? 'is-active' : ''}
-            type="button"
-            onClick={() => setFilter('ACTIVE')}
-          >
-            <Clock3 /> Aktif
-          </button>
-          <button
-            className={filter === 'COMPLETED' ? 'is-active' : ''}
-            type="button"
-            onClick={() => setFilter('COMPLETED')}
-          >
-            <CheckCircle2 /> Biten
-          </button>
-          <button
-            className={filter === 'ARCHIVED' ? 'is-active' : ''}
-            type="button"
-            onClick={() => setFilter('ARCHIVED')}
-          >
-            <Archive /> Arşiv
-          </button>
-        </div>
-        <span className="collection-count">{filtered.length} plan</span>
-      </section>
       {ledgers.isLoading || allPlans.isLoading ? (
         <LoadingState label="Plan notları toplanıyor…" />
       ) : null}

@@ -5,7 +5,7 @@ Baseline: `f211a9c chore: complete ux performance remediation`
 - [x] A — Optional Personal Ledger
 - [x] B — Standalone Plan domain
 - [x] C — Standalone finance integration
-- [ ] D — Global adaptive UI system
+- [x] D — Global adaptive UI system
 - [ ] E — Overview / cards / spacing redesign
 - [ ] F — Page intros + interface preferences
 - [ ] G — Analytics / scope redesign
@@ -32,3 +32,6 @@ Baseline: `f211a9c chore: complete ux performance remediation`
 - Expense, Income, and Settlement require exactly one usable financial scope:
   standalone records use the Plan; Ledger-bound records retain the Ledger (and
   may additionally reference a Plan).
+- Sidebar and floating quick-add remain duplicate creation entry points for now;
+  their relative discoverability is a manual QA item rather than a guessed
+  telemetry decision.

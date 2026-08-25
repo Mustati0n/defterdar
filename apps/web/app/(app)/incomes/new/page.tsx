@@ -11,6 +11,7 @@ export default function NewIncomePage() {
         eyebrow="Nakit akışı"
         title="Gelir ekle"
         description="Defterine giren parayı kaydet; aylık özeti gerçeğe yaklaştır."
+        variant="static"
       />
       <LazyRouteForm kind="income" />
     </>

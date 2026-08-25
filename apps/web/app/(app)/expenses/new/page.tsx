@@ -11,6 +11,7 @@ export default function NewExpensePage() {
         eyebrow="Yeni kayıt"
         title="Harcama ekle"
         description="Ne olduğunu yaz, kimlerin paylaştığını seç; hesabı Defterdar yapsın."
+        variant="static"
       />
       <LazyRouteForm kind="expense" />
     </>
