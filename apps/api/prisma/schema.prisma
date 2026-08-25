@@ -73,6 +73,7 @@ model User {
   participations             PlanParticipant[]
   authSessions               AuthSession[]
   createdLedgerInvitations   LedgerInvitation[]   @relation("InvitationCreator")
+  createdPlanInvitations     PlanInvitation[]     @relation("PlanInvitationCreator")
 }
 
 model AuthSession {
@@ -148,7 +149,8 @@ model LedgerInvitation {
 
 model Plan {
   id           String            @id @default(uuid()) @db.Uuid
-  ledgerId     String            @db.Uuid
+  ledgerId     String?           @db.Uuid
+  currency     String            @db.VarChar(3)
   name         String
   description  String?
   startsAt     DateTime?         @db.Timestamptz(3)
@@ -158,12 +160,14 @@ model Plan {
   createdAt    DateTime          @default(now()) @db.Timestamptz(3)
   updatedAt    DateTime          @updatedAt @db.Timestamptz(3)
   archivedAt   DateTime?         @db.Timestamptz(3)
-  ledger       Ledger            @relation(fields: [ledgerId], references: [id], onDelete: Restrict)
+  ledger       Ledger?           @relation(fields: [ledgerId], references: [id], onDelete: Restrict)
   createdBy    User              @relation("PlanCreator", fields: [createdById], references: [id], onDelete: Restrict)
   participants PlanParticipant[]
   expenses     Expense[]
   settlements  Settlement[]
   incomes      Income[]
+  activityLogs ActivityLog[]
+  invitations  PlanInvitation[]
 
   @@index([ledgerId])
   @@index([createdById])
@@ -271,17 +275,20 @@ model Income {
 
 model ActivityLog {
   id          String   @id @default(uuid()) @db.Uuid
-  ledgerId    String   @db.Uuid
+  ledgerId    String?  @db.Uuid
+  planId      String?  @db.Uuid
   actorUserId String?  @db.Uuid
   entityType  String
   entityId    String   @db.Uuid
   action      String
   metadata    Json
   createdAt   DateTime @default(now()) @db.Timestamptz(3)
-  ledger      Ledger   @relation(fields: [ledgerId], references: [id], onDelete: Restrict)
+  ledger      Ledger?  @relation(fields: [ledgerId], references: [id], onDelete: Restrict)
+  plan        Plan?    @relation(fields: [planId], references: [id], onDelete: Restrict)
   actor       User?    @relation("ActivityActor", fields: [actorUserId], references: [id], onDelete: Restrict)
 
   @@index([ledgerId, createdAt, id])
+  @@index([planId, createdAt, id])
   @@index([actorUserId])
   @@index([entityType, entityId])
 }
@@ -369,4 +376,22 @@ model PlanParticipant {
   @@unique([planId, userId])
   @@index([planId])
   @@index([userId])
+}
+
+model PlanInvitation {
+  id           String    @id @default(uuid()) @db.Uuid
+  planId       String    @db.Uuid
+  invitedEmail String
+  tokenHash    String    @unique @db.Char(64)
+  expiresAt    DateTime  @db.Timestamptz(3)
+  acceptedAt   DateTime? @db.Timestamptz(3)
+  revokedAt    DateTime? @db.Timestamptz(3)
+  createdById  String    @db.Uuid
+  createdAt    DateTime  @default(now()) @db.Timestamptz(3)
+  plan         Plan      @relation(fields: [planId], references: [id], onDelete: Restrict)
+  createdBy    User      @relation("PlanInvitationCreator", fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@index([planId])
+  @@index([createdById])
+  @@index([expiresAt])
 }

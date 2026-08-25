@@ -50,7 +50,9 @@ export type PlanStatus = 'ACTIVE' | 'COMPLETED' | 'ARCHIVED';
 
 export interface Plan {
   id: string;
-  ledgerId: string;
+  ledgerId: string | null;
+  scope: 'LEDGER' | 'STANDALONE';
+  currency: string;
   name: string;
   description: string | null;
   startsAt: string | null;
@@ -68,6 +70,19 @@ export interface CreatePlanInput {
   description?: string | null;
   startsAt?: string | null;
   endsAt?: string | null;
+}
+
+export interface CreateStandalonePlanInput extends CreatePlanInput {
+  currency: string;
+}
+
+export interface PlanInvitation {
+  id: string;
+  invitedEmail: string;
+  expiresAt: string;
+  acceptedAt: string | null;
+  revokedAt: string | null;
+  createdAt: string;
 }
 
 export interface LedgerMember {
@@ -112,7 +127,8 @@ export interface BalanceResponse {
 
 export interface ActivityItem {
   id: string;
-  ledgerId: string;
+  ledgerId: string | null;
+  planId?: string | null;
   actorUserId: string | null;
   actor: Pick<User, 'id' | 'displayName'> | null;
   entityType: string;

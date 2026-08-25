@@ -16,6 +16,7 @@ import type {
   CategoryKind,
   CreatedLedgerInvitation,
   CreateLedgerInput,
+  CreateStandalonePlanInput,
   CreateExpenseInput,
   CreateIncomeInput,
   CreatePlanInput,
@@ -28,6 +29,7 @@ import type {
   LedgerInvitation,
   LoginInput,
   Plan,
+  PlanInvitation,
   PlanParticipant,
   OffsetAvailability,
   OverviewResponse,
@@ -351,6 +353,8 @@ export const api = {
         method: 'POST',
         body: input,
       }),
+    createStandalone: (input: CreateStandalonePlanInput) =>
+      apiRequest<Plan>('/plans', { method: 'POST', body: input }),
     update: (planId: string, input: Partial<CreatePlanInput>) =>
       apiRequest<Plan>(`/plans/${planId}`, { method: 'PATCH', body: input }),
     complete: (planId: string) =>
@@ -379,6 +383,29 @@ export const api = {
         method: 'POST',
         body: { targetLedgerId },
       }),
+    linkLedger: (planId: string, ledgerId: string) =>
+      apiRequest<Plan>(`/plans/${planId}/link-ledger`, {
+        method: 'POST',
+        body: { ledgerId },
+      }),
+    invitations: (planId: string, signal?: AbortSignal) =>
+      apiRequest<PlanInvitation[]>(`/plans/${planId}/invitations`, {
+        signal,
+      }),
+    invite: (planId: string, email: string) =>
+      apiRequest<{ token: string; expiresAt: string }>(
+        `/plans/${planId}/invitations`,
+        { method: 'POST', body: { email } },
+      ),
+    revokeInvitation: (planId: string, invitationId: string) =>
+      apiRequest<void>(`/plans/${planId}/invitations/${invitationId}`, {
+        method: 'DELETE',
+      }),
+    acceptInvitation: (token: string) =>
+      apiRequest<{ planId: string }>(
+        `/plan-invitations/${encodeURIComponent(token)}/accept`,
+        { method: 'POST' },
+      ),
     balances: (planId: string, signal?: AbortSignal) =>
       apiRequest<BalanceResponse>(`/plans/${planId}/balances`, { signal }),
     analytics: (

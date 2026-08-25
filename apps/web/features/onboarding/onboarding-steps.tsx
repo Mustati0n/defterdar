@@ -69,13 +69,12 @@ export function OnboardingStepContent({
     return (
       <StepFrame>
         <div className="tour-heading">
-          <span className="eyebrow">İki temel alan</span>
+          <span className="eyebrow">İki esnek alan</span>
           <h1 id="onboarding-title" ref={headingRef} tabIndex={-1}>
-            Defter kalır, Plan tamamlanır.
+            Defter kalır, Plan bağımsız da başlayabilir.
           </h1>
           <p>
-            Uzun yaşayan hesabı ve içindeki geçici etkinlikleri birbirinden
-            ayır.
+            Uzun yaşayan hesabı ve geçici etkinlikleri ihtiyacına göre ayır.
           </p>
         </div>
         <div className="domain-compare">
@@ -98,14 +97,14 @@ export function OnboardingStepContent({
           </article>
           <span className="domain-compare__link">
             <ArrowRight />
-            <small>içinde yaşar</small>
+            <small>isterse bağlanır</small>
           </span>
           <article className="domain-card domain-card--plan">
             <span className="domain-card__pin" />
             <NotebookTabs />
             <small>GEÇİCİ</small>
             <h2>Plan</h2>
-            <p>Bir Defterin içindeki etkinlik veya organizasyon.</p>
+            <p>Bağımsız veya bir Deftere bağlı etkinlik ve organizasyon.</p>
             <ul>
               <li>Kapadokya Gezisi</li>
               <li>Cumartesi Pikniği</li>
@@ -115,7 +114,7 @@ export function OnboardingStepContent({
         </div>
         <p className="domain-formula">
           <strong>Defter</strong> = uzun yaşayan alan <span>·</span>{' '}
-          <strong>Plan</strong> = onun içindeki geçici iş
+          <strong>Plan</strong> = bağımsız ya da bağlı geçici iş
         </p>
       </StepFrame>
     );

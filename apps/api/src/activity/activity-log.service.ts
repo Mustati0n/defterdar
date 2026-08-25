@@ -7,7 +7,8 @@ import type { ActivityQueryDto } from './dto/activity-query.dto.js';
 type ActivityClient = Pick<Prisma.TransactionClient, 'activityLog'>;
 
 export interface RecordActivityInput {
-  ledgerId: string;
+  ledgerId: string | null;
+  planId?: string | null;
   actorUserId: string | null;
   entityType: string;
   entityId: string;

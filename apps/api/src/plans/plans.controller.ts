@@ -13,6 +13,7 @@ import {
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
+  ApiCreatedResponse,
   ApiNoContentResponse,
   ApiOkResponse,
   ApiOperation,
@@ -22,6 +23,8 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator.js';
 import { AccessTokenGuard } from '../auth/guards/access-token.guard.js';
 import type { SafeUser } from '../users/dto/user-response.dto.js';
 import { AddParticipantDto } from './dto/add-participant.dto.js';
+import { CreateStandalonePlanDto } from './dto/create-standalone-plan.dto.js';
+import { LinkPlanLedgerDto } from './dto/link-plan-ledger.dto.js';
 import { MovePlanDto } from './dto/move-plan.dto.js';
 import {
   PlanParticipantResponseDto,
@@ -38,8 +41,20 @@ import { PlansService } from './plans.service.js';
 export class PlansController {
   constructor(private readonly plansService: PlansService) {}
 
+  @Post()
+  @ApiOperation({ summary: 'Create a standalone Plan' })
+  @ApiCreatedResponse({ type: PlanResponseDto })
+  createStandalone(
+    @CurrentUser() user: SafeUser,
+    @Body() input: CreateStandalonePlanDto,
+  ): Promise<PlanResponseDto> {
+    return this.plansService.createStandalone(user, input);
+  }
+
   @Get()
-  @ApiOperation({ summary: 'List plans in active ledgers for the current user' })
+  @ApiOperation({
+    summary: 'List plans in active ledgers for the current user',
+  })
   @ApiOkResponse({ type: PlanResponseDto, isArray: true })
   list(
     @CurrentUser() user: SafeUser,
@@ -153,5 +168,16 @@ export class PlansController {
     @Body() input: MovePlanDto,
   ): Promise<PlanResponseDto> {
     return this.plansService.move(planId, user.id, input);
+  }
+
+  @Post(':planId/link-ledger')
+  @ApiOperation({ summary: 'Atomically link a standalone Plan to a Ledger' })
+  @ApiOkResponse({ type: PlanResponseDto })
+  linkLedger(
+    @Param('planId', new ParseUUIDPipe({ version: '4' })) planId: string,
+    @CurrentUser() user: SafeUser,
+    @Body() input: LinkPlanLedgerDto,
+  ): Promise<PlanResponseDto> {
+    return this.plansService.linkLedger(planId, user.id, input);
   }
 }

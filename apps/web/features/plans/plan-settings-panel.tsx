@@ -54,7 +54,9 @@ export function PlanSettingsPanel({
       );
     if (confirm === 'move' && targetLedgerId)
       mutation.mutate(async () => {
-        const moved = await api.plans.move(plan.id, targetLedgerId);
+        const moved = plan.ledgerId
+          ? await api.plans.move(plan.id, targetLedgerId)
+          : await api.plans.linkLedger(plan.id, targetLedgerId);
         router.replace(`/plans/${moved.id}`);
       });
   };
@@ -149,7 +151,10 @@ export function PlanSettingsPanel({
               <option value="">Hedef Defter seç</option>
               {ledgers
                 .filter(
-                  (ledger) => ledger.id !== plan.ledgerId && !ledger.archivedAt,
+                  (ledger) =>
+                    ledger.id !== plan.ledgerId &&
+                    !ledger.archivedAt &&
+                    ledger.currency === plan.currency,
                 )
                 .map((ledger) => (
                   <option value={ledger.id} key={ledger.id}>
@@ -163,7 +168,7 @@ export function PlanSettingsPanel({
               disabled={!targetLedgerId}
               onClick={() => setConfirm('move')}
             >
-              Planı taşı
+              {plan.ledgerId ? 'Planı taşı' : 'Deftere bağla'}
             </button>
           </div>
         ) : null}
@@ -172,7 +177,9 @@ export function PlanSettingsPanel({
         open={Boolean(confirm)}
         title={
           confirm === 'move'
-            ? 'Planı başka Deftere taşı?'
+            ? plan.ledgerId
+              ? 'Planı başka Deftere taşı?'
+              : 'Planı bu Deftere bağla?'
             : confirm === 'archive'
               ? 'Planın arşiv durumunu değiştir?'
               : 'Plan durumunu değiştir?'

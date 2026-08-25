@@ -41,6 +41,7 @@ export const queryKeys = {
   incomesPrefix: (ledgerId: string) => ['incomes', ledgerId] as const,
   income: (incomeId: string) => ['income', incomeId] as const,
   invitations: (ledgerId: string) => ['invitations', ledgerId] as const,
+  planInvitations: (planId: string) => ['plan-invitations', planId] as const,
   settlements: (ledgerId: string, planId?: string) =>
     ['settlements', ledgerId, { planId }] as const,
   settlementsPrefix: (ledgerId: string) => ['settlements', ledgerId] as const,

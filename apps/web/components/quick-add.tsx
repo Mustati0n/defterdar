@@ -57,7 +57,10 @@ export function QuickAdd() {
   const ledgerPathId = pathname.match(/^\/ledgers\/([^/]+)/)?.[1] ?? '';
   const planId = pathname.match(/^\/plans\/([^/]+)/)?.[1] ?? '';
   const plan = usePlan(planId);
-  const context = getQuickActionContext(pathname, plan.data?.ledgerId);
+  const context = getQuickActionContext(
+    pathname,
+    plan.data?.ledgerId ?? undefined,
+  );
   const ledger = useLedger(context.ledgerId ?? ledgerPathId);
   const financialEntryLocked = Boolean(
     (planId && plan.data?.status !== 'ACTIVE') || ledger.data?.archivedAt,

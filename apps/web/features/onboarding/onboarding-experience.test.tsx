@@ -54,7 +54,9 @@ describe('guided domain tour', () => {
     render(<OnboardingExperience />);
     forward();
     expect(
-      screen.getByRole('heading', { name: 'Defter kalır, Plan tamamlanır.' }),
+      screen.getByRole('heading', {
+        name: 'Defter kalır, Plan bağımsız da başlayabilir.',
+      }),
     ).toBeInTheDocument();
     expect(
       screen.getByText((_, element) =>
@@ -119,7 +121,9 @@ describe('guided domain tour', () => {
     const { container } = render(<OnboardingExperience />);
     fireEvent.click(screen.getByRole('button', { name: /İleri/ }));
     expect(
-      screen.getByRole('heading', { name: /Defter kalır, Plan tamamlanır/ }),
+      screen.getByRole('heading', {
+        name: /Defter kalır, Plan bağımsız da başlayabilir/,
+      }),
     ).toBeInTheDocument();
     expect(container.querySelector('.onboarding-step')).toHaveClass(
       'is-settled',

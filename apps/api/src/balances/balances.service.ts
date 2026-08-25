@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { LedgerAuthorizationService } from '../ledgers/ledger-authorization.service.js';
 import { FinancialProjectionService } from './financial-projection.service.js';
@@ -20,6 +24,11 @@ export class BalancesService {
       select: { ledgerId: true, ledger: { select: { currency: true } } },
     });
     if (!plan) throw new NotFoundException('Plan not found');
+    if (!plan.ledgerId || !plan.ledger) {
+      throw new BadRequestException(
+        'Standalone Plan balances are not available yet',
+      );
+    }
     await this.authorization.requireMember(plan.ledgerId, userId);
     return this.project(plan.ledgerId, plan.ledger.currency, planId);
   }

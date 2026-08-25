@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api-client';
-import type { CreatePlanInput } from '@/lib/types';
+import type { CreatePlanInput, CreateStandalonePlanInput } from '@/lib/types';
 import { queryKeys } from './query-keys';
 
 export function usePlans(
@@ -38,9 +38,12 @@ export function useCreatePlan() {
       ledgerId,
       input,
     }: {
-      ledgerId: string;
-      input: CreatePlanInput;
-    }) => api.plans.create(ledgerId, input),
+      ledgerId: string | null;
+      input: CreatePlanInput | CreateStandalonePlanInput;
+    }) =>
+      ledgerId
+        ? api.plans.create(ledgerId, input)
+        : api.plans.createStandalone(input as CreateStandalonePlanInput),
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.plansRoot }),

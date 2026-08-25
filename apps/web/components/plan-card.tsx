@@ -49,7 +49,11 @@ export function PlanCard({
           <li>
             <MapPin /> {ledger.name}
           </li>
-        ) : null}
+        ) : (
+          <li>
+            <MapPin /> Bağımsız Plan · {plan.currency}
+          </li>
+        )}
       </ul>
     </Link>
   );

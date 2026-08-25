@@ -5,10 +5,20 @@ import {
   IsString,
   Length,
   MaxLength,
+  Matches,
 } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 
 export class UpdatePlanDto {
+  @ApiPropertyOptional({ example: 'TRY', pattern: '^[A-Z]{3}$' })
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.trim().toUpperCase() : value,
+  )
+  @IsOptional()
+  @IsString()
+  @Matches(/^[A-Z]{3}$/)
+  currency?: string;
+
   @ApiPropertyOptional({ example: 'Güncel gezi planı', maxLength: 100 })
   @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
   @IsOptional()

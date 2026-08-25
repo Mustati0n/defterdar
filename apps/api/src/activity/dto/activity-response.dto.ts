@@ -7,9 +7,14 @@ class ActivityActorDto {
 
 export class ActivityItemDto {
   @ApiProperty({ format: 'uuid' }) id!: string;
-  @ApiProperty({ format: 'uuid' }) ledgerId!: string;
-  @ApiPropertyOptional({ format: 'uuid', nullable: true }) actorUserId!: string | null;
-  @ApiPropertyOptional({ type: ActivityActorDto, nullable: true }) actor!: ActivityActorDto | null;
+  @ApiPropertyOptional({ format: 'uuid', nullable: true })
+  ledgerId!: string | null;
+  @ApiPropertyOptional({ format: 'uuid', nullable: true })
+  planId!: string | null;
+  @ApiPropertyOptional({ format: 'uuid', nullable: true }) actorUserId!:
+    string | null;
+  @ApiPropertyOptional({ type: ActivityActorDto, nullable: true })
+  actor!: ActivityActorDto | null;
   @ApiProperty() entityType!: string;
   @ApiProperty({ format: 'uuid' }) entityId!: string;
   @ApiProperty() action!: string;
@@ -18,6 +23,8 @@ export class ActivityItemDto {
 }
 
 export class ActivityPageDto {
-  @ApiProperty({ type: ActivityItemDto, isArray: true }) items!: ActivityItemDto[];
-  @ApiPropertyOptional({ format: 'uuid', nullable: true }) nextCursor!: string | null;
+  @ApiProperty({ type: ActivityItemDto, isArray: true })
+  items!: ActivityItemDto[];
+  @ApiPropertyOptional({ format: 'uuid', nullable: true }) nextCursor!:
+    string | null;
 }

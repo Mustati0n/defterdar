@@ -4,8 +4,14 @@ export class PlanResponseDto {
   @ApiProperty({ format: 'uuid' })
   id!: string;
 
-  @ApiProperty({ format: 'uuid' })
-  ledgerId!: string;
+  @ApiPropertyOptional({ format: 'uuid', nullable: true })
+  ledgerId!: string | null;
+
+  @ApiProperty({ enum: ['LEDGER', 'STANDALONE'] })
+  scope!: 'LEDGER' | 'STANDALONE';
+
+  @ApiProperty({ example: 'TRY' })
+  currency!: string;
 
   @ApiProperty()
   name!: string;

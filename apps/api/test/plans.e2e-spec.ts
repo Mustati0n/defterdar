@@ -16,6 +16,7 @@ const TEST_PASSWORD = 'a deterministic plan test passphrase';
 
 interface Identity {
   accessToken: string;
+  email: string;
   id: string;
   personalLedgerId: string;
 }
@@ -325,6 +326,137 @@ describe('Plan lifecycle and participant API', () => {
     expect(
       (await api('owner').get(`/plans/${incompatible}`)).body.ledgerId,
     ).toBe(sourceLedgerId);
+  });
+
+  describe('standalone Plan domain', () => {
+    it('creates a standalone Plan with currency and creator participation', async () => {
+      const created = await api('owner').post('/plans').send({
+        currency: 'try',
+        name: 'Bağımsız Gezi',
+      });
+      expect(created.status).toBe(201);
+      expect(created.body).toMatchObject({
+        currency: 'TRY',
+        ledgerId: null,
+        scope: 'STANDALONE',
+        createdById: identity('owner').id,
+        participantCount: 1,
+      });
+      const participants = await api('owner').get(
+        `/plans/${created.body.id}/participants`,
+      );
+      expect(participants.status).toBe(200);
+      expect(
+        participants.body.map((item: { user: { id: string } }) => item.user.id),
+      ).toContain(identity('owner').id);
+      expect(
+        (await api('outsider').get(`/plans/${created.body.id}`)).status,
+      ).toBe(404);
+    });
+
+    it('uses hash-only email-bound invitations and participant authorization', async () => {
+      const created = await api('owner').post('/plans').send({
+        currency: 'TRY',
+        name: 'Davetli Bağımsız Plan',
+      });
+      const planId = created.body.id as string;
+      const invitation = await api('owner')
+        .post(`/plans/${planId}/invitations`)
+        .send({ email: identity('member').email });
+      expect(invitation.status).toBe(201);
+      expect(invitation.body.token).toEqual(expect.any(String));
+
+      const persisted = await database.query<{ tokenHash: string }>(
+        `SELECT "tokenHash" FROM "plan_e2e"."PlanInvitation" WHERE "planId" = $1`,
+        [planId],
+      );
+      expect(persisted.rows[0]?.tokenHash).toMatch(/^[a-f0-9]{64}$/);
+      expect(persisted.rows[0]?.tokenHash).not.toBe(invitation.body.token);
+      expect(
+        (
+          await api('outsider').post(
+            `/plan-invitations/${invitation.body.token}/accept`,
+          )
+        ).status,
+      ).toBe(403);
+      expect(
+        (
+          await api('member').post(
+            `/plan-invitations/${invitation.body.token}/accept`,
+          )
+        ).status,
+      ).toBe(201);
+      expect((await api('member').get(`/plans/${planId}`)).status).toBe(200);
+      expect(
+        (await api('member').patch(`/plans/${planId}`).send({ name: 'Hayır' }))
+          .status,
+      ).toBe(403);
+      expect(
+        (
+          await api('member')
+            .post(`/plans/${planId}/invitations`)
+            .send({ email: identity('outsider').email })
+        ).status,
+      ).toBe(403);
+    });
+
+    it('links compatible Plans atomically and rejects currency or participant mismatch', async () => {
+      const compatible = await api('owner').post('/plans').send({
+        currency: 'TRY',
+        name: 'Bağlanabilir',
+      });
+      const linked = await api('owner')
+        .post(`/plans/${compatible.body.id}/link-ledger`)
+        .send({ ledgerId: targetLedgerId });
+      expect(linked.status).toBe(201);
+      expect(linked.body).toMatchObject({
+        ledgerId: targetLedgerId,
+        scope: 'LEDGER',
+      });
+
+      const usdLedger = await api('owner').post('/ledgers').send({
+        currency: 'USD',
+        name: 'Dolar Defteri',
+      });
+      const currencyMismatch = await api('owner').post('/plans').send({
+        currency: 'TRY',
+        name: 'Kur Uyumsuz',
+      });
+      expect(
+        (
+          await api('owner')
+            .post(`/plans/${currencyMismatch.body.id}/link-ledger`)
+            .send({ ledgerId: usdLedger.body.id })
+        ).status,
+      ).toBe(409);
+      expect(
+        (await api('owner').get(`/plans/${currencyMismatch.body.id}`)).body
+          .ledgerId,
+      ).toBeNull();
+
+      const participantMismatch = await api('owner').post('/plans').send({
+        currency: 'TRY',
+        name: 'Katılımcı Uyumsuz',
+      });
+      expect(
+        (
+          await api('owner')
+            .post(`/plans/${participantMismatch.body.id}/participants`)
+            .send({ userId: identity('outsider').id })
+        ).status,
+      ).toBe(201);
+      expect(
+        (
+          await api('owner')
+            .post(`/plans/${participantMismatch.body.id}/link-ledger`)
+            .send({ ledgerId: targetLedgerId })
+        ).status,
+      ).toBe(409);
+      expect(
+        (await api('owner').get(`/plans/${participantMismatch.body.id}`)).body
+          .ledgerId,
+      ).toBeNull();
+    });
   });
 
   it('enforces move access, same-ledger, and archived-ledger rules', async () => {
@@ -1531,13 +1663,12 @@ describe('Plan lifecycle and participant API', () => {
   });
 
   async function register(name: string): Promise<Identity> {
-    const response = await request(API_URL)
-      .post('/auth/register')
-      .send({
-        displayName: name,
-        email: `phase3-${name}@example.com`,
-        password: TEST_PASSWORD,
-      });
+    const email = `phase3-${name}@example.com`;
+    const response = await request(API_URL).post('/auth/register').send({
+      displayName: name,
+      email,
+      password: TEST_PASSWORD,
+    });
     expect(response.status).toBe(201);
     const ledgers = await request(API_URL)
       .get('/ledgers')
@@ -1546,6 +1677,7 @@ describe('Plan lifecycle and participant API', () => {
     expect(ledgers.body).toEqual([]);
     return {
       accessToken: response.body.accessToken,
+      email,
       id: response.body.user.id,
       personalLedgerId: '',
     };

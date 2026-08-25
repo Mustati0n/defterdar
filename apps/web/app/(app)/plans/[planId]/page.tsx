@@ -51,7 +51,8 @@ const secondaryViews = [
   { id: 'participants', label: 'Katılımcılar', icon: UsersRound },
   { id: 'settings', label: 'Ayarlar', icon: Settings },
 ] as const;
-type PlanView = (typeof primaryViews)[number]['id'] | (typeof secondaryViews)[number]['id'];
+type PlanView =
+  (typeof primaryViews)[number]['id'] | (typeof secondaryViews)[number]['id'];
 
 export function planNextStep(
   status: 'ACTIVE' | 'COMPLETED' | 'ARCHIVED',
@@ -59,7 +60,8 @@ export function planNextStep(
   expenseCount: number,
 ) {
   if (status === 'ARCHIVED') return 'Bu Plan arşivde.';
-  if (status === 'COMPLETED') return 'Plan tamamlandı; hesabı kontrol edebilirsin.';
+  if (status === 'COMPLETED')
+    return 'Plan tamamlandı; hesabı kontrol edebilirsin.';
   if (participantCount < 2) return 'Birlikte kullanacağın katılımcıları ekle.';
   if (expenseCount === 0) return 'İlk harcamayı ekle.';
   return 'Plan hazır olduğunda tamamlayabilirsin.';
@@ -84,9 +86,7 @@ export default function PlanDetailPage() {
     queryKey: queryKeys.members(plan.data?.ledgerId ?? ''),
     queryFn: ({ signal }) =>
       api.ledgers.members(plan.data?.ledgerId ?? '', signal),
-    enabled: Boolean(
-      plan.data?.ledgerId && requestedView === 'participants',
-    ),
+    enabled: Boolean(plan.data?.ledgerId && requestedView === 'participants'),
   });
 
   if (plan.isLoading) return <LoadingState label="Plan açılıyor…" />;
@@ -99,10 +99,10 @@ export default function PlanDetailPage() {
     );
   const data = plan.data;
   const canAdmin =
-    ledger.data?.role === 'OWNER' || ledger.data?.role === 'ADMIN';
-  const canEdit =
-    canAdmin ||
-    (data.createdById === user?.id && ledger.data?.role === 'MEMBER');
+    data.scope === 'STANDALONE'
+      ? data.createdById === user?.id
+      : ledger.data?.role === 'OWNER' || ledger.data?.role === 'ADMIN';
+  const canEdit = canAdmin || data.createdById === user?.id;
   const allowedViews = [...primaryViews, ...secondaryViews].map(
     (view) => view.id,
   ) as PlanView[];
@@ -121,7 +121,10 @@ export default function PlanDetailPage() {
         <span className="detail-cover__pin" aria-hidden="true" />
         <div>
           <span className="eyebrow">
-            Plan · {planStatusLabel(data.status)}
+            {data.scope === 'STANDALONE'
+              ? 'Bağımsız Plan'
+              : 'Deftere bağlı Plan'}{' '}
+            · {planStatusLabel(data.status)}
           </span>
           <h1>{data.name}</h1>
           {data.description ? <p>{data.description}</p> : null}
@@ -193,7 +196,9 @@ export default function PlanDetailPage() {
                 <span className="eyebrow">Plan harcamaları</span>
                 <h2>Birlikte ödenenler</h2>
               </div>
-              {expenses.data?.length && data.status === 'ACTIVE' ? (
+              {data.ledgerId &&
+              expenses.data?.length &&
+              data.status === 'ACTIVE' ? (
                 <Link
                   className="button button--primary button--small"
                   href={`/expenses/new?ledgerId=${data.ledgerId}&planId=${planId}`}
@@ -246,7 +251,7 @@ export default function PlanDetailPage() {
                       : 'Bu Plan tamamlandığı için yeni harcama eklenemez; mevcut kayıtlar okunmaya devam eder.'}
                   </p>
                 </div>
-                {data.status === 'ACTIVE' ? (
+                {data.ledgerId && data.status === 'ACTIVE' ? (
                   <Link
                     className="button button--primary"
                     href={`/expenses/new?ledgerId=${data.ledgerId}&planId=${planId}`}
@@ -260,24 +265,42 @@ export default function PlanDetailPage() {
         </>
       ) : null}
       {activeView === 'activity' ? (
-        <ActivityFeed ledgerId={data.ledgerId} planId={planId} />
+        data.ledgerId ? (
+          <ActivityFeed ledgerId={data.ledgerId} planId={planId} />
+        ) : (
+          <section className="paper-section detail-full">
+            <h2>Plan hareketleri</h2>
+            <p className="context-note">
+              Bağımsız Plan hareketleri finans entegrasyonuyla açılacak.
+            </p>
+          </section>
+        )
       ) : null}
       {activeView === 'balances' ? (
-        <BalanceExperience
-          scope="plan"
-          ledgerId={data.ledgerId}
-          planId={planId}
-          balance={balance.data}
-          isLoading={balance.isLoading}
-          isError={balance.isError}
-          onRetry={() => void balance.refetch()}
-          currentUserId={user?.id ?? ''}
-          role={ledger.data?.role ?? 'MEMBER'}
-          mutationsDisabled={Boolean(
-            ledger.data?.archivedAt || data.status === 'ARCHIVED',
-          )}
-          planStatus={data.status}
-        />
+        data.ledgerId ? (
+          <BalanceExperience
+            scope="plan"
+            ledgerId={data.ledgerId}
+            planId={planId}
+            balance={balance.data}
+            isLoading={balance.isLoading}
+            isError={balance.isError}
+            onRetry={() => void balance.refetch()}
+            currentUserId={user?.id ?? ''}
+            role={ledger.data?.role ?? 'MEMBER'}
+            mutationsDisabled={Boolean(
+              ledger.data?.archivedAt || data.status === 'ARCHIVED',
+            )}
+            planStatus={data.status}
+          />
+        ) : (
+          <section className="paper-section detail-full">
+            <h2>Plan hesabı</h2>
+            <p className="context-note">
+              Bağımsız Plan finans entegrasyonu henüz tamamlanıyor.
+            </p>
+          </section>
+        )
       ) : null}
       {activeView === 'analytics' ? (
         <AnalyticsExperience

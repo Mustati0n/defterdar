@@ -26,6 +26,8 @@ const ledger = {
 const plan = {
   id: 'plan-1',
   ledgerId: ledger.id,
+  scope: 'LEDGER',
+  currency: 'TRY',
   name: 'Gezi',
   description: null,
   startsAt: null,

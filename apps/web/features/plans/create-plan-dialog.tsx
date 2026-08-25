@@ -14,7 +14,12 @@ import { useModalDialog } from '@/components/ui/use-modal-dialog';
 
 const schema = z
   .object({
-    ledgerId: z.string().min(1, 'Bir defter seçin.'),
+    ledgerId: z.string().optional(),
+    currency: z
+      .string()
+      .trim()
+      .toUpperCase()
+      .regex(/^[A-Z]{3}$/, 'Üç harfli para birimi yazın.'),
     name: z.string().trim().min(1, 'Plana bir ad verin.').max(100),
     description: z.string().trim().max(1000).optional(),
     startsAt: z.string().optional(),
@@ -34,12 +39,17 @@ export function CreatePlanDialog({
   ledgers,
   defaultOpen = false,
   initialLedgerId = '',
+  defaultStandalone = false,
 }: {
   ledgers: Ledger[];
   defaultOpen?: boolean;
   initialLedgerId?: string;
+  defaultStandalone?: boolean;
 }) {
   const [open, setOpen] = useState(defaultOpen);
+  const [standalone, setStandalone] = useState(
+    defaultStandalone || !initialLedgerId,
+  );
   const mutation = useCreatePlan();
   const toast = useToast();
   const router = useRouter();
@@ -48,10 +58,11 @@ export function CreatePlanDialog({
     register,
     handleSubmit,
     reset,
+    setError,
     formState: { errors },
   } = useForm<Values>({
     resolver: zodResolver(schema),
-    defaultValues: { ledgerId: initialLedgerId },
+    defaultValues: { ledgerId: initialLedgerId, currency: 'TRY' },
   });
   const dialogRef = useRef<HTMLElement>(null);
   const nameRef = useRef<HTMLInputElement>(null);
@@ -64,9 +75,13 @@ export function CreatePlanDialog({
   });
 
   async function onSubmit(values: Values) {
+    if (!standalone && !values.ledgerId) {
+      setError('ledgerId', { message: 'Bir defter seçin.' });
+      return;
+    }
     try {
       const plan = await mutation.mutateAsync({
-        ledgerId: values.ledgerId,
+        ledgerId: standalone ? null : values.ledgerId!,
         input: {
           name: values.name,
           description: values.description || null,
@@ -76,10 +91,15 @@ export function CreatePlanDialog({
           endsAt: values.endsAt
             ? new Date(`${values.endsAt}T23:59:59`).toISOString()
             : null,
+          ...(standalone ? { currency: values.currency } : {}),
         },
       });
-      toast('Yeni plan deftere iliştirildi.');
-      reset();
+      toast(
+        standalone
+          ? 'Bağımsız Plan oluşturuldu.'
+          : 'Yeni Plan Deftere iliştirildi.',
+      );
+      reset({ ledgerId: initialLedgerId, currency: 'TRY' });
       setOpen(false);
       router.push(`/plans/${plan.id}`);
     } catch (error) {
@@ -96,7 +116,6 @@ export function CreatePlanDialog({
         className="button button--primary"
         type="button"
         onClick={() => setOpen(true)}
-        disabled={!activeLedgers.length}
       >
         <CalendarPlus /> Yeni Plan
       </button>
@@ -124,45 +143,86 @@ export function CreatePlanDialog({
             >
               <X />
             </button>
-            <span className="eyebrow">Yeni iliştirilmiş not</span>
+            <span className="eyebrow">Yeni Plan</span>
             <h2 id="new-plan-title">Sıradaki plan ne?</h2>
-            <p>Planı bir deftere bağla; tarihleri istersen sonra netleştir.</p>
+            <p>Bağımsız başla veya düzenli bir hesabın Defterine bağla.</p>
             <form onSubmit={handleSubmit(onSubmit)} className="stack-form">
-              <label className="field">
-                <span>Bağlı defter</span>
-                {initialLedgerId ? (
-                  <input type="hidden" {...register('ledgerId')} />
-                ) : (
-                  <select
-                    className="input"
-                    aria-invalid={Boolean(errors.ledgerId)}
-                    aria-describedby={
-                      errors.ledgerId ? 'plan-ledger-error' : undefined
-                    }
-                    {...register('ledgerId')}
-                  >
-                    <option value="" disabled>
-                      Defter seç
-                    </option>
-                    {activeLedgers.map((ledger) => (
-                      <option value={ledger.id} key={ledger.id}>
-                        {ledger.name}
-                      </option>
-                    ))}
-                  </select>
-                )}
-                {initialLedgerId ? (
-                  <div className="context-note">
-                    {activeLedgers.find(
-                      (ledger) => ledger.id === initialLedgerId,
-                    )?.name ?? 'Seçili Defter'}{' '}
-                    içinde oluşturulacak.
+              {!initialLedgerId ? (
+                <fieldset className="field">
+                  <legend>Plan kapsamı</legend>
+                  <div className="segmented-control">
+                    <button
+                      className={standalone ? 'is-active' : ''}
+                      type="button"
+                      aria-pressed={standalone}
+                      onClick={() => setStandalone(true)}
+                    >
+                      Bağımsız
+                    </button>
+                    <button
+                      className={!standalone ? 'is-active' : ''}
+                      type="button"
+                      aria-pressed={!standalone}
+                      disabled={!activeLedgers.length}
+                      onClick={() => setStandalone(false)}
+                    >
+                      Deftere bağlı
+                    </button>
                   </div>
-                ) : null}
-                {errors.ledgerId ? (
-                  <small id="plan-ledger-error">{errors.ledgerId.message}</small>
-                ) : null}
-              </label>
+                </fieldset>
+              ) : null}
+              {!standalone ? (
+                <label className="field">
+                  <span>Bağlı Defter</span>
+                  {initialLedgerId ? (
+                    <input type="hidden" {...register('ledgerId')} />
+                  ) : (
+                    <select
+                      className="input"
+                      aria-invalid={Boolean(errors.ledgerId)}
+                      aria-describedby={
+                        errors.ledgerId ? 'plan-ledger-error' : undefined
+                      }
+                      {...register('ledgerId')}
+                    >
+                      <option value="" disabled>
+                        Defter seç
+                      </option>
+                      {activeLedgers.map((ledger) => (
+                        <option value={ledger.id} key={ledger.id}>
+                          {ledger.name}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                  {initialLedgerId ? (
+                    <div className="context-note">
+                      {activeLedgers.find(
+                        (ledger) => ledger.id === initialLedgerId,
+                      )?.name ?? 'Seçili Defter'}{' '}
+                      içinde oluşturulacak.
+                    </div>
+                  ) : null}
+                  {errors.ledgerId ? (
+                    <small id="plan-ledger-error">
+                      {errors.ledgerId.message}
+                    </small>
+                  ) : null}
+                </label>
+              ) : (
+                <label className="field field--short">
+                  <span>Para birimi</span>
+                  <input
+                    className="input"
+                    maxLength={3}
+                    aria-invalid={Boolean(errors.currency)}
+                    {...register('currency')}
+                  />
+                  {errors.currency ? (
+                    <small>{errors.currency.message}</small>
+                  ) : null}
+                </label>
+              )}
               <label className="field">
                 <span>Plan adı</span>
                 <input

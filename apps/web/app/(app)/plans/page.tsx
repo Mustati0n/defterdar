@@ -59,12 +59,12 @@ function PlansContent() {
               ledgers={ledgers.data ?? []}
               defaultOpen
               initialLedgerId={searchParams.get('ledgerId') ?? ''}
+              defaultStandalone={searchParams.get('standalone') === '1'}
             />
           ) : (
             <button
               className="button button--primary"
               type="button"
-              disabled={!ledgers.data?.length}
               onClick={() => setCreatorRequested(true)}
             >
               <CalendarPlus /> Yeni Plan
