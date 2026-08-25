@@ -38,6 +38,7 @@ import {
 } from '@/lib/format';
 import { AnalyticsExperience } from '@/features/analytics/analytics-experience';
 import { CategoryManager } from '@/features/settings/category-manager';
+import { PageIntro } from '@/features/page-intro/page-intro';
 
 const primarySharedViews = [
   { id: 'general', label: 'Genel', icon: BookOpenText },
@@ -361,17 +362,26 @@ export default function LedgerDetailPage() {
       ) : null}
       {activeView === 'activity' ? <ActivityFeed ledgerId={ledgerId} /> : null}
       {activeView === 'balances' && data.type === 'SHARED' ? (
-        <BalanceExperience
-          scope="ledger"
-          ledgerId={ledgerId}
-          balance={balance.data}
-          isLoading={balance.isLoading}
-          isError={balance.isError}
-          onRetry={() => void balance.refetch()}
-          currentUserId={user?.id ?? ''}
-          role={data.role}
-          mutationsDisabled={Boolean(data.archivedAt)}
-        />
+        <>
+          <PageIntro
+            pageKey="balances"
+            title="Bakiye, ortak hesabın bugünkü sonucudur."
+            steps={[
+              'Artı tutar alacağını, eksi tutar yapman gereken ödemeyi gösterir; önerilen ödeme kayıtları hesabı sadeleştirir.',
+            ]}
+          />
+          <BalanceExperience
+            scope="ledger"
+            ledgerId={ledgerId}
+            balance={balance.data}
+            isLoading={balance.isLoading}
+            isError={balance.isError}
+            onRetry={() => void balance.refetch()}
+            currentUserId={user?.id ?? ''}
+            role={data.role}
+            mutationsDisabled={Boolean(data.archivedAt)}
+          />
+        </>
       ) : null}
       {activeView === 'analytics' ? (
         <AnalyticsExperience

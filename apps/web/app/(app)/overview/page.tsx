@@ -16,10 +16,12 @@ import { useOverview } from '@/features/data/hooks';
 import { useAuth } from '@/features/auth/auth-provider';
 import { formatMoneyFromMinor } from '@/lib/format';
 import { activitySentence } from '@/lib/activity';
+import { useInterfacePreferences } from '@/features/preferences/use-interface-preferences';
 
 export default function OverviewPage() {
   const { user } = useAuth();
   const overview = useOverview();
+  const { preferences } = useInterfacePreferences(user?.id);
   const activeLedgers = overview.data?.ledgers.filter(
     (ledger) => !ledger.archivedAt,
   );
@@ -119,7 +121,7 @@ export default function OverviewPage() {
         </section>
       ) : null}
 
-      {activeLedgers?.length ? (
+      {preferences.overview.ledgers && activeLedgers?.length ? (
         <section className="overview-section">
           <div className="section-heading">
             <div>
@@ -136,7 +138,7 @@ export default function OverviewPage() {
             ))}
           </div>
         </section>
-      ) : (
+      ) : preferences.overview.ledgers ? (
         <section className="overview-empty" aria-label="Defter başlangıcı">
           <BookOpenText />
           <div>
@@ -159,9 +161,9 @@ export default function OverviewPage() {
             Bağımsız Plan
           </Link>
         </section>
-      )}
+      ) : null}
 
-      {activePlans.length ? (
+      {preferences.overview.plans && activePlans.length ? (
         <section className="overview-section overview-plans">
           <div className="section-heading">
             <div>
@@ -187,7 +189,8 @@ export default function OverviewPage() {
         </section>
       ) : null}
 
-      {overview.data?.activity?.items.length ? (
+      {preferences.overview.activity &&
+      overview.data?.activity?.items.length ? (
         <section className="activity-paper overview-section">
           <div className="section-heading">
             <div>

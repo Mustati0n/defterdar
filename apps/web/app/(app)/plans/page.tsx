@@ -16,6 +16,7 @@ import { EmptyState, ErrorState, LoadingState } from '@/components/ui/states';
 import { useAllPlans, useLedgers } from '@/features/data/hooks';
 import type { PlanStatus } from '@/lib/types';
 import { PlanEmptyState } from '@/features/empty-states/collection-empty-states';
+import { PageIntro } from '@/features/page-intro/page-intro';
 
 const CreatePlanDialog = dynamic(
   () =>
@@ -48,6 +49,14 @@ function PlansContent() {
 
   return (
     <>
+      <PageIntro
+        pageKey="plans"
+        title="Planlar etkinliklerin kısa süreli çalışma alanıdır."
+        steps={[
+          'Planı bağımsız başlatabilir veya en baştan bir Deftere bağlayabilirsin.',
+          'Bağımsız bir Planı daha sonra uygun para birimli bir Deftere güvenle bağlayabilirsin.',
+        ]}
+      />
       <PageHeading
         eyebrow="Planlar"
         title="Planlarını ve hesaplarını birlikte yönet"

@@ -41,6 +41,7 @@ import {
 } from '@/lib/format';
 import { BalanceExperience } from '@/features/financial/balance-experience';
 import { AnalyticsExperience } from '@/features/analytics/analytics-experience';
+import { PageIntro } from '@/features/page-intro/page-intro';
 
 const primaryViews = [
   { id: 'general', label: 'Genel', icon: CheckSquare2 },
@@ -275,25 +276,34 @@ export default function PlanDetailPage() {
         <ActivityFeed ledgerId={data.ledgerId} planId={planId} />
       ) : null}
       {activeView === 'balances' ? (
-        <BalanceExperience
-          scope="plan"
-          ledgerId={data.ledgerId}
-          planId={planId}
-          balance={balance.data}
-          isLoading={balance.isLoading}
-          isError={balance.isError}
-          onRetry={() => void balance.refetch()}
-          currentUserId={user?.id ?? ''}
-          role={
-            data.scope === 'STANDALONE' && data.createdById === user?.id
-              ? 'OWNER'
-              : (ledger.data?.role ?? 'MEMBER')
-          }
-          mutationsDisabled={Boolean(
-            ledger.data?.archivedAt || data.status === 'ARCHIVED',
-          )}
-          planStatus={data.status}
-        />
+        <>
+          <PageIntro
+            pageKey="balances"
+            title="Plan hesabı yalnız bu Planın kayıtlarını kapsar."
+            steps={[
+              'Ödeme önerileri Plan harcamaları ve ödeme kayıtlarından hesaplanır; Defterin diğer hareketleri bu sonuca karışmaz.',
+            ]}
+          />
+          <BalanceExperience
+            scope="plan"
+            ledgerId={data.ledgerId}
+            planId={planId}
+            balance={balance.data}
+            isLoading={balance.isLoading}
+            isError={balance.isError}
+            onRetry={() => void balance.refetch()}
+            currentUserId={user?.id ?? ''}
+            role={
+              data.scope === 'STANDALONE' && data.createdById === user?.id
+                ? 'OWNER'
+                : (ledger.data?.role ?? 'MEMBER')
+            }
+            mutationsDisabled={Boolean(
+              ledger.data?.archivedAt || data.status === 'ARCHIVED',
+            )}
+            planStatus={data.status}
+          />
+        </>
       ) : null}
       {activeView === 'analytics' ? (
         <AnalyticsExperience

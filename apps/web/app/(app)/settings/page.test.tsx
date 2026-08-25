@@ -16,6 +16,9 @@ jest.mock('@/features/settings/profile-form', () => ({
 jest.mock('@/features/settings/category-manager', () => ({
   CategoryManager: () => <div>Kategori yönetimi</div>,
 }));
+jest.mock('@/features/preferences/interface-preferences-panel', () => ({
+  InterfacePreferencesPanel: () => <div>Arayüz tercihleri</div>,
+}));
 
 describe('settings hub', () => {
   it('replays the real onboarding tour from Overview', () => {

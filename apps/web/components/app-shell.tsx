@@ -23,6 +23,7 @@ import { SignatureLine } from './signature-line';
 import { OnboardingExperience } from '@/features/onboarding/onboarding-experience';
 import { useProtectedRoute } from '@/features/auth/use-protected-route';
 import { FloatingQuickAdd } from './floating-quick-add';
+import { InterfacePreferencesEffect } from '@/features/preferences/interface-preferences-effect';
 
 const navigation = [
   { href: '/overview', label: 'Özet', icon: LayoutDashboard },
@@ -160,6 +161,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       </main>
       <FloatingQuickAdd key={pathname} />
+      <InterfacePreferencesEffect />
       <OnboardingExperience />
     </div>
   );

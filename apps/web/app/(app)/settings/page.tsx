@@ -6,6 +6,7 @@ import { PageHeading } from '@/components/page-heading';
 import { useAuth } from '@/features/auth/auth-provider';
 import { useOnboarding } from '@/features/onboarding/use-onboarding';
 import { ProfileForm } from '@/features/settings/profile-form';
+import { InterfacePreferencesPanel } from '@/features/preferences/interface-preferences-panel';
 
 export default function SettingsPage() {
   const { user } = useAuth();
@@ -22,6 +23,7 @@ export default function SettingsPage() {
       />
       <div className="settings-hub">
         <ProfileForm />
+        <InterfacePreferencesPanel />
         <section
           className="paper-section experience-settings"
           aria-labelledby="experience-heading"

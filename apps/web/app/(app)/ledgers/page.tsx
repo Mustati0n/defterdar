@@ -15,6 +15,7 @@ import { PageHeading } from '@/components/page-heading';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/states';
 import { useLedgers } from '@/features/data/hooks';
 import { LedgerEmptyState } from '@/features/empty-states/collection-empty-states';
+import { PageIntro } from '@/features/page-intro/page-intro';
 
 type Filter = 'recent' | 'mine' | 'archived';
 
@@ -52,6 +53,14 @@ function LedgersContent() {
 
   return (
     <>
+      <PageIntro
+        pageKey="ledgers"
+        title="Defterler uzun süreli kayıt alanlarındır."
+        steps={[
+          'Ortak giderleri veya yalnız sana ait kayıtları bir Defterde uzun süre tutabilirsin.',
+          'Kişisel Defter isteğe bağlıdır; yalnız gerçekten gerektiğinde oluşturulur.',
+        ]}
+      />
       <PageHeading
         eyebrow="Defterler"
         title="Kişisel ve ortak hesapların"
