@@ -8,6 +8,8 @@ import {
   type PageIntroKey,
 } from '@/lib/page-intros';
 
+const completedServerSnapshot = { step: 0, complete: true } as const;
+
 export function usePageIntro(
   userId: string | undefined,
   pageKey: PageIntroKey,
@@ -15,7 +17,7 @@ export function usePageIntro(
   const state = useSyncExternalStore(
     subscribeToPageIntros,
     () => getPageIntroState(userId, pageKey),
-    () => ({ step: 0, complete: true }),
+    () => completedServerSnapshot,
   );
   const goTo = useCallback(
     (step: number) => {

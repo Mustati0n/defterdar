@@ -61,6 +61,18 @@ export class ExpenseResponseDto {
   @ApiPropertyOptional({ nullable: true }) voidedAt!: Date | null;
   @ApiProperty({ minimum: 1 }) version!: number;
   @ApiProperty({ minimum: 0 }) attachmentCount!: number;
+  @ApiProperty({
+    enum: ['OWNER', 'ADMIN', 'MEMBER', 'PLAN_CREATOR', 'PARTICIPANT'],
+  })
+  accessRole!: string;
+  @ApiPropertyOptional({ nullable: true }) ledgerArchivedAt!: Date | null;
+  @ApiPropertyOptional({
+    enum: ['ACTIVE', 'COMPLETED', 'ARCHIVED'],
+    nullable: true,
+  })
+  planStatus!: string | null;
+  @ApiPropertyOptional({ format: 'uuid', nullable: true })
+  planCreatedById!: string | null;
   @ApiProperty({ type: ExpenseSplitResponseDto, isArray: true })
   splits!: ExpenseSplitResponseDto[];
 }

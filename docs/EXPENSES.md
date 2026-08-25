@@ -1,13 +1,34 @@
 # Harcamalar
 
-`Expense` gerçek ödeme olayını, `ExpenseSplit` ise bu olayın kişiler arasındaki dağılımını temsil eder. Tutarlar API ve veritabanında minor unit integer olarak saklanır; float para hesabı yapılmaz.
+Expense gerçek ödeme olayını, ExpenseSplit kişiler arasındaki dağılımı temsil
+eder. Tutarlar minor unit integer'dır; float para hesabı yapılmaz.
 
-EQUAL, EXACT, PERCENTAGE (10.000 basis point) ve SHARES split yöntemleri desteklenir. EQUAL/PERCENTAGE/SHARES deterministic largest-remainder yöntemiyle, user ID tie-break'i kullanılarak dağıtılır; split toplamı her zaman Expense toplamına eşittir.
+## Scope ve create
 
-Expense para birimini bağlı Ledger'dan snapshot alır. Payer aktif Ledger üyesi olmalıdır; Plan Expense'ta payer ve tüm split kullanıcıları aktif Plan participant olmalıdır. Gift/Ismarla harcamada tüm splitler non-reimbursable'dır; normal harcamada payer'ın kendi split'i non-reimbursable'dır.
+- `POST /ledgers/:ledgerId/expenses`: Ledger veya bağlı Plan Expense;
+- `POST /plans/:planId/expenses`: bağımsız ya da bağlı Plan context;
+- standalone: `ledgerId = null`, `planId` required, currency Plan snapshot;
+- Ledger-bound: currency Ledger snapshot.
 
-Opsiyonel Category aynı Ledger'a ait, aktif ve `EXPENSE` veya `BOTH` kind olmalıdır. Category değişikliği borç matematiğini değiştirmez ve offset financial-update kilidine dahil değildir.
+Financial DB check en az bir anlamlı Ledger/Plan scope ister. Standalone Category
+kullanmaz; Ledger Category opsiyonel, aktif ve uygun kind olmalıdır.
 
-Expense silinmez, `voidedAt` ile void edilir. Aktif Borçtan düş kaydı finansal alanların (`amountMinor`, payer, Plan, Gift ve split) değiştirilmesini engeller; metadata değişebilir. Expense void işlemi bağlı aktif offset'leri aynı transaction içinde void eder. Split response'u aktif `offsetAppliedMinor` ve `remainingReimbursableMinor` değerlerini taşır.
+Payer ve split kullanıcıları scope'ta aktif olmalıdır. Plan Expense için ayrıca
+PlanParticipant olmaları ve Plan'ın ACTIVE olması gerekir. EQUAL, EXACT,
+PERCENTAGE (10.000 bps) ve SHARES aynı deterministic calculator'ı kullanır.
+Gift/Ismarla tüm splitleri; normal Expense payer splitini non-reimbursable yapar.
 
-Her Expense `version` ile optimistic concurrency uygular. PATCH mevcut `expectedVersion` değerini ister; stale update `409` döner, başarılı update version'ı artırır. Create retry'ları opsiyonel `Idempotency-Key` ile deduplicate edilir.
+## Mutation ve güvenlik
+
+Expense + splits aynı transaction'da create/update edilir. `expectedVersion`
+stale writer'ı `409` ile engeller; invalid update eski state'i değiştirmez.
+Update/void OWNER, ADMIN, Plan creator veya Expense creator'a açıktır; payer tek
+başına edit hakkı değildir. Hard delete yoktur, `voidedAt` kullanılır.
+
+Aktif offset finansal alan güncellemesini kilitler; Expense void aynı transaction
+içinde offsetleri de void eder. Financial create Idempotency-Key'i operation
+scope'a Ledger veya Plan ID'sini dahil eder.
+
+Attachment lifecycle Expense'a bağlı olduğundan standalone'da da aynıdır:
+server key, MIME/size allowlist, en fazla beş aktif reservation, presigned
+upload/download ve soft remove.

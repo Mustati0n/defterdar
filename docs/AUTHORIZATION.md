@@ -1,57 +1,46 @@
-# Defter Yetkilendirmesi
+# Yetkilendirme
 
-SHARED Defter için aktif üyelik matrisi:
+## Ledger
 
 | İşlem             | OWNER | ADMIN | MEMBER |
 | ----------------- | :---: | :---: | :----: |
 | Oku               |   ✓   |   ✓   |   ✓    |
 | Metadata düzenle  |   ✓   |   ✓   |   —    |
-| Üyeleri listele   |   ✓   |   ✓   |   ✓    |
 | Davet yönet       |   ✓   |   ✓   |   —    |
-| Rol değiştir      |   ✓   |   —   |   —    |
-| Üye çıkar         |   ✓   |   —   |   —    |
-| Ownership devret  |   ✓   |   —   |   —    |
+| Rol/ownership     |   ✓   |   —   |   —    |
 | Archive/unarchive |   ✓   |   —   |   —    |
 | Ayrıl             |  —\*  |   ✓   |   ✓    |
 
-\* OWNER önce ownership transfer etmelidir.
+\* OWNER önce ownership transfer etmelidir. Non-member mevcut ve bilinmeyen
+resource için aynı `404`; aktif fakat yetkisiz member için `403` kullanılır.
 
-Aktif üyeliği olmayan kullanıcı için hem var olan hem bilinmeyen Defter kimliği `404 Not Found` üretir. Aktif üyenin izin verilmeyen işlemi `403 Forbidden` üretir.
+Personal Defter opt-in oluşturulur, yalnız sahibinin OWNER üyeliğini taşır ve
+davet/ayrılma/transfer/archive kabul etmez. Database kullanıcı başına en fazla
+bir Personal Defter kuralını korur.
 
-Arşivlenmiş SHARED Defterde yalnız okuma, üye listeleme ve OWNER tarafından unarchive işlemi açıktır. Diğer mutation'lar engellenir.
+## Plan
 
-## PERSONAL Defter
+Ledger-bound Plan erişimi aktif membership ve mevcut role dayanır. MEMBER kendi
+oluşturduğu ACTIVE Plan'ı yönetebilir; lifecycle/participant/transfer matrisi
+mevcut Ledger yaklaşımını reuse eder.
 
-PERSONAL Defter aynı authorization katmanını kullanır ve yalnız sahibinin aktif `OWNER` üyeliğini taşır. Adı OWNER tarafından değiştirilebilir. Yeni üye, davet, rol değişikliği, üyelikten ayrılma, ownership transfer, archive veya ikinci PERSONAL Defter oluşturma desteklenmez.
+Standalone Plan creator'ı yönetici, PlanParticipant okuyucudur. Creator davet,
+metadata, lifecycle ve link işlemlerini yapar. Email-bound invitation yalnız
+eşleşen authenticated user tarafından kabul edilir. Participant olmayan kullanıcı
+standalone resource'u `404` görür.
 
-## Plan yetkilendirmesi
+## Finans
 
-Plan yetkisi daima bağlı Ledger üyeliğinden gelir. OWNER ve ADMIN Plan oluşturabilir, okuyabilir, güncelleyebilir, complete/reopen/archive/unarchive yapabilir ve participant yönetebilir. MEMBER Plan oluşturup okuyabilir; yalnız kendi oluşturduğu ACTIVE Plan'ı güncelleyebilir, tamamlayabilir ve participant yönetebilir. MEMBER reopen, archive, unarchive veya Plan taşıyamaz.
+- Expense create scope üyesi/participant'a; update/void OWNER, ADMIN, Plan
+  creator veya Expense creator'a açıktır.
+- Settlement create OWNER/ADMIN, standalone Plan creator veya involved party'ye;
+  void yönetici ya da Settlement creator'a açıktır.
+- Offset create OWNER/ADMIN/Plan creator, Expense creator veya payer'a; void
+  bunlara ek offset creator'a açıktır.
+- Income update/void OWNER/ADMIN/Plan creator veya Income creator'a açıktır.
+- Attachment read Expense reader'a; reserve/complete/remove yönetici veya
+  Expense creator'a açıktır.
 
-Plan taşıma yalnız source Ledger OWNER'ına açıktır ve actor target Ledgerde OWNER ya da ADMIN olmalıdır. Archived Ledger veya archived Plan mutation'ları engeller.
-
-## Expense yetkilendirmesi
-
-Aktif Ledger üyesi Expense oluşturabilir ve okuyabilir. Update/void yalnız OWNER, ADMIN veya Expense creator'a açıktır; payer olmak tek başına bu izni vermez. Non-member Expense kimlikleri `404` ile gizlenir.
-
-## Settlement ve Borçtan düş
-
-Settlement create OWNER, ADMIN veya işlemin `fromUser`/`toUser` tarafına; void OWNER, ADMIN veya Settlement creator'a açıktır. Unrelated MEMBER `403`, non-member `404` alır.
-
-Offset availability aktif üyelerce okunabilir. Offset create OWNER, ADMIN, Expense creator veya payer'a; void bunlara ek olarak offset creator'a açıktır. Split user olmak tek başına mutation izni vermez.
-
-## Category ve Income
-
-Category create/update/archive OWNER ve ADMIN'e, listeleme aktif üyelere açıktır. Income'u aktif üye oluşturabilir ve okuyabilir; update/void OWNER, ADMIN veya Income creator'a açıktır. Non-member kaynak kimlikleri `404` ile gizlenir.
-
-## Receipt attachment
-
-Expense'ı okuyabilen aktif Ledger üyesi READY receipt URL'si alabilir. Reservation, complete ve remove OWNER, ADMIN veya Expense creator'a açıktır. Voided Expense ve archived Ledger yeni reservation kabul etmez.
-
-## Activity
-
-Aktif Ledger üyesi bounded, cursor-paginated activity stream'ini okuyabilir; archived Ledger read desteklenir. Activity için create/update/delete public endpoint'i yoktur.
-
-## Analytics
-
-Ledger ve Plan analytics, ilgili Ledger'ın aktif üyelerine açıktır. Non-member hem mevcut hem rastgele scope için `404` alır; Balance read yaklaşımı reuse edilir.
+ACTIVE/COMPLETED/ARCHIVED lifecycle ve archive kontrolleri her mutation'da
+uygulanır. Standalone Activity, Balance ve Analytics Plan access yaklaşımını;
+Ledger-bound kaynaklar Ledger authorization yaklaşımını reuse eder.

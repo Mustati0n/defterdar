@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react';
-import { useExpense, useLedger, usePlan, useVoidExpense } from '@/features/data/hooks';
+import { useExpense, useVoidExpense } from '@/features/data/hooks';
 import ExpenseDetailPage from './page';
 
 jest.mock('next/navigation', () => ({
@@ -7,8 +7,6 @@ jest.mock('next/navigation', () => ({
 }));
 jest.mock('@/features/data/hooks', () => ({
   useExpense: jest.fn(),
-  useLedger: jest.fn(),
-  usePlan: jest.fn(),
   useVoidExpense: jest.fn(),
 }));
 jest.mock('@/features/auth/auth-provider', () => ({
@@ -46,17 +44,15 @@ describe('Expense detail context and terminology', () => {
         expenseDate: '2026-08-24',
         voidedAt: null,
         version: 1,
+        accessRole: 'OWNER',
+        ledgerArchivedAt: null,
+        planStatus: 'ACTIVE',
+        planCreatedById: 'me',
         splits: [],
       },
       isLoading: false,
       isError: false,
     } as unknown as ReturnType<typeof useExpense>);
-    jest.mocked(useLedger).mockReturnValue({
-      data: { role: 'OWNER', archivedAt: null },
-    } as ReturnType<typeof useLedger>);
-    jest.mocked(usePlan).mockReturnValue({
-      data: { status: 'ACTIVE' },
-    } as ReturnType<typeof usePlan>);
     jest.mocked(useVoidExpense).mockReturnValue({
       mutate: jest.fn(),
       isPending: false,

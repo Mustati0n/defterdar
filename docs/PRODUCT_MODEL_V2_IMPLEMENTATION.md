@@ -9,7 +9,7 @@ Baseline: `f211a9c chore: complete ux performance remediation`
 - [x] E — Overview / cards / spacing redesign
 - [x] F — Page intros + interface preferences
 - [x] G — Analytics / scope redesign
-- [ ] H — Full QA / regression / final push
+- [x] H — Full QA / regression / final push
 
 ## Safety constraints
 
@@ -35,3 +35,16 @@ Baseline: `f211a9c chore: complete ux performance remediation`
 - Sidebar and floating quick-add remain duplicate creation entry points for now;
   their relative discoverability is a manual QA item rather than a guessed
   telemetry decision.
+
+## Milestone H verification state
+
+- Node runtime is pinned and verified at `24.19.0`.
+- Fresh PostgreSQL migration and current development migration status pass.
+- Automated regression passes: frontend `131/131`, backend `81/81`, lint and
+  production build.
+- Prisma schema validation, all 12 PostgreSQL migrations and the real HTTP e2e
+  smoke path pass. The API suite provisions a fresh test database and deploys
+  the migration chain before exercising the server through HTTP.
+- Bundle/request re-measure is recorded in `docs/PERFORMANCE_R4.md`.
+- Browser/device execution is not available in this environment:
+  **MANUAL VISUAL QA NOT EXECUTED**.

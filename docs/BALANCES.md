@@ -1,9 +1,19 @@
 # Balances
 
-Balance mutable bir tablo değil; void edilmemiş Expense/reimbursable ExpenseSplit ve Settlement olaylarından türetilen projection'dır. `netMinor > 0` alacak, `netMinor < 0` borç, `0` denge anlamına gelir ve tüm pozisyonların toplamı daima sıfırdır. Settlement göndereni `+amountMinor`, alanı `-amountMinor` etkiler; void edilmiş Settlement yok sayılır.
+Balance mutable tablo değildir. Voided olmayan reimbursable ExpenseSplit ve
+Settlement olaylarından türetilir. `netMinor > 0` alacak, `< 0` ödeme, `0` kapalı
+hesap anlamına gelir; toplam her zaman sıfırdır.
 
-Ledger scope doğrudan Ledger ve bütün alt Plan Expense'larını; Plan scope yalnız seçilen Plan Expense'larını içerir. Gift/Ismarla, payer'ın kendi split'i ve void edilmiş Expense balance üretmez.
+Ledger projection Ledger ve bağlı Plan kayıtlarını kapsar. Plan projection,
+Plan bağımsız veya bağlı olsun yalnız o Plan'ın Expense ve Settlement'larını
+kapsar. Gift, payer'ın kendi split'i, Income ve voided olaylar Balance üretmez.
 
-Settlement suggestions veritabanına yazılmaz ve ödeme değildir. Borçlular/alacaklılar absolute amount descending, user ID ascending sırasıyla deterministic greedy eşleştirilir; bu debt simplification sağlar ancak global minimum transfer sayısı garantisi vermez. Gerçek `Settlement`, ilgili scope projection'ındaki debtor→creditor yönü ve mevcut maksimum ile Serializable transaction içinde doğrulanır.
+Settlement suggestion persistent ödeme değildir. Gerçek Settlement debtor →
+creditor yönü ve maksimum mevcut borçla Serializable transaction içinde
+doğrulanır. Standalone endpoint `POST /plans/:planId/settlements` participant,
+lifecycle, creator/involved-party yetkisi ve overpayment koruması uygular.
 
-`ExpenseSplitOffset` (Borçtan düş) ödeme değildir ve balance'a ikinci kez etki etmez. Hedef Expense hariç projection'da payer→split user suggestion'ı varsa, aktif offset toplamı split tutarı ve bu önceki suggestion ile sınırlanır.
+`ExpenseSplitOffset` (Borçtan düş) ödeme değildir ve projection'a ikinci kez
+eklenmez. Hedef Expense hariç aynı finansal scope'taki ters suggestion üzerinden
+eligibility hesaplanır. Full/partial create, history, void ve concurrent apply
+aynı aggregate limitlerini korur.

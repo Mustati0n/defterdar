@@ -257,6 +257,10 @@ export interface Expense {
   voidedAt: string | null;
   version: number;
   attachmentCount?: number;
+  accessRole?: LedgerRole | 'PLAN_CREATOR' | 'PARTICIPANT';
+  ledgerArchivedAt?: string | null;
+  planStatus?: PlanStatus | null;
+  planCreatedById?: string | null;
   splits: ExpenseSplit[];
 }
 

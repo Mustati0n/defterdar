@@ -1,14 +1,19 @@
 # Analytics
 
-`GET /ledgers/:ledgerId/analytics/summary` ve `GET /plans/:planId/analytics/summary` persistent analytics tablosu kullanmadan mevcut Expense, ExpenseSplit ve Income kayıtlarından projection üretir. Opsiyonel `from`/`to` inclusive UTC timestamp'tir ve `from <= to` olmalıdır. Monthly bucket `YYYY-MM` UTC takvim ayıdır.
+`GET /ledgers/:ledgerId/analytics/summary` ve
+`GET /plans/:planId/analytics/summary` persistent analytics tablosu olmadan
+Expense, ExpenseSplit ve Income'dan projection üretir. Plan endpoint'i bağımsız
+Plan için Ledger dependency taşımaz ve currency olarak `Plan.currency` kullanır.
 
-Response currency, total Expense/Income, net cashflow, counts, category/month grouping, payer (`paidByMember`), split payı (`shareByMember`) ve date filtresinden bağımsız current Balance içerir. Tutarlar decimal minor-unit string'dir.
+Opsiyonel `from`/`to` inclusive UTC timestamp'tir. Response total expense,
+income, net cashflow, counts, category/month/member dağılımı ve tarih filtresinden
+bağımsız current Balance içerir. Voided kayıtlar hariç, Gift spending'e dahil;
+Settlement ve Offset analytics amount değildir.
 
-Kurallar:
+Web selector yalnız API'den gelen gerçek kaynakları iki grupta gösterir:
+Defterler ve Planlar (standalone + bağlı). Personal Defter yalnız gerçekten
+varsa görünür. Son hedef kullanıcı bazlı saklanır; hedef yoksa sahte default
+yerine dürüst empty state gösterilir. Farklı currency'ler aggregate edilmez.
 
-- Voided Expense ve Income hariçtir.
-- Gift gerçek spending olduğu için Expense, category, paid/share toplamına dahildir.
-- Settlement cashflow geliri/harcaması değildir; analytics totaline girmez.
-- ExpenseSplitOffset yalnız reconciliation metadata'sıdır; analytics amount üretmez.
-- Plan endpoint'i yalnız o Plan'ın Expense/Income kayıtlarını kapsar.
-- `paid` payer'ın Expense toplamı, `share` ExpenseSplit toplamıdır; debt/reimbursable anlamına gelmez.
+Hazır dönemler ve custom tarih kontrolleri adaptive page header içinde kalır.
+Completed standalone veya bağlı Plan aynı final-summary davranışını kullanır.

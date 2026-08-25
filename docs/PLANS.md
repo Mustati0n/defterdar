@@ -1,25 +1,46 @@
 # Planlar
 
-## Hiyerarşi
+## Kapsam
 
 ```text
-Ledger
-└── Plan
-    └── PlanParticipant
+Standalone Plan                 Ledger-bound Plan
+Plan.currency                   Ledger.currency snapshot
+ledgerId = null                 ledgerId = Ledger
+PlanParticipant                 active Ledger member + PlanParticipant
 ```
 
-Plan yalnız Ledger altında oluşturulur. PERSONAL Ledger altında oluşturulan Plan, hızlı kişisel kullanımın normal Plan karşılığıdır; orphan Plan yoktur.
+`POST /plans` bağımsız, `POST /ledgers/:ledgerId/plans` bağlı Plan oluşturur.
+Creator aynı transaction'da participant olur. Bağımsız Plan list/read işlemleri
+creator veya participant'a; bağlı Plan erişimi aktif Ledger üyeliğine açıktır.
+Non-member mevcut ve rastgele resource aynı `404` sonucunu verir.
 
-## Lifecycle
+## Davet ve participant
 
-`ACTIVE → COMPLETED → ACTIVE` geçişi complete/reopen endpointleriyle yapılır. Archive, Plan'ı `ARCHIVED` ve `archivedAt` dolu duruma getirir. Unarchive her zaman `ACTIVE` ve `archivedAt: null` sonucunu üretir. Archived Plan okunur fakat metadata ve participant mutation'ları kapalıdır.
+Bağımsız davet normalize email'e bağlıdır. Raw token yalnız create response'unda
+bulunur; veritabanında SHA-256 hash tutulur. Kabul authenticated kullanıcının
+email'iyle eşleşir ve invitation claim ile participant create atomiktir. Guest
+financial participant yoktur.
 
-## Katılımcılar
+Bağlı Plan participant'ı aktif Ledger üyesi olmalıdır. Historical participant
+kayıtları membership değişiminde topluca silinmez.
 
-Creator Plan oluşturulurken otomatik participant olur. Katılımcı gerçek bir User ve aktif Ledger üyesi olmalıdır; aynı kullanıcı bir Plan'a bir kez eklenebilir. Üyelikten ayrılma tarihsel participant kaydını silmez, fakat kullanıcıyı yeni participant yapmayı veya Plan mutation'ını engeller.
+## Lifecycle ve finans
 
-## Yetki ve taşıma
+`ACTIVE → COMPLETED → ACTIVE`; archive `ARCHIVED` ve `archivedAt` üretir.
+Expense/Income yalnız ACTIVE durumda, Settlement ACTIVE veya COMPLETED durumda
+kaydedilir. Balance, Activity ve Analytics bağımsız Plan için Ledger'a ihtiyaç
+duymaz ve yalnız ilgili Plan kayıtlarını kapsar.
 
-OWNER/ADMIN tüm Plan yönetimini yapar. MEMBER yalnız kendi oluşturduğu ACTIVE Plan'da metadata ve participant yönetimi yapabilir; kendi Planını complete edebilir. Plan taşıma yalnız source OWNER'a açıktır ve target Ledgerde OWNER/ADMIN rolü gerekir. Tüm participant'lar target'ın aktif üyesi değilse taşıma `409 Conflict` ile reddedilir; participant otomatik silinmez.
+## Deftere bağlama
 
-Plan Expense ve yeni Income yalnız ACTIVE durumda oluşturulur. Settlement ACTIVE ve COMPLETED Plan'da kaydedilebilir; ARCHIVED Plan mutation kabul etmez. Plan Balance ve Analytics yalnız ilgili Plan'ın kayıtlarını kapsar.
+Yalnız ACTIVE standalone Plan bağlanabilir. Hedef:
+
+- arşivlenmemiş Shared Ledger olmalı;
+- Plan ile aynı currency'yi taşımalı;
+- bütün participant'ları aktif Ledger member olarak içermeli;
+- actor için gerekli yönetim yetkisini sağlamalıdır.
+
+Link transaction Plan, Expense, Income ve Settlement `ledgerId` alanlarını
+birlikte günceller. Herhangi bir validation/concurrency hatası `409` üretir ve
+partial state bırakmaz. Immutable Activity satırları taşınmaz; link olayı hedef
+Ledger'a eklenir, eski standalone eventler Plan scope'ta kalır.

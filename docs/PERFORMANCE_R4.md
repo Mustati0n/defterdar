@@ -68,3 +68,40 @@ now explicitly a system stack; no unrequested web-font cost was added.
 - No speculative Expense form memo tree was added without profiler evidence;
   route/form code splitting produced the measurable gain while preserving R3
   behavior.
+
+## Product Model V2 re-measure
+
+Node `24.19.0` üzerinde aynı production build ve gzip-union yöntemiyle ölçüldü.
+V2, standalone Plan domain'i ile adaptive UI/guidance sistemlerini eklerken R4'ün
+route-level code-splitting kazanımlarını korur.
+
+| Route                 | R4 before |  R4 after |  V2 final | V2 vs R4 after | V2 vs R4 before |
+| --------------------- | --------: | --------: | --------: | -------------: | --------------: |
+| `/login`              | 268,040 B | 268,415 B | 269,961 B |       +1,546 B |        +1,921 B |
+| `/ledgers`            | 288,947 B | 213,412 B | 216,427 B |       +3,015 B |       -72,520 B |
+| `/plans`              | 288,785 B | 213,118 B | 216,195 B |       +3,077 B |       -72,590 B |
+| `/expenses/new` shell | 289,101 B | 210,778 B | 212,639 B |       +1,861 B |       -76,462 B |
+| `/incomes/new` shell  | 285,926 B | 210,778 B | 212,639 B |       +1,861 B |       -73,287 B |
+
+| Metric     | R4 before | R4 after |  V2 final | V2 vs R4 after |
+| ---------- | --------: | -------: | --------: | -------------: |
+| Client TSX |   37 / 75 |  36 / 77 |   41 / 94 |        +5 / 17 |
+| Global CSS | 101,823 B | 98,694 B | 108,568 B |       +9,874 B |
+
+V2'nin ölçülen ek maliyeti FAB, adaptive header, page intro ve user-scoped
+preference istemci sınırlarından gelir. Ledger, Plan, Expense ve Income route'ları
+yine R4 öncesinden 72–76 KB daha küçüktür. Global CSS görsel sistem genişlemesiyle
+R4 sonrasından büyümüş, R4 öncesinin de 6,745 byte üzerine çıkmıştır; bu fark
+saklanmamış ve pazarlama skoruna çevrilmemiştir.
+
+### V2 request formulas
+
+| Surface                | V2 final                                       |
+| ---------------------- | ---------------------------------------------- |
+| Overview initial       | `1` aggregate API request                      |
+| Plan list initial      | `2` (`ledgers` + user Plans), `L`'den bağımsız |
+| Expense detail initial | `2` (`expense` + attachments)                  |
+
+Expense response artık erişim rolü ile Ledger/Plan lifecycle snapshot'larını
+taşıdığı için detail route ayrı Ledger veya Plan isteği yapmaz. Availability
+yalnız kullanıcı ilgili Borçtan düş aksiyonunu açtığında istenir.

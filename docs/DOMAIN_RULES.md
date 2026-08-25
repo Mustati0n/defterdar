@@ -1,43 +1,54 @@
 # Domain Kuralları
 
-1. Defter uzun süreli ana çalışma alanıdır ve `PERSONAL` veya `SHARED` türündedir.
-2. Plan bir Defter'in alt öğesidir. Plan–Defter bağı açık tutulur; taşınma geçmiş kayıtlar gözetilerek ayrı bir uygulama işlemi olacaktır.
-3. Defter üyeliği User ile Defter arasında ayrı bir kayıttır. Aynı kullanıcı aynı Defter'de birden fazla aktif üyelik taşıyamaz.
-4. Plan katılımcıları Defter üyelerinin tamamı olmak zorunda değildir. Katılımcı kayıtlı bir kullanıcıyı ya da tek bir misafir adını temsil eder.
-5. Para JavaScript floating-point değeriyle tutulmaz. Tutarlar para biriminin minor unit'i olarak güvenli tamsayı biçiminde işlenir (`125,50 TRY = 12550`). Para birimi her finansal olayda açıkça bulunur.
-6. `Expense` finansal olaydır; `ExpenseSplit` ise katılımcının bu olaydan doğan payıdır. Bunlar aynı nesne değildir.
-7. `Settlement`, bir kişinin diğerine yaptığı gerçek borç ödemesidir; gelir veya harcama olarak modellenmez.
-8. “Borçtan düş” geçmiş olayları düzenlemez veya silmez ve Balance'a ikinci bir etki yapmaz. Eligibility hedef Expense hariç scope projection'ından hesaplanır; yeni ve eski ters yönlü yükümlülükler korunur.
-9. “Ismarlama” geçmişte görünür bir harcama olabilir fakat seçilen kişiler için geri ödeme borcu üretmez. Finans şeması eklenmeden önce bu davranış açık bir alanla temsil edilecektir; belirsiz bir expense type yan etkisine dönüştürülmeyecektir.
-10. Bir Expense en fazla 5 attachment alabilir. PostgreSQL yalnızca metadata (`storageKey`, MIME type, boyut) tutar; dosyanın kendisi object storage'da yer alır.
-11. Finansal kayıtlarda hard delete varsayılan değildir. Expense ve Settlement gibi olaylar `voidedAt`; çalışma alanları ise gerektiğinde `archivedAt` ile etkisizleştirilir. Değişiklikler audit/activity kaydıyla izlenebilir olmalıdır.
-12. Email kimliği trim ve lowercase uygulanarak normalize edilir; normalize edilmiş değer veritabanında unique'tir.
-13. Kullanıcı `ACTIVE` veya `DISABLED` durumundadır. Disabled kullanıcı login, refresh veya korumalı endpoint erişimi yapamaz.
-14. Bir kullanıcı birden fazla AuthSession taşıyabilir. AuthSession'ın User ilişkisi `RESTRICT` silme davranışındadır; kullanıcı yaşam döngüsü finansal geçmişi cascade ile silemez.
-15. Raw refresh token kalıcı olarak saklanmaz. Her başarılı refresh eski session'ı revoke eder ve yeni bir session üretir.
-16. Her kullanıcı tam olarak bir `PERSONAL` Defterin sahibidir ve bu Defterde tam olarak bir aktif üyelik bulunur: sahibinin `OWNER` üyeliği. İkinci PERSONAL Defter, davet, ayrılma, ownership transfer ve archive yasaktır.
-17. Her Defterde `Ledger.ownerId` ile eşleşen tam olarak bir aktif `OWNER` üyeliği bulunur. SHARED ownership yalnızca ayrı transfer işlemiyle atomik olarak değiştirilir; eski OWNER `ADMIN`, hedef aktif üye `OWNER` olur.
-18. `OWNER`, `ADMIN` ve `MEMBER` yetkileri [authorization matrisi](./AUTHORIZATION.md) ile tanımlıdır. Aktif üye olmayan kullanıcıya Defterin varlığı açıklanmaz ve `404` dönülür.
-19. Üyelik çıkarma ve ayrılma hard delete yapmaz; `leftAt` ile geçmiş korunur. Aynı kullanıcı ve Defter için en fazla bir aktif üyelik olabilir.
-20. SHARED Defter daveti yalnızca `MEMBER` rolü verir. Raw davet token'ı saklanmaz; SHA-256 hash saklanır. Davet süresi dolmuş, revoke edilmiş, kabul edilmiş veya arşivlenmiş Deftere aitse kabul edilemez.
-21. Email-bound davetler normalize edilmiş email eşleşmesi ister; emailsiz davetler authenticated herhangi bir kullanıcı tarafından kabul edilebilir.
-22. Arşivlenmiş SHARED Defter ve aktif üyeleri okunabilir. Metadata güncelleme, davet oluşturma/kabul, rol değişikliği, üye çıkarma, ayrılma ve ownership transfer engellenir; yalnız OWNER unarchive edebilir.
-23. Ownership transfer, üye çıkarma, rol değişikliği ve Defter archive olayları ActivityLog eklendiğinde audit edilmelidir.
-24. Plan her zaman tam olarak bir Ledger'a bağlıdır; orphan Plan oluşturulamaz. Hızlı kişisel Plan, PERSONAL Ledger altında normal bir Plan'dır.
-25. Plan lifecycle canonical olarak `ACTIVE`, `COMPLETED`, `ARCHIVED` kullanır. `ARCHIVED` ancak `archivedAt` doluyken geçerlidir; `archivedAt` yalnız ARCHIVED durumda doludur. Unarchive Plan'ı `ACTIVE` durumuna döndürür.
-26. Plan oluşturma creator'ı atomik olarak participant yapar. Yeni participant yalnız aktif LedgerMembership sahibi gerçek kullanıcı olabilir; `(planId, userId)` unique'tir.
-27. Archived Plan veya archived parent Ledger üzerinde Plan/participant mutation yapılamaz. Archive fiziksel silme değildir; ileride Expense eklenmesi de engellenecektir.
-28. Ledger'dan ayrılan veya çıkarılan kullanıcının geçmiş PlanParticipant kaydı topluca silinmez. Ancak bu kullanıcı Plan mutation yapamaz ve yeni participant olarak eklenemez.
-29. Plan yalnız source Ledger OWNER'ı tarafından taşınabilir; actor target Ledgerde OWNER veya ADMIN olmalıdır. Tüm mevcut participant'lar target'ın aktif üyesi değilse taşıma atomik olarak reddedilir.
-30. ExpenseSplit ile referanslanan geçmiş participant ilişkileri, ileride finansal geçmişi bozacak biçimde silinemez.
-31. Expense gerçek finansal olay, ExpenseSplit ise dağılımıdır; bunlar aynı kayıt değildir. Expense ve split toplamları minor-unit integer olarak eşit olmalıdır.
-32. Gift/Ismarla Settlement veya Borçtan düş değildir: harcama geçmişte kalır, tüm splitler non-reimbursable olur.
-33. Settlement gerçek bir debtor→creditor ödemesidir. Scope net pozisyonları üzerinden doğrulanır; Income veya Expense değildir. ACTIVE ve COMPLETED Plan settlement kabul eder, ARCHIVED Plan etmez.
-34. Settlement ve ExpenseSplitOffset yarışları PostgreSQL Serializable transaction ve bounded retry ile korunur. Overpayment ve over-apply conflict üretir.
-35. Category Ledger-scoped, case-insensitive benzersiz isimli ve archive-only referans verisidir. Finans geçmişinde kullanılan Category silinmez.
-36. Income pozitif cashflow kaydıdır; Ledger currency snapshot'ı taşır fakat interpersonal Balance veya Settlement hesabına girmez.
-37. Receipt binary'si PostgreSQL'de tutulmaz. Server-generated key, allowlist MIME, configurable size ve Expense başına beş aktif attachment limiti uygulanır.
-38. ActivityLog append-only'dir. Kritik mutation ile aynı transaction'da yazılır; update/delete endpoint'i yoktur ve database trigger'ı değişikliği reddeder.
-39. Financial POST aynı user/operation/Idempotency-Key ve aynı request için tek olay üretir; key farklı body ile tekrar kullanılamaz.
-40. Expense update mevcut version'ı açıkça claim eder. Stale writer state'i değiştiremez; başarılı PATCH version'ı atomik artırır.
-41. Analytics Expense ve Income'dan türetilir. Gift spending'e dahildir; Settlement ve Offset cashflow/spending tutarı değildir; voided kayıtlar hariçtir.
+1. Yeni User sıfır Ledger ve sıfır Plan ile başlayabilir. Registration otomatik
+   Personal Ledger oluşturmaz.
+2. User isterse en fazla bir `PERSONAL` Ledger oluşturur. Var olan Personal
+   Ledgers korunur; davet, ayrılma, transfer ve archive desteklenmez.
+3. `SHARED` Ledger creator'ı atomik OWNER olur. Aktif OWNER/member invariant'ları
+   database trigger ve partial unique indexlerle korunur.
+4. Membership ve finans geçmişi hard delete edilmez; `leftAt`, `archivedAt` ve
+   `voidedAt` kullanılır.
+5. Non-member mevcut ve rastgele resource aynı `404`; aktif ama yetkisiz member
+   `403` alır.
+6. Plan `STANDALONE` (`ledgerId = null`, kendi currency'si) veya Ledger-bound
+   olabilir. Her Plan'ın creator'ı atomik participant olur.
+7. Standalone participant kayıtlı User olmalıdır. Davet normalize email-bound,
+   raw token yerine SHA-256 hash saklar; guest accounting yoktur.
+8. Standalone Plan yalnız ACTIVE iken, aynı currency'li arşivlenmemiş Shared
+   Ledger'a ve tüm participant'lar target aktif member iken bağlanabilir.
+9. Link Plan ve bütün child Expense/Income/Settlement scope'unu tek transaction'da
+   günceller. Hata partial state bırakmaz. Immutable Activity geçmişi taşınmaz.
+10. Plan lifecycle `ACTIVE`, `COMPLETED`, `ARCHIVED` kullanır. Expense/Income
+    create ACTIVE; Settlement ACTIVE/COMPLETED durumda açıktır.
+11. Para minor-unit safe integer olarak tutulur. Currency her finans olayında
+    Ledger veya standalone Plan'dan snapshot alınır; client override edemez.
+12. Expense ve ExpenseSplit aynı transaction'da oluşturulur/güncellenir. Split
+    toplamı Expense toplamına eşittir; EQUAL/EXACT/PERCENTAGE/SHARES
+    deterministic'tir.
+13. Standalone financial record `planId` taşır; Ledger-bound record `ledgerId`
+    taşır ve opsiyonel Plan'a bağlı olabilir. DB check orphan record'ı engeller.
+14. Payer ve split kişiler scope'ta aktif; Plan Expense'ta ayrıca participant
+    olmalıdır. Standalone Expense Ledger Category kullanamaz.
+15. Gift/Ismarla spending geçmişinde kalır, bütün splitleri non-reimbursable
+    yapar. Normal Expense'ta payer'ın kendi split'i non-reimbursable'dır.
+16. Expense PATCH version claim eder. Stale/invalid update state'i değiştirmez;
+    başarılı financial update splits ile atomiktir.
+17. Balance persistent tablo değildir. ExpenseSplit ve Settlement'tan zero-sum
+    türetilir. Income, Gift'in non-reimbursable payları ve voided olaylar borç
+    üretmez.
+18. Settlement gerçek debtor→creditor ödemesidir. Serializable validation
+    overpayment ve eşzamanlı aggregate aşımını engeller.
+19. Borçtan düş ödeme değildir. Hedef Expense hariç aynı scope projection'ından
+    eligibility hesaplar ve Balance/Analytics'e ikinci kez eklenmez.
+20. Income pozitif cashflow'dur. Standalone'da Plan currency taşır ve analytics
+    üretir; interpersonal Balance üretmez.
+21. Receipt binary object storage'dadır. PostgreSQL metadata/server key tutar;
+    allowlist MIME, size ve Expense başına beş aktif attachment limiti vardır.
+22. ActivityLog append-only'dir. Standalone event `planId`, bağlı event Ledger ve
+    uygun olduğunda Plan scope'u taşır. Public update/delete endpoint'i yoktur.
+23. Financial POST idempotency operation key'ine Ledger veya Plan scope ID'sini
+    dahil eder. Aynı key/farklı body conflict üretir.
+24. Analytics voided kayıtları dışlar; Gift'i spending'e dahil eder; Settlement
+    ve Offset'i cashflow olarak saymaz. Farklı currency'ler aggregate edilmez.
+25. Page intro ve UI preferences backend domain'i değildir; user ID içeren,
+    versioned, SSR-safe client keys ile saklanır ve kullanıcılar arasında sızmaz.

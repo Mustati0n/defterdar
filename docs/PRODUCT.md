@@ -1,31 +1,55 @@
 # Defterdar Ürün Özeti
 
-Defterdar, kişilerin tek başına veya bir grupla harcamaları, borçları, ödemeleri ve kısa süreli planları takip etmesini sağlayan bir uygulamadır.
+Defterdar, kişisel ve ortak finans kayıtlarını uzun süreli Defterler ile kısa
+süreli Planlarda düzenler. Product Model V2 hiçbir kullanıcı için sahte veya
+gizli bir Personal alan varsaymaz.
 
 ## Defter
 
-Defter, sistemin uzun süreli ana çalışma alanıdır. `PERSONAL` bir Defter yalnızca kişisel finans takibi içindir; `SHARED` bir Defter ise üyelerin ortak finansal geçmişini ve yükümlülüklerini düzenler.
+Defter uzun süreli çalışma alanıdır. `PERSONAL` yalnız sahibinin kişisel nakit
+akışını, `SHARED` ise üyelerin ortak geçmiş ve yükümlülüklerini taşır. Yeni
+kullanıcı sıfır Defterle başlar; isterse `POST /ledgers/personal` ile en fazla
+bir Personal Defter oluşturur. Eski kullanıcıların Personal kayıtları değişmez.
 
-Her kullanıcı kayıt sırasında `Kişisel Defterim` adlı, ortamın `DEFAULT_CURRENCY` değeriyle oluşturulan tam bir `PERSONAL` Defter alır. Bu Defter yalnızca sahibinin `OWNER` üyeliğini taşır; davet edilemez, terk edilemez, devredilemez veya arşivlenemez.
-
-Bir kullanıcı istediği kadar `SHARED` Defter oluşturabilir. Oluşturan kullanıcı atomik olarak `OWNER` olur. `OWNER`, `ADMIN` ve `MEMBER` rolleri ortak Defter erişimini sınırlar; üyelik davet bağlantısıyla başlar ve ayrılma/çıkarılma halinde geçmiş korunarak pasifleştirilir. Ortak Defterler silinmek yerine arşivlenir; arşivlenmiş içerik okunabilir ancak yeni üyelik ve yönetim değişikliklerine kapalıdır.
+Shared Defter creator'ı atomik olarak `OWNER` olur. `OWNER`, `ADMIN`, `MEMBER`
+rolleri, soft membership yaşam döngüsü, hash-only davetler ve archive-only
+geçmiş modeli uygulanır. Personal Defter davet, ownership transfer ve archive
+kabul etmez.
 
 ## Plan
 
-Plan, bir Defter'in altında yer alan kısa süreli organizasyondur. Gezi veya etkinlik gibi belirli bir döneme ait kayıtları gruplar. Plan ile Defter ilişkisi açık bir yabancı anahtardır; böylece ileride bir Plan, geçmişi korunarak başka bir Defter'e taşınabilir.
+Plan bir gezi, kutlama veya etkinlik gibi kısa süreli çalışma alanıdır. İki
+geçerli kapsamı vardır:
 
-Plan bağımsız veya sahipsiz oluşturulamaz: hızlı kişisel Plan da kullanıcının `PERSONAL` Defteri altında normal bir Plan'dır. Oluşturan kullanıcı başlangıçta otomatik katılımcıdır. Katılımcılar yalnız aktif Defter üyelerinden seçilir; davet/üyelikten ayrılma sonrası geçmiş katılımcı kaydı silinmez.
+- bağımsız: `ledgerId = null`, creator PlanParticipant olur ve para birimi Plan
+  üzerinde tutulur;
+- Deftere bağlı: Plan ve finans kayıtları aynı Ledger kapsamındadır.
 
-Plan yaşam döngüsü `ACTIVE`, `COMPLETED`, `ARCHIVED` durumlarıyla yönetilir. Archive geçmişi okunur tutar fakat düzenleme ve katılımcı değişikliklerini kapatır. Plan, yalnız kaynak Defter OWNER'ı tarafından ve hedef Defterde OWNER/ADMIN yetkisi varsa taşınabilir; hedefte aktif üye olmayan katılımcı bulunursa taşıma gerçekleşmez.
+Bağımsız Plan hash-only, email-bound davetle kayıtlı Defterdar kullanıcılarını
+participant yapar. Aktif bağımsız Plan; para birimi aynı, arşivlenmemiş ve bütün
+participant'ları aktif üye olan bir Shared Deftere atomik bağlanabilir. Finans
+child kayıtları aynı transaction'da taşınır; audit geçmişi yeniden yazılmaz.
 
-Kişisel kullanımda kullanıcı kendi kayıtlarını yönetir. Ortak kullanımda roller, üyelikler ve katılımcılar üzerinden birden fazla kişinin aynı finansal bağlamda çalışması sağlanır. Bir Plan'ın katılımcıları Defter üyelerinin tamamıyla aynı olmak zorunda değildir.
+Plan lifecycle `ACTIVE`, `COMPLETED`, `ARCHIVED` kullanır. Expense/Income yalnız
+ACTIVE; Settlement ACTIVE veya COMPLETED durumda oluşturulur. ARCHIVED yalnız
+okunur.
 
-## Harcama
+## Finans
 
-Expense gerçek harcamayı, ExpenseSplit ise dağılımını saklar. Ledger currency snapshot alınır; Gift/Ismarla harcaması geçmişte kalır ancak geri ödeme yükümlülüğü üretmez.
+Expense gerçek harcama, ExpenseSplit dağılımdır. EQUAL, EXACT, PERCENTAGE ve
+SHARES deterministic çalışır. Currency Ledger veya bağımsız Plan'dan snapshot
+alınır. Gift/Ismarla spending geçmişinde kalır fakat geri ödeme üretmez.
 
-## Finansal reconciliation ve takip
+Balance persistent tablo değildir; Expense/Split, Settlement ve reconciliation
+kurallarından zero-sum türetilir. Borçtan düş geçmiş ters yönlü borcu açıkça
+eşler ve projection'a ikinci kez etki etmez. Income nakit akışıdır; interpersonal
+Balance üretmez. Receipt binary object storage'da, metadata PostgreSQL'dedir.
 
-Balance Expense/Split ve gerçek Settlement olaylarından anlık türetilir; persistent bakiye tablosu yoktur. Borçtan düş ters yönlü geçmiş borç için reconciliation metadata'sıdır ve Balance'a ikinci kez etki etmez. Category, Expense ve Income raporlamasını özelleştirir; Income interpersonal borca etki etmeyen pozitif cashflow kaydıdır.
+## Web deneyimi
 
-Receipt'ler S3-compatible object storage'da, metadata PostgreSQL'de tutulur. Önemli mutation'lar immutable Ledger activity stream'ine yazılır. Financial retry'lar Idempotency-Key, Expense editleri version token ile korunur. Analytics Ledger/Plan spending ve income kayıtlarından türetilir.
+Global FAB mevcut bağlama göre Expense, Income, Plan ve Defter aksiyonlarını
+önden seçer. Adaptive başlıklar uzun sayfalarda araç barına dönüşür; signature
+line scroll ilerlemesini gösterir. Page intro ve density, motion, Overview
+bölümleri, adaptive header tercihleri kullanıcı bazlı ve SSR-safe saklanır.
+Analytics yalnız gerçek Defter ve Plan hedeflerini listeler; para birimleri
+birleştirilmez.

@@ -8,12 +8,7 @@ import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 import { ErrorState, LoadingState } from '@/components/ui/states';
 import { useToast } from '@/components/ui/toast';
 import { useAuth } from '@/features/auth/auth-provider';
-import {
-  useExpense,
-  useLedger,
-  usePlan,
-  useVoidExpense,
-} from '@/features/data/hooks';
+import { useExpense, useVoidExpense } from '@/features/data/hooks';
 import { ReceiptPanel } from '@/features/expenses/receipt-panel';
 import { ApiError } from '@/lib/api-client';
 import { formatMoneyFromMinor, splitMethodLabel } from '@/lib/format';
@@ -22,8 +17,6 @@ import { OffsetSplitCard } from '@/features/financial/offset-split-card';
 export default function ExpenseDetailPage() {
   const { expenseId } = useParams<{ expenseId: string }>();
   const expense = useExpense(expenseId);
-  const ledger = useLedger(expense.data?.ledgerId ?? '');
-  const plan = usePlan(expense.data?.planId ?? '');
   const { user } = useAuth();
   const toast = useToast();
   const [confirmVoid, setConfirmVoid] = useState(false);
@@ -53,14 +46,16 @@ export default function ExpenseDetailPage() {
     );
   const data = expense.data;
   const canManage =
-    ledger.data?.role === 'OWNER' ||
-    ledger.data?.role === 'ADMIN' ||
-    plan.data?.createdById === user?.id ||
+    expense.data.accessRole === 'OWNER' ||
+    expense.data.accessRole === 'ADMIN' ||
+    expense.data.accessRole === 'PLAN_CREATOR' ||
     data.createdById === user?.id;
   const financialRole =
-    plan.data?.createdById === user?.id
+    data.accessRole === 'PLAN_CREATOR'
       ? 'OWNER'
-      : (ledger.data?.role ?? 'MEMBER');
+      : data.accessRole === 'OWNER' || data.accessRole === 'ADMIN'
+        ? data.accessRole
+        : 'MEMBER';
   return (
     <>
       <Link
@@ -130,8 +125,8 @@ export default function ExpenseDetailPage() {
                 currentUserId={user?.id ?? ''}
                 disabled={Boolean(
                   data.voidedAt ||
-                  ledger.data?.archivedAt ||
-                  plan.data?.status === 'ARCHIVED',
+                  data.ledgerArchivedAt ||
+                  data.planStatus === 'ARCHIVED',
                 )}
               />
             ))}
@@ -158,7 +153,11 @@ export default function ExpenseDetailPage() {
       <ReceiptPanel
         expenseId={expenseId}
         canManage={Boolean(canManage)}
-        disabled={Boolean(data.voidedAt || ledger.data?.archivedAt)}
+        disabled={Boolean(
+          data.voidedAt ||
+          data.ledgerArchivedAt ||
+          data.planStatus === 'ARCHIVED',
+        )}
       />
       <ConfirmationDialog
         open={confirmVoid}

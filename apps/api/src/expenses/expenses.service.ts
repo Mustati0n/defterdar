@@ -139,6 +139,13 @@ export class ExpensesService {
       where: { id },
       include: {
         ledger: true,
+        plan: {
+          select: {
+            status: true,
+            archivedAt: true,
+            createdById: true,
+          },
+        },
         category: true,
         _count: {
           select: { attachments: { where: { deletedAt: null } } },
@@ -162,9 +169,15 @@ export class ExpensesService {
       },
     });
     if (!e) throw new NotFoundException('Expense not found');
-    await this.authorizeScope(e.ledgerId, e.planId, userId);
+    const access = await this.authorizeScope(e.ledgerId, e.planId, userId);
     return {
       ...e,
+      ledger: undefined,
+      plan: undefined,
+      accessRole: access.role,
+      ledgerArchivedAt: e.ledger?.archivedAt ?? null,
+      planStatus: e.plan?.status ?? null,
+      planCreatedById: e.plan?.createdById ?? null,
       _count: undefined,
       attachmentCount: e._count.attachments,
       amountMinor: e.amountMinor.toString(),
