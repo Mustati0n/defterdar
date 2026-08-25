@@ -284,6 +284,7 @@
 }
 .page-heading h1 {
   margin-bottom: 0.7rem;
+  font-size: var(--font-page-title);
 }
 .page-heading p {
   max-width: 680px;

@@ -8,7 +8,7 @@ Baseline: `f211a9c chore: complete ux performance remediation`
 - [x] D — Global adaptive UI system
 - [x] E — Overview / cards / spacing redesign
 - [x] F — Page intros + interface preferences
-- [ ] G — Analytics / scope redesign
+- [x] G — Analytics / scope redesign
 - [ ] H — Full QA / regression / final push
 
 ## Safety constraints

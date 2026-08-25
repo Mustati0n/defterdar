@@ -129,7 +129,7 @@
 .page-heading--adaptive.is-compact h1 {
   overflow: hidden;
   margin: 0;
-  font-size: clamp(1.15rem, 2vw, 1.5rem);
+  font-size: var(--font-page-title-compact);
   text-overflow: ellipsis;
   white-space: nowrap;
 }

@@ -5,41 +5,91 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { PageHeading } from '@/components/page-heading';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/states';
-import { AnalyticsExperience } from '@/features/analytics/analytics-experience';
-import { useLedgers } from '@/features/data/hooks';
+import {
+  AnalyticsDateControls,
+  AnalyticsExperience,
+} from '@/features/analytics/analytics-experience';
+import type { AnalyticsPreset } from '@/features/analytics/analytics-date';
+import { useAnalyticsSelection } from '@/features/analytics/use-analytics-selection';
+import { useAuth } from '@/features/auth/auth-provider';
+import { useAllPlans, useLedgers } from '@/features/data/hooks';
 import { PageIntro } from '@/features/page-intro/page-intro';
 
 export default function StatisticsPage() {
+  const { user } = useAuth();
   const ledgers = useLedgers();
-  const [selectedId, setSelectedId] = useState('');
-  const ledgerId = selectedId || ledgers.data?.[0]?.id || '';
-  const ledger = ledgers.data?.find((item) => item.id === ledgerId);
+  const plans = useAllPlans(false);
+  const { selection, select } = useAnalyticsSelection(user?.id);
+  const [preset, setPreset] = useState<AnalyticsPreset>('month');
+  const [custom, setCustom] = useState({ from: '', to: '' });
+  const targets = [
+    ...(ledgers.data ?? []).map((ledger) => ({
+      key: `ledger:${ledger.id}`,
+      kind: 'ledger' as const,
+      id: ledger.id,
+      name: ledger.name,
+      personal: ledger.type === 'PERSONAL',
+      plan: undefined,
+    })),
+    ...(plans.data ?? []).map((plan) => ({
+      key: `plan:${plan.id}`,
+      kind: 'plan' as const,
+      id: plan.id,
+      name: plan.name,
+      personal: false,
+      plan,
+    })),
+  ];
+  const selectedKey = targets.some((target) => target.key === selection)
+    ? selection
+    : (targets[0]?.key ?? '');
+  const target = targets.find((item) => item.key === selectedKey);
 
-  if (ledgers.isLoading) return <LoadingState />;
-  if (ledgers.isError)
-    return <ErrorState onRetry={() => void ledgers.refetch()} />;
-  if (!ledgers.data?.length) {
+  if (ledgers.isLoading || plans.isLoading)
+    return <LoadingState label="Analiz alanları hazırlanıyor…" />;
+  if (ledgers.isError || plans.isError)
+    return (
+      <ErrorState
+        onRetry={() => {
+          void ledgers.refetch();
+          void plans.refetch();
+        }}
+      />
+    );
+  if (!target) {
     return (
       <>
         <PageIntro
           pageKey="analytics"
           title="Kayıtlarını dönemlere göre karşılaştır."
           steps={[
-            'Bir Defter veya Plan kapsamı seç, sonra hazır dönemlerden biriyle rakamları incele.',
+            'Bir Defter veya Plan oluşturduğunda gerçek kayıtlarını dönemlere göre burada inceleyebilirsin.',
           ]}
         />
         <EmptyState
-          title="Ölçülecek Defter yok"
-          description="İstatistikler ilk Defter ve hareketlerle birlikte burada oluşacak."
+          title="Henüz analiz edilecek bir Defter veya Plan yok."
+          description="Sahte bir kişisel alan oluşturulmaz; ilk gerçek çalışma alanın burada görünür."
           action={
-            <Link className="button button--primary" href="/ledgers?create=1">
-              <Plus /> Defter oluştur
-            </Link>
+            <div className="empty-state__actions">
+              <Link className="button button--primary" href="/ledgers?create=1">
+                <Plus /> Defter oluştur
+              </Link>
+              <Link
+                className="button button--quiet"
+                href="/plans?create=1&standalone=1"
+              >
+                Bağımsız Plan oluştur
+              </Link>
+            </div>
           }
         />
       </>
     );
   }
+
+  const ledgerTargets = targets.filter((item) => item.kind === 'ledger');
+  const planTargets = targets.filter((item) => item.kind === 'plan');
+  const controls = { preset, custom, setPreset, setCustom };
 
   return (
     <>
@@ -47,35 +97,59 @@ export default function StatisticsPage() {
         pageKey="analytics"
         title="Kayıtlarını dönemlere göre karşılaştır."
         steps={[
-          'Önce Defter kapsamını seç, sonra bu ay, son üç ay veya özel tarih aralığına geç.',
-          'Harcama, gelir ve ortak hesap dağılımı aynı gerçek kayıtlardan hesaplanır.',
+          'Önce gerçek bir Defter veya Plan seç, sonra hazır dönemlerden biriyle rakamları incele.',
+          'Her hedef kendi para biriminde hesaplanır; farklı para birimleri yapay biçimde birleştirilmez.',
         ]}
       />
       <PageHeading
         eyebrow="Rakamların kenar notu"
         title="İstatistikler"
-        description="Harcamanı, gelirini ve ortak hesabın dağılımını gerçek Defter kayıtlarıyla karşılaştır."
-        action={
-          <label className="field ledger-picker-field">
-            <span>Defter</span>
-            <select
-              className="input ledger-picker"
-              value={ledgerId}
-              onChange={(event) => setSelectedId(event.target.value)}
-            >
-              {ledgers.data.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name}
-                </option>
-              ))}
-            </select>
-          </label>
+        description="Harcama, gelir ve hesap dağılımını seçtiğin gerçek çalışma alanında incele."
+        tools={
+          <div className="analytics-header-tools">
+            <label className="field analytics-target-field">
+              <span>Analiz alanı</span>
+              <select
+                className="input"
+                value={selectedKey}
+                onChange={(event) => select(event.target.value)}
+              >
+                {ledgerTargets.length ? (
+                  <optgroup label="Defterler">
+                    {ledgerTargets.map((item) => (
+                      <option value={item.key} key={item.key}>
+                        {item.name}
+                      </option>
+                    ))}
+                  </optgroup>
+                ) : null}
+                {planTargets.length ? (
+                  <optgroup label="Planlar">
+                    {planTargets.map((item) => (
+                      <option value={item.key} key={item.key}>
+                        {item.name} ·{' '}
+                        {item.plan?.scope === 'STANDALONE'
+                          ? 'Bağımsız'
+                          : 'Deftere bağlı'}
+                      </option>
+                    ))}
+                  </optgroup>
+                ) : null}
+              </select>
+            </label>
+            <AnalyticsDateControls {...controls} />
+          </div>
         }
       />
       <AnalyticsExperience
-        scope="ledger"
-        resourceId={ledgerId}
-        personal={ledger?.type === 'PERSONAL'}
+        key={target.key}
+        scope={target.kind}
+        resourceId={target.id}
+        personal={target.personal}
+        planStatus={target.plan?.status}
+        participantCount={target.plan?.participantCount}
+        controls={controls}
+        hideFilters
       />
     </>
   );

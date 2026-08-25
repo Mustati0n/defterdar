@@ -311,17 +311,25 @@ export function AnalyticsExperience({
   personal,
   planStatus,
   participantCount,
+  controls,
+  hideFilters = false,
 }: {
   scope: 'ledger' | 'plan';
   resourceId: string;
   personal?: boolean;
   planStatus?: PlanStatus;
   participantCount?: number;
+  controls?: AnalyticsControlsState;
+  hideFilters?: boolean;
 }) {
-  const [preset, setPreset] = useState<AnalyticsPreset>(
+  const [localPreset, setLocalPreset] = useState<AnalyticsPreset>(
     scope === 'plan' ? 'all' : 'month',
   );
-  const [custom, setCustom] = useState({ from: '', to: '' });
+  const [localCustom, setLocalCustom] = useState({ from: '', to: '' });
+  const preset = controls?.preset ?? localPreset;
+  const custom = controls?.custom ?? localCustom;
+  const setPreset = controls?.setPreset ?? setLocalPreset;
+  const setCustom = controls?.setCustom ?? setLocalCustom;
   const range = useMemo(
     () => analyticsDateRange(preset, new Date(), custom),
     [preset, custom],
@@ -342,58 +350,14 @@ export function AnalyticsExperience({
 
   return (
     <section className="analytics-workspace">
-      <div className="analytics-filters" aria-label="İstatistik tarih aralığı">
-        <div
-          className="segmented-control"
-          role="group"
-          aria-label="Tarih seçenekleri"
-        >
-          {analyticsPresets.map((item) => (
-            <button
-              type="button"
-              className={preset === item.id ? 'is-active' : ''}
-              aria-pressed={preset === item.id}
-              onClick={() => setPreset(item.id)}
-              key={item.id}
-            >
-              {item.label}
-            </button>
-          ))}
-        </div>
-        {preset === 'custom' ? (
-          <div className="analytics-custom-dates">
-            <label className="field">
-              <span>Başlangıç</span>
-              <input
-                className="input"
-                type="date"
-                value={custom.from}
-                onChange={(event) =>
-                  setCustom((current) => ({
-                    ...current,
-                    from: event.target.value,
-                  }))
-                }
-              />
-            </label>
-            <label className="field">
-              <span>Bitiş</span>
-              <input
-                className="input"
-                type="date"
-                value={custom.to}
-                min={custom.from}
-                onChange={(event) =>
-                  setCustom((current) => ({
-                    ...current,
-                    to: event.target.value,
-                  }))
-                }
-              />
-            </label>
-          </div>
-        ) : null}
-      </div>
+      {!hideFilters ? (
+        <AnalyticsDateControls
+          preset={preset}
+          custom={custom}
+          setPreset={setPreset}
+          setCustom={setCustom}
+        />
+      ) : null}
       {analytics.isFetching && analytics.data ? (
         <p className="analytics-refresh" role="status">
           <BarChart3 /> Rakamlar güncelleniyor…
@@ -417,5 +381,74 @@ export function AnalyticsExperience({
         />
       ) : null}
     </section>
+  );
+}
+
+export interface AnalyticsControlsState {
+  preset: AnalyticsPreset;
+  custom: { from: string; to: string };
+  setPreset: (preset: AnalyticsPreset) => void;
+  setCustom: React.Dispatch<React.SetStateAction<{ from: string; to: string }>>;
+}
+
+export function AnalyticsDateControls({
+  preset,
+  custom,
+  setPreset,
+  setCustom,
+}: AnalyticsControlsState) {
+  return (
+    <div className="analytics-filters" aria-label="İstatistik tarih aralığı">
+      <div
+        className="segmented-control"
+        role="group"
+        aria-label="Tarih seçenekleri"
+      >
+        {analyticsPresets.map((item) => (
+          <button
+            type="button"
+            className={preset === item.id ? 'is-active' : ''}
+            aria-pressed={preset === item.id}
+            onClick={() => setPreset(item.id)}
+            key={item.id}
+          >
+            {item.label}
+          </button>
+        ))}
+      </div>
+      {preset === 'custom' ? (
+        <div className="analytics-custom-dates">
+          <label className="field">
+            <span>Başlangıç</span>
+            <input
+              className="input"
+              type="date"
+              value={custom.from}
+              onChange={(event) =>
+                setCustom((current) => ({
+                  ...current,
+                  from: event.target.value,
+                }))
+              }
+            />
+          </label>
+          <label className="field">
+            <span>Bitiş</span>
+            <input
+              className="input"
+              type="date"
+              value={custom.to}
+              min={custom.from}
+              onChange={(event) =>
+                setCustom((current) => ({
+                  ...current,
+                  to: event.target.value,
+                }))
+              }
+            />
+          </label>
+        </div>
+      ) : null}
+    </div>
   );
 }
