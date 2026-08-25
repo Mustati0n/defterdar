@@ -36,6 +36,23 @@ pnpm dev:api   # http://localhost:3001, Swagger: /docs
 pnpm dev:web   # http://localhost:3000
 ```
 
+## Remote development / staging
+
+VPS aktarımında önerilen yöntem ZIP değil GitHub repository'sini clone etmek ve
+`git pull --ff-only` ile güncellemektir. Server-specific environment, localhost-
+bound infrastructure Compose, Caddy/systemd templates, deploy/verify ve backup
+akışları için [Server Setup](./docs/SERVER_SETUP.md) belgesini izleyin.
+
+Production-like build sonrası root çalışma komutları:
+
+```bash
+pnpm start:api
+pnpm start:web
+```
+
+Bu hazırlık production release değildir; gerçek domain ve VPS üzerinde deploy
+yapılmış sayılmaz.
+
 ## Kalite ve veri tabanı
 
 ```bash

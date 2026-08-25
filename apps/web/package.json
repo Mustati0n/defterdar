@@ -7,7 +7,7 @@
     "dev": "next dev",
     "lint": "eslint .",
     "perf:measure": "node scripts/measure-performance.mjs",
-    "start": "next start",
+    "start": "next start --hostname 127.0.0.1",
     "test": "jest --passWithNoTests"
   },
   "dependencies": {

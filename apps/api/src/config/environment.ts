@@ -1,10 +1,11 @@
 import { z } from 'zod';
 
-const environmentSchema = z.object({
+const environmentSchemaBase = z.object({
   NODE_ENV: z
     .enum(['development', 'test', 'production'])
     .default('development'),
   API_PORT: z.coerce.number().int().positive().max(65_535).default(3001),
+  API_HOST: z.string().min(1).default('127.0.0.1'),
   API_BODY_LIMIT: z
     .string()
     .regex(/^\d+(kb|mb)$/i)
@@ -64,6 +65,26 @@ const environmentSchema = z.object({
     .max(3600)
     .default(900),
 });
+
+const environmentSchema = environmentSchemaBase.superRefine(
+  (values, context) => {
+    if (values.NODE_ENV !== 'production') return;
+    if (values.S3_ACCESS_KEY_ID === 'minioadmin') {
+      context.addIssue({
+        code: 'custom',
+        message: 'Production S3 access key must be configured explicitly',
+        path: ['S3_ACCESS_KEY_ID'],
+      });
+    }
+    if (values.S3_SECRET_ACCESS_KEY === 'minioadmin') {
+      context.addIssue({
+        code: 'custom',
+        message: 'Production S3 secret must be configured explicitly',
+        path: ['S3_SECRET_ACCESS_KEY'],
+      });
+    }
+  },
+);
 
 export type Environment = z.infer<typeof environmentSchema>;
 

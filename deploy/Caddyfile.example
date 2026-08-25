@@ -1,0 +1,13 @@
+# Replace <YOUR_DOMAIN> before enabling this file. Caddy obtains HTTPS
+# certificates only after a real public DNS name resolves to this server.
+<YOUR_DOMAIN> {
+	encode zstd gzip
+
+	handle_path /api/* {
+		reverse_proxy 127.0.0.1:3001
+	}
+
+	handle {
+		reverse_proxy 127.0.0.1:3000
+	}
+}

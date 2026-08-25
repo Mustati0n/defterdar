@@ -11,6 +11,8 @@
     "dev": "pnpm --parallel --filter @defterdar/api --filter @defterdar/web dev",
     "dev:api": "pnpm --filter @defterdar/api dev",
     "dev:web": "pnpm --filter @defterdar/web dev",
+    "start:api": "pnpm --filter @defterdar/api start",
+    "start:web": "pnpm --filter @defterdar/web start",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "pnpm -r --if-present lint",
