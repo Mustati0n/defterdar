@@ -51,7 +51,16 @@ describe('critical accessibility CSS', () => {
     expect(css).toMatch(
       /\.dialog-card__close\s*\{[^}]*width: 44px;[^}]*height: 44px/s,
     );
+    expect(css).toMatch(
+      /\.sidebar__collapse\s*\{[^}]*width: 44px;[^}]*height: 44px/s,
+    );
     expect(css).toContain('env(safe-area-inset-bottom)');
     expect(css).toContain('100dvh');
+  });
+
+  it('keeps document scrolling available beneath sticky surfaces', () => {
+    expect(css).toMatch(/\.app-main\s*\{[^}]*overflow-x: clip/s);
+    expect(css).not.toMatch(/\.app-main\s*\{[^}]*overflow: hidden/s);
+    expect(css).toMatch(/html\s*\{[^}]*scroll-behavior: auto/s);
   });
 });

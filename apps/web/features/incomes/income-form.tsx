@@ -40,14 +40,26 @@ const schema = z
   });
 type Values = z.infer<typeof schema>;
 
-export function IncomeForm() {
+export function IncomeForm({
+  initialLedgerId,
+  initialPlanId,
+  onCancel,
+  onComplete,
+  presentation = 'page',
+}: {
+  initialLedgerId?: string;
+  initialPlanId?: string;
+  onCancel?: () => void;
+  onComplete?: () => void;
+  presentation?: 'page' | 'dialog';
+} = {}) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const ledgers = useLedgers();
   const createIncome = useCreateIncome();
   const toast = useToast();
   const [formError, setFormError] = useState<string | null>(null);
-  const requestedPlanId = searchParams.get('planId') ?? '';
+  const requestedPlanId = initialPlanId ?? searchParams.get('planId') ?? '';
   const requestedPlan = usePlan(requestedPlanId);
   const {
     register,
@@ -58,7 +70,7 @@ export function IncomeForm() {
   } = useForm<Values>({
     resolver: zodResolver(schema),
     defaultValues: {
-      ledgerId: searchParams.get('ledgerId') ?? '',
+      ledgerId: initialLedgerId ?? searchParams.get('ledgerId') ?? '',
       planId: requestedPlanId,
       title: '',
       amount: '',
@@ -104,6 +116,7 @@ export function IncomeForm() {
         },
       });
       toast(standalonePlan ? 'Gelir Plana eklendi.' : 'Gelir Deftere eklendi.');
+      onComplete?.();
       router.push(
         values.planId
           ? `/plans/${values.planId}`
@@ -120,7 +133,7 @@ export function IncomeForm() {
 
   return (
     <form
-      className="income-form paper-section"
+      className={`income-form paper-section${presentation === 'dialog' ? ' income-form--dialog' : ''}`}
       onSubmit={handleSubmit(onSubmit)}
       noValidate
     >
@@ -230,15 +243,26 @@ export function IncomeForm() {
           {formError}
         </div>
       ) : null}
-      <button
-        className="button button--primary button--wide button--tall"
-        type="submit"
-        disabled={createIncome.isPending}
-      >
-        <CircleDollarSign />{' '}
-        {createIncome.isPending ? 'Kaydediliyor…' : 'Geliri ekle'}{' '}
-        <ArrowRight />
-      </button>
+      <div className="quick-form-actions">
+        {onCancel ? (
+          <button
+            className="button button--quiet"
+            type="button"
+            onClick={onCancel}
+          >
+            Vazgeç
+          </button>
+        ) : null}
+        <button
+          className="button button--primary button--tall"
+          type="submit"
+          disabled={createIncome.isPending}
+        >
+          <CircleDollarSign />{' '}
+          {createIncome.isPending ? 'Kaydediliyor…' : 'Geliri ekle'}{' '}
+          <ArrowRight />
+        </button>
+      </div>
     </form>
   );
 }

@@ -13,6 +13,74 @@
   display: grid;
   gap: 1rem;
 }
+.expense-wizard {
+  width: min(820px, 100%);
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1rem;
+  margin: 0 auto;
+}
+.expense-wizard__progress {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+  padding: 0.45rem;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-pill);
+  background: rgba(255, 253, 245, 0.82);
+}
+.expense-wizard__progress button {
+  display: flex;
+  min-width: 0;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  padding: 0.55rem 0.7rem;
+  color: var(--color-muted);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+.expense-wizard__progress button:not(:disabled) {
+  cursor: pointer;
+}
+.expense-wizard__progress button.is-current {
+  color: white;
+  background: var(--color-wine);
+}
+.expense-wizard__progress button.is-complete {
+  color: var(--color-success);
+  background: #edf6ef;
+}
+.expense-wizard__progress svg {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+}
+.expense-wizard .smart-form__main,
+.expense-wizard .smart-form__side > section {
+  padding: clamp(1.15rem, 3vw, 2rem);
+}
+.expense-wizard__actions,
+.quick-form-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.7rem;
+  padding-top: 0.35rem;
+}
+.expense-wizard__actions .button:last-child,
+.quick-form-actions .button:last-child {
+  margin-left: auto;
+}
+.income-form--dialog {
+  max-width: none;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
 .form-question {
   display: flex;
   align-items: center;
@@ -349,6 +417,26 @@
 }
 
 @media (max-width: 580px) {
+  .expense-wizard__progress button span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .expense-wizard__actions,
+  .quick-form-actions {
+    align-items: stretch;
+    flex-direction: column-reverse;
+  }
+  .expense-wizard__actions .button,
+  .quick-form-actions .button,
+  .expense-wizard__actions .button:last-child,
+  .quick-form-actions .button:last-child {
+    width: 100%;
+    margin-left: 0;
+  }
   .onboarding-overlay {
     padding: 0;
   }

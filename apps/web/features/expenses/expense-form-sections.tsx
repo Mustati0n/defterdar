@@ -1,4 +1,11 @@
-import { Check, CircleHelp, Gift } from 'lucide-react';
+import {
+  Check,
+  CircleHelp,
+  Gift,
+  Scale,
+  UserRound,
+  UsersRound,
+} from 'lucide-react';
 import type { FieldErrors, UseFormRegister } from 'react-hook-form';
 import type { SplitMethod } from '@/lib/types';
 import { formatMoneyFromMinor } from '@/lib/format';
@@ -29,7 +36,9 @@ export function ParticipantsSection({
   return (
     <section className="paper-section smart-form__people">
       <div className="form-question">
-        <span>3</span>
+        <span title="Ödemeyi yapan">
+          <UserRound aria-hidden="true" />
+        </span>
         <div>
           <small>Kim ödedi?</small>
           <h2>Ödemeyi yapan</h2>
@@ -70,7 +79,9 @@ export function ParticipantsSection({
 
       <div className="form-divider" />
       <div className="form-question">
-        <span>4</span>
+        <span title="Payı olan kişiler">
+          <UsersRound aria-hidden="true" />
+        </span>
         <div>
           <small>Kimler paylaşıyor?</small>
           <h2>Payı olan kişiler</h2>
@@ -173,7 +184,9 @@ export function SplitMethodSection({
   return (
     <section className="paper-section smart-form__split">
       <div className="form-question">
-        <span>5</span>
+        <span title="Paylaştırma biçimi">
+          <Scale aria-hidden="true" />
+        </span>
         <div>
           <small>Nasıl paylaşalım?</small>
           <h2>Paylaştırma biçimi</h2>

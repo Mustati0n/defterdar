@@ -60,14 +60,14 @@ const ledger = {
   archivedAt: null,
 };
 
-function setup() {
+function setup(presentation: 'page' | 'wizard' = 'page') {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
   const wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={client}>{children}</QueryClientProvider>
   );
-  return render(<ExpenseForm />, { wrapper });
+  return render(<ExpenseForm presentation={presentation} />, { wrapper });
 }
 
 describe('simple-first Expense form', () => {
@@ -141,6 +141,26 @@ describe('simple-first Expense form', () => {
         }),
       ),
     );
+  });
+
+  it('moves the quick create flow through three focused wizard steps', async () => {
+    setup('wizard');
+    expect(
+      screen.getByRole('navigation', { name: 'Harcama adımları' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Ödemeyi yapan')).not.toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Harcama'), {
+      target: { value: 'Market' },
+    });
+    fireEvent.change(screen.getByLabelText('Harcama tutarı'), {
+      target: { value: '120' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /Devam/ }));
+    await screen.findByText('Ödemeyi yapan');
+    fireEvent.click(screen.getByRole('button', { name: /Devam/ }));
+    await screen.findByText('Paylaştırma biçimi');
+    fireEvent.click(screen.getByRole('button', { name: /Harcamayı kaydet/ }));
+    await waitFor(() => expect(mutateAsync).toHaveBeenCalled());
   });
 
   it('collapses advanced methods by default and retains EXACT behavior', async () => {

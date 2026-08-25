@@ -77,12 +77,18 @@ export function useModalDialog({
     const restoreBackground = dialogRef.current
       ? makeBackgroundInert(dialogRef.current)
       : () => undefined;
+    const bodyOverflow = document.body.style.overflow;
+    const rootOverflow = document.documentElement.style.overflow;
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
     const frame = window.requestAnimationFrame(() =>
       initialFocusRef.current?.focus(),
     );
 
     return () => {
       window.cancelAnimationFrame(frame);
+      document.body.style.overflow = bodyOverflow;
+      document.documentElement.style.overflow = rootOverflow;
       restoreBackground();
       restoreFocusRef.current?.focus();
       restoreFocusRef.current = null;
@@ -97,9 +103,8 @@ export function useModalDialog({
         return;
       }
       if (event.key !== 'Tab') return;
-      const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(
-        focusableSelector,
-      );
+      const focusable =
+        dialogRef.current?.querySelectorAll<HTMLElement>(focusableSelector);
       if (!focusable?.length) return;
       const first = focusable[0];
       const last = focusable[focusable.length - 1];

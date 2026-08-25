@@ -41,12 +41,12 @@ describe('FloatingQuickAdd', () => {
     ).toEqual(['expense', 'income', 'plan']);
   });
 
-  it('opens with labelled links and returns focus after Escape', () => {
+  it('opens on desktop hover and returns focus after Escape', () => {
     render(<FloatingQuickAdd />);
     const trigger = screen.getByRole('button', {
       name: /Hızlı ekle menüsünü aç/,
     });
-    fireEvent.click(trigger);
+    fireEvent.mouseEnter(trigger);
     expect(trigger).toHaveAttribute('aria-expanded', 'true');
     expect(screen.getByRole('link', { name: /Harcama ekle/ })).toHaveAttribute(
       'href',
@@ -55,6 +55,17 @@ describe('FloatingQuickAdd', () => {
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(screen.queryByRole('link', { name: /Harcama ekle/ })).toBeNull();
     expect(trigger).toHaveFocus();
+  });
+
+  it('hands a quick action to the modal host without navigating', () => {
+    const onAction = jest.fn();
+    render(<FloatingQuickAdd onAction={onAction} />);
+    const trigger = screen.getByRole('button', {
+      name: /Hızlı ekle menüsünü aç/,
+    });
+    fireEvent.mouseEnter(trigger);
+    fireEvent.click(screen.getByRole('link', { name: /Harcama ekle/ }));
+    expect(onAction).toHaveBeenCalledWith('expense', {});
   });
 
   it('preselects a standalone Plan and hides unrelated creation actions', () => {

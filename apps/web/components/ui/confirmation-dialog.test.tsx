@@ -34,6 +34,7 @@ describe('ConfirmationDialog focus management', () => {
 
     await waitFor(() => expect(cancel).toHaveFocus());
     expect(trigger.inert).toBe(true);
+    expect(document.body.style.overflow).toBe('hidden');
     fireEvent.keyDown(cancel, { key: 'Tab', shiftKey: true });
     expect(confirm).toHaveFocus();
     fireEvent.keyDown(confirm, { key: 'Tab' });
@@ -42,5 +43,6 @@ describe('ConfirmationDialog focus management', () => {
     await waitFor(() => expect(trigger).toHaveFocus());
     expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
     expect(trigger.inert).not.toBe(true);
+    expect(document.body.style.overflow).toBe('');
   });
 });

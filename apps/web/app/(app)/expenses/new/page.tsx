@@ -13,7 +13,7 @@ export default function NewExpensePage() {
         description="Ne olduğunu yaz, kimlerin paylaştığını seç; hesabı Defterdar yapsın."
         variant="static"
       />
-      <LazyRouteForm kind="expense" />
+      <LazyRouteForm kind="expense" presentation="wizard" />
     </>
   );
 }

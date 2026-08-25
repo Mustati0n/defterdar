@@ -40,13 +40,20 @@ export function CreatePlanDialog({
   defaultOpen = false,
   initialLedgerId = '',
   defaultStandalone = false,
+  open: controlledOpen,
+  onOpenChange,
+  hideTrigger = false,
 }: {
   ledgers: Ledger[];
   defaultOpen?: boolean;
   initialLedgerId?: string;
   defaultStandalone?: boolean;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  hideTrigger?: boolean;
 }) {
-  const [open, setOpen] = useState(defaultOpen);
+  const [internalOpen, setInternalOpen] = useState(defaultOpen);
+  const open = controlledOpen ?? internalOpen;
   const [standalone, setStandalone] = useState(
     defaultStandalone || !initialLedgerId,
   );
@@ -67,6 +74,10 @@ export function CreatePlanDialog({
   const dialogRef = useRef<HTMLElement>(null);
   const nameRef = useRef<HTMLInputElement>(null);
   const nameRegistration = register('name');
+  const setOpen = (next: boolean) => {
+    if (controlledOpen === undefined) setInternalOpen(next);
+    onOpenChange?.(next);
+  };
   const handleDialogKeyDown = useModalDialog({
     open,
     onClose: () => setOpen(false),
@@ -112,13 +123,15 @@ export function CreatePlanDialog({
 
   return (
     <>
-      <button
-        className="button button--primary"
-        type="button"
-        onClick={() => setOpen(true)}
-      >
-        <CalendarPlus /> Yeni Plan
-      </button>
+      {!hideTrigger ? (
+        <button
+          className="button button--primary"
+          type="button"
+          onClick={() => setOpen(true)}
+        >
+          <CalendarPlus /> Yeni Plan
+        </button>
+      ) : null}
       {open ? (
         <div
           className="dialog-backdrop"

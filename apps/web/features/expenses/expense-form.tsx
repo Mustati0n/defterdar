@@ -2,7 +2,14 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowRight, ReceiptText } from 'lucide-react';
+import {
+  ArrowLeft,
+  ArrowRight,
+  ReceiptText,
+  Scale,
+  UsersRound,
+  WalletCards,
+} from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
@@ -31,7 +38,25 @@ import {
   SplitMethodSection,
 } from './expense-form-sections';
 
-export function ExpenseForm() {
+const wizardSteps = [
+  { label: 'Harcama', icon: ReceiptText },
+  { label: 'Kişiler', icon: UsersRound },
+  { label: 'Paylaşım', icon: Scale },
+] as const;
+
+export function ExpenseForm({
+  initialLedgerId,
+  initialPlanId,
+  onCancel,
+  onComplete,
+  presentation = 'page',
+}: {
+  initialLedgerId?: string;
+  initialPlanId?: string;
+  onCancel?: () => void;
+  onComplete?: () => void;
+  presentation?: 'page' | 'wizard' | 'dialog';
+} = {}) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { user } = useAuth();
@@ -42,15 +67,19 @@ export function ExpenseForm() {
   const [allocations, setAllocations] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [newCategory, setNewCategory] = useState('');
+  const [step, setStep] = useState(0);
   const lastPeopleScope = useRef('');
-  const requestedLedgerId = searchParams.get('ledgerId') ?? '';
-  const requestedPlanId = searchParams.get('planId') ?? '';
+  const requestedLedgerId =
+    initialLedgerId ?? searchParams.get('ledgerId') ?? '';
+  const requestedPlanId = initialPlanId ?? searchParams.get('planId') ?? '';
   const requestedPlan = usePlan(requestedPlanId);
+  const isWizard = presentation !== 'page';
 
   const {
     register,
     handleSubmit,
     setValue,
+    trigger,
     control,
     formState: { errors },
   } = useForm<ExpenseFormValues>({
@@ -205,6 +234,7 @@ export function ExpenseForm() {
           ? 'Ismarlama Deftere yazıldı.'
           : 'Harcama paylaştırıldı ve Deftere yazıldı.',
       );
+      onComplete?.();
       router.push(`/expenses/${expense.id}`);
     } catch (error) {
       setFormError(
@@ -215,242 +245,341 @@ export function ExpenseForm() {
     }
   }
 
+  async function goForward() {
+    const valid = await trigger(
+      step === 0
+        ? ['title', 'amount', 'ledgerId', 'expenseDate']
+        : ['payerUserId', 'participantUserIds'],
+      { shouldFocus: true },
+    );
+    if (valid) setStep((current) => Math.min(2, current + 1));
+  }
+
   return (
-    <form className="smart-form" onSubmit={handleSubmit(onSubmit)} noValidate>
-      <section className="smart-form__main paper-section">
-        <div className="form-question">
-          <span>1</span>
-          <div>
-            <small>Ne için?</small>
-            <h2>Harcamanın kısa adı</h2>
-          </div>
-        </div>
-        <div className="field">
-          <label htmlFor="expense-title">Harcama</label>
-          <input
-            id="expense-title"
-            className="input input--large"
-            autoFocus
-            placeholder="Örn. Akşam yemeği"
-            aria-invalid={Boolean(errors.title)}
-            aria-describedby={errors.title ? 'expense-title-error' : undefined}
-            {...register('title')}
-          />
-          {errors.title ? (
-            <small id="expense-title-error" role="alert">
-              {errors.title.message}
-            </small>
-          ) : null}
-        </div>
-
-        <div className="form-divider" />
-        <div className="form-question">
-          <span>2</span>
-          <div>
-            <small>Ne kadar?</small>
-            <h2>Ödenen tutar</h2>
-          </div>
-        </div>
-        <div className="amount-input">
-          <input
-            inputMode="decimal"
-            placeholder="0,00"
-            aria-label="Harcama tutarı"
-            aria-invalid={Boolean(errors.amount)}
-            aria-describedby={`expense-amount-help${errors.amount ? ' expense-amount-error' : ''}`}
-            {...register('amount')}
-          />
-          <strong>{selectedCurrency ?? 'TRY'}</strong>
-        </div>
-        {errors.amount ? (
-          <p className="field-error" id="expense-amount-error" role="alert">
-            {errors.amount.message}
-          </p>
-        ) : null}
-        <p className="form-hint" id="expense-amount-help">
-          Para birimi {standalonePlan ? 'Plandan' : 'Defterden'} gelir ve bu
-          harcama için değiştirilemez.
-        </p>
-
-        <div className="form-divider" />
-        <label className="field">
-          <span>{standalonePlan ? 'Plan' : 'Defter'}</span>
-          {standalonePlan ? (
-            <>
-              <input type="hidden" {...register('ledgerId')} />
-              <div className="context-note">
-                {requestedPlan.data?.name ?? 'Seçili bağımsız Plan'} içinde
-                oluşturulacak.
-              </div>
-            </>
-          ) : requestedLedgerId ? (
-            <>
-              <input type="hidden" {...register('ledgerId')} />
-              <div className="context-note">
-                {selectedLedger?.name ?? 'Seçili Defter'} içinde oluşturulacak.
-              </div>
-            </>
-          ) : (
-            <select
-              className="input"
-              aria-invalid={Boolean(errors.ledgerId)}
-              aria-describedby={
-                errors.ledgerId ? 'expense-ledger-error' : undefined
+    <form
+      className={`smart-form${isWizard ? ' expense-wizard' : ''}`}
+      onSubmit={handleSubmit(onSubmit)}
+      noValidate
+    >
+      {isWizard ? (
+        <nav className="expense-wizard__progress" aria-label="Harcama adımları">
+          {wizardSteps.map(({ label, icon: Icon }, index) => (
+            <button
+              type="button"
+              key={label}
+              className={
+                index === step
+                  ? 'is-current'
+                  : index < step
+                    ? 'is-complete'
+                    : ''
               }
-              {...register('ledgerId')}
+              aria-current={index === step ? 'step' : undefined}
+              disabled={index > step}
+              onClick={() => index < step && setStep(index)}
+              title={`${index + 1}. adım: ${label}`}
             >
-              <option value="">Defter seç</option>
-              {ledgers.data
-                ?.filter((ledger) => !ledger.archivedAt)
-                .map((ledger) => (
-                  <option value={ledger.id} key={ledger.id}>
-                    {ledger.name}
-                  </option>
-                ))}
-            </select>
-          )}
-          {errors.ledgerId ? (
-            <small id="expense-ledger-error">{errors.ledgerId.message}</small>
-          ) : null}
-        </label>
-        {requestedPlanId ? (
-          <input type="hidden" {...register('planId')} />
-        ) : null}
-        <details className="form-disclosure">
-          <summary>İsteğe bağlı ayrıntılar</summary>
-          <div className="stack-form">
-            <label className="field">
-              <span>Not</span>
-              <textarea
-                className="input"
-                rows={2}
-                placeholder="Kısa bir açıklama"
-                {...register('description')}
-              />
-            </label>
-            {!requestedPlanId ? (
-              <label className="field">
-                <span>Plan</span>
-                <select className="input" {...register('planId')}>
-                  <option value="">Bir Plana bağlı değil</option>
-                  {plans.data
-                    ?.filter((plan) => plan.status === 'ACTIVE')
-                    .map((plan) => (
-                      <option value={plan.id} key={plan.id}>
-                        {plan.name}
-                      </option>
-                    ))}
-                </select>
-              </label>
-            ) : null}
-            {!standalonePlan ? (
-              <label className="field">
-                <span>Kategori</span>
-                <select className="input" {...register('categoryId')}>
-                  <option value="">Kategorisiz</option>
-                  {categories.data
-                    ?.filter(
-                      (category) =>
-                        !category.archivedAt &&
-                        (category.kind === 'EXPENSE' ||
-                          category.kind === 'BOTH'),
-                    )
-                    .map((category) => (
-                      <option value={category.id} key={category.id}>
-                        {category.name}
-                      </option>
-                    ))}
-                </select>
-              </label>
-            ) : null}
-            {!standalonePlan ? (
-              <details className="nested-disclosure">
-                <summary>Yeni kategori oluştur</summary>
-                <div className="add-row">
-                  <input
-                    className="input"
-                    value={newCategory}
-                    onChange={(event) => setNewCategory(event.target.value)}
-                    placeholder="Yeni kategori adı"
-                    aria-label="Yeni kategori adı"
-                  />
-                  <button
-                    className="button button--quiet button--small"
-                    type="button"
-                    disabled={!newCategory.trim()}
-                    onClick={() => void createCategory()}
-                  >
-                    Kategori ekle
-                  </button>
-                </div>
-              </details>
-            ) : null}
-            <label className="field field--date">
-              <span>Harcama tarihi</span>
-              <input
-                className="input"
-                type="date"
-                aria-invalid={Boolean(errors.expenseDate)}
-                aria-describedby={
-                  errors.expenseDate ? 'expense-date-error' : undefined
-                }
-                {...register('expenseDate')}
-              />
-              {errors.expenseDate ? (
-                <small id="expense-date-error">
-                  {errors.expenseDate.message}
-                </small>
-              ) : null}
-            </label>
+              <Icon aria-hidden="true" />
+              <span>{label}</span>
+            </button>
+          ))}
+        </nav>
+      ) : null}
+
+      {!isWizard || step === 0 ? (
+        <section className="smart-form__main paper-section">
+          <div className="form-question">
+            <span title="Harcama bilgileri">
+              <ReceiptText aria-hidden="true" />
+            </span>
+            <div>
+              <small>Ne için?</small>
+              <h2>Harcamanın kısa adı</h2>
+            </div>
           </div>
-        </details>
-      </section>
+          <div className="field">
+            <label htmlFor="expense-title">Harcama</label>
+            <input
+              id="expense-title"
+              className="input input--large"
+              autoFocus
+              placeholder="Örn. Akşam yemeği"
+              aria-invalid={Boolean(errors.title)}
+              aria-describedby={
+                errors.title ? 'expense-title-error' : undefined
+              }
+              {...register('title')}
+            />
+            {errors.title ? (
+              <small id="expense-title-error" role="alert">
+                {errors.title.message}
+              </small>
+            ) : null}
+          </div>
+
+          <div className="form-divider" />
+          <div className="form-question">
+            <span title="Tutar">
+              <WalletCards aria-hidden="true" />
+            </span>
+            <div>
+              <small>Ne kadar?</small>
+              <h2>Ödenen tutar</h2>
+            </div>
+          </div>
+          <div className="amount-input">
+            <input
+              inputMode="decimal"
+              placeholder="0,00"
+              aria-label="Harcama tutarı"
+              aria-invalid={Boolean(errors.amount)}
+              aria-describedby={`expense-amount-help${errors.amount ? ' expense-amount-error' : ''}`}
+              {...register('amount')}
+            />
+            <strong>{selectedCurrency ?? 'TRY'}</strong>
+          </div>
+          {errors.amount ? (
+            <p className="field-error" id="expense-amount-error" role="alert">
+              {errors.amount.message}
+            </p>
+          ) : null}
+          <p className="form-hint" id="expense-amount-help">
+            Para birimi {standalonePlan ? 'Plandan' : 'Defterden'} gelir ve bu
+            harcama için değiştirilemez.
+          </p>
+
+          <div className="form-divider" />
+          <label className="field">
+            <span>{standalonePlan ? 'Plan' : 'Defter'}</span>
+            {standalonePlan ? (
+              <>
+                <input type="hidden" {...register('ledgerId')} />
+                <div className="context-note">
+                  {requestedPlan.data?.name ?? 'Seçili bağımsız Plan'} içinde
+                  oluşturulacak.
+                </div>
+              </>
+            ) : requestedLedgerId ? (
+              <>
+                <input type="hidden" {...register('ledgerId')} />
+                <div className="context-note">
+                  {selectedLedger?.name ?? 'Seçili Defter'} içinde
+                  oluşturulacak.
+                </div>
+              </>
+            ) : (
+              <select
+                className="input"
+                aria-invalid={Boolean(errors.ledgerId)}
+                aria-describedby={
+                  errors.ledgerId ? 'expense-ledger-error' : undefined
+                }
+                {...register('ledgerId')}
+              >
+                <option value="">Defter seç</option>
+                {ledgers.data
+                  ?.filter((ledger) => !ledger.archivedAt)
+                  .map((ledger) => (
+                    <option value={ledger.id} key={ledger.id}>
+                      {ledger.name}
+                    </option>
+                  ))}
+              </select>
+            )}
+            {errors.ledgerId ? (
+              <small id="expense-ledger-error">{errors.ledgerId.message}</small>
+            ) : null}
+          </label>
+          {requestedPlanId ? (
+            <input type="hidden" {...register('planId')} />
+          ) : null}
+          <details className="form-disclosure">
+            <summary>İsteğe bağlı ayrıntılar</summary>
+            <div className="stack-form">
+              <label className="field">
+                <span>Not</span>
+                <textarea
+                  className="input"
+                  rows={2}
+                  placeholder="Kısa bir açıklama"
+                  {...register('description')}
+                />
+              </label>
+              {!requestedPlanId ? (
+                <label className="field">
+                  <span>Plan</span>
+                  <select className="input" {...register('planId')}>
+                    <option value="">Bir Plana bağlı değil</option>
+                    {plans.data
+                      ?.filter((plan) => plan.status === 'ACTIVE')
+                      .map((plan) => (
+                        <option value={plan.id} key={plan.id}>
+                          {plan.name}
+                        </option>
+                      ))}
+                  </select>
+                </label>
+              ) : null}
+              {!standalonePlan ? (
+                <label className="field">
+                  <span>Kategori</span>
+                  <select className="input" {...register('categoryId')}>
+                    <option value="">Kategorisiz</option>
+                    {categories.data
+                      ?.filter(
+                        (category) =>
+                          !category.archivedAt &&
+                          (category.kind === 'EXPENSE' ||
+                            category.kind === 'BOTH'),
+                      )
+                      .map((category) => (
+                        <option value={category.id} key={category.id}>
+                          {category.name}
+                        </option>
+                      ))}
+                  </select>
+                </label>
+              ) : null}
+              {!standalonePlan ? (
+                <details className="nested-disclosure">
+                  <summary>Yeni kategori oluştur</summary>
+                  <div className="add-row">
+                    <input
+                      className="input"
+                      value={newCategory}
+                      onChange={(event) => setNewCategory(event.target.value)}
+                      placeholder="Yeni kategori adı"
+                      aria-label="Yeni kategori adı"
+                    />
+                    <button
+                      className="button button--quiet button--small"
+                      type="button"
+                      disabled={!newCategory.trim()}
+                      onClick={() => void createCategory()}
+                    >
+                      Kategori ekle
+                    </button>
+                  </div>
+                </details>
+              ) : null}
+              <label className="field field--date">
+                <span>Harcama tarihi</span>
+                <input
+                  className="input"
+                  type="date"
+                  aria-invalid={Boolean(errors.expenseDate)}
+                  aria-describedby={
+                    errors.expenseDate ? 'expense-date-error' : undefined
+                  }
+                  {...register('expenseDate')}
+                />
+                {errors.expenseDate ? (
+                  <small id="expense-date-error">
+                    {errors.expenseDate.message}
+                  </small>
+                ) : null}
+              </label>
+            </div>
+          </details>
+        </section>
+      ) : null}
 
       <aside className="smart-form__side">
-        <ParticipantsSection
-          people={people}
-          currentUserId={user?.id}
-          register={register}
-          errors={errors}
-        />
+        {!isWizard || step === 1 ? (
+          <ParticipantsSection
+            people={people}
+            currentUserId={user?.id}
+            register={register}
+            errors={errors}
+          />
+        ) : null}
 
-        <ExpensePreview
-          preview={preview}
-          people={people}
-          splitMethod={splitMethod}
-          currency={selectedCurrency}
-        />
+        {!isWizard || step === 2 ? (
+          <>
+            <ExpensePreview
+              preview={preview}
+              people={people}
+              splitMethod={splitMethod}
+              currency={selectedCurrency}
+            />
 
-        <SplitMethodSection
-          splitMethod={splitMethod}
-          people={people}
-          selectedPeople={selectedPeople}
-          allocations={allocations}
-          currency={selectedCurrency}
-          register={register}
-          updateAllocation={updateAllocation}
-        />
+            <SplitMethodSection
+              splitMethod={splitMethod}
+              people={people}
+              selectedPeople={selectedPeople}
+              allocations={allocations}
+              currency={selectedCurrency}
+              register={register}
+              updateAllocation={updateAllocation}
+            />
 
-        <GiftOption isGift={isGift} register={register} />
+            <GiftOption isGift={isGift} register={register} />
+          </>
+        ) : null}
 
         {formError ? (
           <div className="form-error" role="alert">
             {formError}
           </div>
         ) : null}
-        <button
-          className="button button--primary button--wide button--tall"
-          type="submit"
-          disabled={createExpense.isPending || !people.length}
-        >
-          <ReceiptText />{' '}
-          {createExpense.isPending
-            ? 'Deftere yazılıyor…'
-            : isGift
-              ? 'Ismarlamayı kaydet'
-              : 'Harcamayı kaydet'}{' '}
-          <ArrowRight />
-        </button>
+        {isWizard ? (
+          <div className="expense-wizard__actions">
+            {step === 0 && onCancel ? (
+              <button
+                className="button button--quiet"
+                type="button"
+                onClick={onCancel}
+              >
+                Vazgeç
+              </button>
+            ) : step > 0 ? (
+              <button
+                className="button button--quiet"
+                type="button"
+                onClick={() => setStep((current) => current - 1)}
+              >
+                <ArrowLeft /> Geri
+              </button>
+            ) : null}
+            {step < 2 ? (
+              <button
+                className="button button--primary"
+                type="button"
+                disabled={step === 1 && !people.length}
+                onClick={() => void goForward()}
+              >
+                Devam <ArrowRight />
+              </button>
+            ) : (
+              <button
+                className="button button--primary"
+                type="submit"
+                disabled={createExpense.isPending || !people.length}
+              >
+                <ReceiptText />{' '}
+                {createExpense.isPending
+                  ? 'Deftere yazılıyor…'
+                  : isGift
+                    ? 'Ismarlamayı kaydet'
+                    : 'Harcamayı kaydet'}
+              </button>
+            )}
+          </div>
+        ) : (
+          <button
+            className="button button--primary button--wide button--tall"
+            type="submit"
+            disabled={createExpense.isPending || !people.length}
+          >
+            <ReceiptText />{' '}
+            {createExpense.isPending
+              ? 'Deftere yazılıyor…'
+              : isGift
+                ? 'Ismarlamayı kaydet'
+                : 'Harcamayı kaydet'}{' '}
+            <ArrowRight />
+          </button>
+        )}
       </aside>
     </form>
   );

@@ -51,7 +51,14 @@ const actions: Array<{
   },
 ];
 
-export function QuickAdd() {
+export function QuickAdd({
+  onAction,
+}: {
+  onAction?: (
+    kind: QuickActionKind,
+    context: ReturnType<typeof getQuickActionContext>,
+  ) => void;
+} = {}) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const ledgerPathId = pathname.match(/^\/ledgers\/([^/]+)/)?.[1] ?? '';
@@ -111,7 +118,12 @@ export function QuickAdd() {
             return (
               <Link
                 href={buildQuickActionHref(action.kind, context)}
-                onClick={() => setOpen(false)}
+                onClick={(event) => {
+                  setOpen(false);
+                  if (!onAction) return;
+                  event.preventDefault();
+                  onAction(action.kind, context);
+                }}
                 key={action.kind}
               >
                 <span>

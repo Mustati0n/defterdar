@@ -21,7 +21,7 @@ describe('PageHeading', () => {
     });
     window.requestAnimationFrame = (callback) => {
       callback(0);
-      return 1;
+      return 0;
     };
   });
 
@@ -50,6 +50,20 @@ describe('PageHeading', () => {
     });
     act(() => window.dispatchEvent(new Event('scroll')));
     expect(heading).toHaveAttribute('data-compact', 'true');
+
+    Object.defineProperty(window, 'scrollY', {
+      configurable: true,
+      value: 100,
+    });
+    act(() => window.dispatchEvent(new Event('scroll')));
+    expect(heading).toHaveAttribute('data-compact', 'true');
+
+    Object.defineProperty(window, 'scrollY', {
+      configurable: true,
+      value: 40,
+    });
+    act(() => window.dispatchEvent(new Event('scroll')));
+    expect(heading).not.toHaveAttribute('data-compact');
   });
 
   it('keeps a static short-page header stable', () => {

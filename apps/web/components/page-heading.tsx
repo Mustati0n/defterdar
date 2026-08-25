@@ -18,6 +18,7 @@ export function PageHeading({
   variant?: 'adaptive' | 'static';
 }) {
   const headerRef = useRef<HTMLElement>(null);
+  const compactRef = useRef(false);
   const [compact, setCompact] = useState(false);
 
   useEffect(() => {
@@ -27,7 +28,14 @@ export function PageHeading({
       frame = 0;
       const longPage =
         document.documentElement.scrollHeight > window.innerHeight + 180;
-      setCompact(longPage && window.scrollY > 112);
+      const next = !longPage
+        ? false
+        : compactRef.current
+          ? window.scrollY > 64
+          : window.scrollY > 160;
+      if (next === compactRef.current) return;
+      compactRef.current = next;
+      setCompact(next);
     };
     const schedule = () => {
       if (!frame) frame = window.requestAnimationFrame(update);

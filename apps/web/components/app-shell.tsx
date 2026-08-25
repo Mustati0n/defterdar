@@ -13,6 +13,7 @@ import {
   X,
 } from 'lucide-react';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState, type ReactNode } from 'react';
 import { useAuth } from '@/features/auth/auth-provider';
@@ -24,6 +25,13 @@ import { OnboardingExperience } from '@/features/onboarding/onboarding-experienc
 import { useProtectedRoute } from '@/features/auth/use-protected-route';
 import { FloatingQuickAdd } from './floating-quick-add';
 import { InterfacePreferencesEffect } from '@/features/preferences/interface-preferences-effect';
+import type { QuickActionContext, QuickActionKind } from '@/lib/quick-actions';
+
+const QuickActionDialog = dynamic(
+  () =>
+    import('./quick-action-dialog').then((module) => module.QuickActionDialog),
+  { ssr: false },
+);
 
 const navigation = [
   { href: '/overview', label: 'Özet', icon: LayoutDashboard },
@@ -44,6 +52,10 @@ export function AppShell({ children }: { children: ReactNode }) {
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [quickAction, setQuickAction] = useState<{
+    kind: QuickActionKind;
+    context: QuickActionContext;
+  } | null>(null);
 
   if (!routeReady || isBootstrapping || !user) {
     return (
@@ -111,7 +123,9 @@ export function AppShell({ children }: { children: ReactNode }) {
           })}
         </nav>
 
-        <QuickAdd />
+        <QuickAdd
+          onAction={(kind, context) => setQuickAction({ kind, context })}
+        />
 
         <div className="sidebar__account">
           <span className="avatar">{initials(user.displayName)}</span>
@@ -134,6 +148,8 @@ export function AppShell({ children }: { children: ReactNode }) {
           type="button"
           onClick={() => setCollapsed((current) => !current)}
           aria-label={collapsed ? 'Menüyü genişlet' : 'Menüyü daralt'}
+          aria-expanded={!collapsed}
+          title={collapsed ? 'Menüyü genişlet' : 'Menüyü daralt'}
         >
           <ChevronLeft />
           <span>Menüyü daralt</span>
@@ -160,7 +176,16 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
         </div>
       </main>
-      <FloatingQuickAdd key={pathname} />
+      <FloatingQuickAdd
+        key={pathname}
+        onAction={(kind, context) => setQuickAction({ kind, context })}
+      />
+      {quickAction ? (
+        <QuickActionDialog
+          action={quickAction}
+          onClose={() => setQuickAction(null)}
+        />
+      ) : null}
       <InterfacePreferencesEffect />
       <OnboardingExperience />
     </div>

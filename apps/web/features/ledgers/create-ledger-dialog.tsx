@@ -26,11 +26,18 @@ type Values = z.infer<typeof schema>;
 export function CreateLedgerDialog({
   defaultOpen = false,
   defaultType = 'SHARED',
+  open: controlledOpen,
+  onOpenChange,
+  hideTrigger = false,
 }: {
   defaultOpen?: boolean;
   defaultType?: Ledger['type'];
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  hideTrigger?: boolean;
 }) {
-  const [open, setOpen] = useState(defaultOpen);
+  const [internalOpen, setInternalOpen] = useState(defaultOpen);
+  const open = controlledOpen ?? internalOpen;
   const [type, setType] = useState<Ledger['type']>(defaultType);
   const mutation = useCreateLedger(type);
   const toast = useToast();
@@ -47,6 +54,10 @@ export function CreateLedgerDialog({
   const dialogRef = useRef<HTMLElement>(null);
   const nameRef = useRef<HTMLInputElement>(null);
   const nameRegistration = register('name');
+  const setOpen = (next: boolean) => {
+    if (controlledOpen === undefined) setInternalOpen(next);
+    onOpenChange?.(next);
+  };
   const handleDialogKeyDown = useModalDialog({
     open,
     onClose: () => setOpen(false),
@@ -74,13 +85,15 @@ export function CreateLedgerDialog({
 
   return (
     <>
-      <button
-        className="button button--primary"
-        type="button"
-        onClick={() => setOpen(true)}
-      >
-        <BookPlus /> Yeni Defter
-      </button>
+      {!hideTrigger ? (
+        <button
+          className="button button--primary"
+          type="button"
+          onClick={() => setOpen(true)}
+        >
+          <BookPlus /> Yeni Defter
+        </button>
+      ) : null}
       {open ? (
         <div
           className="dialog-backdrop"

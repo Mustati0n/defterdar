@@ -25,6 +25,36 @@ const IncomeForm = dynamic(
   },
 );
 
-export function LazyRouteForm({ kind }: { kind: 'expense' | 'income' }) {
-  return kind === 'expense' ? <ExpenseForm /> : <IncomeForm />;
+export function LazyRouteForm({
+  kind,
+  initialLedgerId,
+  initialPlanId,
+  onCancel,
+  onComplete,
+  presentation = 'page',
+}: {
+  kind: 'expense' | 'income';
+  initialLedgerId?: string;
+  initialPlanId?: string;
+  onCancel?: () => void;
+  onComplete?: () => void;
+  presentation?: 'page' | 'wizard' | 'dialog';
+}) {
+  return kind === 'expense' ? (
+    <ExpenseForm
+      initialLedgerId={initialLedgerId}
+      initialPlanId={initialPlanId}
+      onCancel={onCancel}
+      onComplete={onComplete}
+      presentation={presentation}
+    />
+  ) : (
+    <IncomeForm
+      initialLedgerId={initialLedgerId}
+      initialPlanId={initialPlanId}
+      onCancel={onCancel}
+      onComplete={onComplete}
+      presentation={presentation === 'dialog' ? 'dialog' : 'page'}
+    />
+  );
 }

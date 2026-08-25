@@ -45,11 +45,19 @@ export function availableFloatingActions({
   return ['expense', 'income', 'plan', 'ledger'];
 }
 
-export function FloatingQuickAdd() {
+export function FloatingQuickAdd({
+  onAction,
+}: {
+  onAction?: (
+    kind: QuickActionKind,
+    context: ReturnType<typeof getQuickActionContext>,
+  ) => void;
+} = {}) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const suppressFocusOpenRef = useRef(false);
   const planId = pathname.match(/^\/plans\/([^/]+)/)?.[1] ?? '';
   const plan = usePlan(planId);
   const context = getQuickActionContext(
@@ -83,8 +91,12 @@ export function FloatingQuickAdd() {
     };
     const closeWithEscape = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return;
+      suppressFocusOpenRef.current = true;
       setOpen(false);
       triggerRef.current?.focus();
+      window.setTimeout(() => {
+        suppressFocusOpenRef.current = false;
+      }, 0);
     };
     document.addEventListener('pointerdown', closeOutside);
     document.addEventListener('keydown', closeWithEscape);
@@ -100,6 +112,14 @@ export function FloatingQuickAdd() {
     <div
       className={`floating-quick-add${open ? ' is-open' : ''}`}
       ref={rootRef}
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
+      onFocusCapture={() => {
+        if (!suppressFocusOpenRef.current) setOpen(true);
+      }}
+      onBlurCapture={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false);
+      }}
     >
       {open ? (
         <div className="floating-quick-add__menu" id="floating-quick-add-menu">
@@ -108,8 +128,14 @@ export function FloatingQuickAdd() {
             return (
               <Link
                 href={buildQuickActionHref(action.kind, context)}
-                onClick={() => setOpen(false)}
+                onClick={(event) => {
+                  setOpen(false);
+                  if (!onAction) return;
+                  event.preventDefault();
+                  onAction(action.kind, context);
+                }}
                 key={action.kind}
+                title={action.label}
               >
                 <span>{action.label}</span>
                 <i aria-hidden="true">
