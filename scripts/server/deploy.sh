@@ -5,6 +5,7 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd -- "$SCRIPT_DIR/../.." && pwd)"
 RESTART_MODE="${DEFTERDAR_RESTART_MODE:-systemd}"
 SKIP_VERIFY="${DEFTERDAR_SKIP_VERIFY:-0}"
+VERIFIED_STAGING_COMMIT="${DEFTERDAR_VERIFIED_STAGING_COMMIT:-}"
 cd "$PROJECT_DIR"
 
 log() {
@@ -25,16 +26,25 @@ git rev-parse --is-inside-work-tree >/dev/null 2>&1 || fail 'Project is not a Gi
 [[ -z "$(git status --porcelain)" ]] || fail 'Working tree is dirty. Commit or discard server changes explicitly; deploy will not auto-stash.'
 
 if [[ "$PROFILE" == 'staging' ]]; then
-  log 'Fetching the verified STAGING source branch.'
-  git fetch origin main
-  upstream="$(git rev-parse --abbrev-ref --symbolic-full-name '@{upstream}' 2>/dev/null || true)"
-  [[ "$upstream" == 'origin/main' ]] || fail 'STAGING worktree must track origin/main.'
+  if [[ -n "$VERIFIED_STAGING_COMMIT" ]]; then
+    [[ "$VERIFIED_STAGING_COMMIT" =~ ^[0-9a-f]{40}$ ]] || fail 'DEFTERDAR_VERIFIED_STAGING_COMMIT must be a full 40-character commit SHA.'
+    git cat-file -e "$VERIFIED_STAGING_COMMIT^{commit}" 2>/dev/null || fail 'The verified STAGING commit does not exist locally.'
+    [[ "$(git rev-parse HEAD)" == "$VERIFIED_STAGING_COMMIT" ]] || fail 'STAGING HEAD does not match DEFTERDAR_VERIFIED_STAGING_COMMIT.'
+    log 'Using the explicitly pinned, local verified STAGING commit; GitHub sync remains pending.'
+  else
+    log 'Fetching the verified STAGING source branch.'
+    git fetch origin main
+    upstream="$(git rev-parse --abbrev-ref --symbolic-full-name '@{upstream}' 2>/dev/null || true)"
+    [[ "$upstream" == 'origin/main' ]] || fail 'STAGING worktree must track origin/main.'
+  fi
 fi
 
-log "Pulling the $PROFILE tracked branch with fast-forward only."
-git pull --ff-only
+if [[ "$PROFILE" != 'staging' || -z "$VERIFIED_STAGING_COMMIT" ]]; then
+  log "Pulling the $PROFILE tracked branch with fast-forward only."
+  git pull --ff-only
+fi
 
-if [[ "$PROFILE" == 'staging' ]]; then
+if [[ "$PROFILE" == 'staging' && -z "$VERIFIED_STAGING_COMMIT" ]]; then
   [[ "$(git rev-parse HEAD)" == "$(git rev-parse origin/main)" ]] || fail 'STAGING HEAD is not the current origin/main commit.'
 fi
 

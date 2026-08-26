@@ -138,6 +138,19 @@ Davet linkleri web tarafında `window.location.origin` kullanır. Bu nedenle do�
 hostname üzerinden açılan DEV/STAGING localhost davet linki üretmez; kullanılmayan
 `APP_URL`/`WEB_URL` değişkenleri eklenmemiştir.
 
+GitHub yazma erişimi geçici olarak yoksa, yalnız daha önce tam kalite kapısından
+geçirilmiş yerel bir commit STAGING adayı olarak açıkça sabitlenebilir. STAGING
+worktree'sini bu committe temiz bıraktıktan sonra tam 40 karakterli SHA ile:
+
+```bash
+DEFTERDAR_VERIFIED_STAGING_COMMIT="$(git rev-parse HEAD)" \
+  ./scripts/server/deploy.sh staging
+```
+
+Bu opt-in, `origin/main` senkronizasyonu anlamına gelmez. Değişken verilmezse
+normal güvenlik politikası geçerlidir ve STAGING yalnız güncel `origin/main`
+üzerinden dağıtılır.
+
 İki dosyayı secretsız biçimde karşılaştıran kontrol:
 
 ```bash
