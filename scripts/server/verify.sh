@@ -22,8 +22,17 @@ MINIO_URL="${DEFTERDAR_MINIO_URL:-$(read_env_value "$ENV_FILE" S3_ENDPOINT)}"
 check_url() {
   local label="$1"
   local url="$2"
+  local attempt
+
+  for attempt in {1..20}; do
+    if curl --fail --silent --location --max-time 10 "$url" >/dev/null 2>&1; then
+      printf '[verify] PASS: %s (%s)\n' "$label" "$url"
+      return
+    fi
+    sleep 1
+  done
+
   curl --fail --silent --show-error --location --max-time 10 "$url" >/dev/null
-  printf '[verify] PASS: %s (%s)\n' "$label" "$url"
 }
 
 compose_profile exec -T postgres \
