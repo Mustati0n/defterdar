@@ -1,51 +1,72 @@
-# Defterdar Remote Development / Staging Setup
+# Defterdar Shared VPS: DEV + STAGING
 
-Bu belge yeni bir Linux VPS üzerinde **remote development / staging foundation**
-kurar. Production release, gerçek domain kurulumu veya sunucu üzerinde otomatik
-firewall değişikliği yapmaz.
+Bu belge tek Linux VPS üzerinde birbirinden izole iki ortam kurar:
 
-Önerilen kaynak aktarımı:
+- **DEV:** sık güncellenen remote development ve mobil test ortamı
+- **STAGING:** yalnız doğrulanmış `origin/main` commit'lerinden güncellenen ekip ortamı
+
+Bu bir production release değildir. GitHub source of truth olarak kalır; VPS tek
+yaşayan kod kopyası olmaz. Önerilen aktarım `git clone` + `git worktree`'dir. ZIP
+yalnız fallback'tir.
+
+## Isolation contract
+
+| Kaynak             | DEV                            | STAGING                         |
+| ------------------ | ------------------------------ | ------------------------------- |
+| Hostname           | `https://dev.<DOMAIN>`         | `https://staging.<DOMAIN>`      |
+| Git worktree       | `/srv/defterdar-dev`           | `/srv/defterdar-staging`        |
+| Environment file   | `defterdar-dev/.env`           | `defterdar-staging/.env`        |
+| Compose project    | `defterdar-dev`                | `defterdar-staging`             |
+| Web/API            | `127.0.0.1:3200` / `:3201`     | `127.0.0.1:3000` / `:3001`      |
+| PostgreSQL host    | `127.0.0.1:55432`              | `127.0.0.1:5432`                |
+| Database           | `defterdar_dev`                | `defterdar_staging`             |
+| MinIO API/console  | `127.0.0.1:59000` / `:59001`   | `127.0.0.1:9000` / `:9001`      |
+| Bucket             | `defterdar-dev-receipts`       | `defterdar-staging-receipts`    |
+| systemd instances  | `defterdar-*@dev.service`      | `defterdar-*@staging.service`   |
+| Persistent volumes | Compose project scoped volumes | Separate project scoped volumes |
+
+Compose project naming separates container/network/volume names. Different host
+ports, database names, credentials, MinIO data volumes and bucket names prevent
+cross-environment access. Application build output is also separated because
+each environment has its own Git worktree. A DEV build/restart never addresses
+the STAGING Compose project or systemd instance.
+
+`scripts/server/check-isolation.sh` fails if security-sensitive identities,
+ports, databases, buckets, endpoints or credentials are shared.
+
+## Architecture
 
 ```text
-GitHub → git clone → git pull --ff-only
+                         Caddy / HTTPS
+                 ┌────────────┴────────────┐
+        dev.<DOMAIN>               staging.<DOMAIN>
+       /api → :3201                /api → :3001
+          / → :3200                   / → :3000
+             │                            │
+  defterdar-api/web@dev       defterdar-api/web@staging
+             │                            │
+  defterdar-dev Compose       defterdar-staging Compose
+  PostgreSQL + MinIO          PostgreSQL + MinIO
+  own volumes/database        own volumes/database
 ```
 
-ZIP yalnız fallback'tir. GitHub source of truth olarak kalmalıdır; VPS tek yaşayan
-kod kopyası olmamalıdır.
-
-## Mimari
-
-```text
-Internet :80/:443
-       ↓
-     Caddy
-       ├─ /api/* → 127.0.0.1:3001 (prefix strip) → NestJS
-       └─ /*      → 127.0.0.1:3000                → Next.js
-
-127.0.0.1:5432 → PostgreSQL 17 container
-127.0.0.1:9000 → MinIO API container
-127.0.0.1:9001 → MinIO console container
-```
-
-PostgreSQL ve MinIO `compose.server.yml` ile kalıcı volume kullanır. Next ve
-Nest, Node 24 üzerinde ayrı systemd servisleridir. Uygulamaları sırf container
-olsun diye Docker image'a çevirmek bu staging foundation'ın kapsamına alınmadı.
+Nest ve Next host üzerinde Node 24 + systemd ile çalışır. PostgreSQL ve MinIO
+`compose.server.yml` ile çalışır. Uygulamayı yalnız container kullanmak adına
+aceleyle Dockerize etmek bu foundation'ın kapsamına alınmadı.
 
 ## Server requirements
 
-- 64-bit Linux VPS; dağıtım ve sürüm kullanıcı tarafından seçilmelidir.
+- 64-bit Linux VPS
 - Git
 - Node.js `24.x` (`.nvmrc`: `24`)
 - pnpm `11.22.0` (`packageManager` pin'i)
-- Docker Engine ve Docker Compose v2 (`docker compose`)
+- Docker Engine ve Docker Compose v2
 - `curl` ve `openssl`
-- Caddy yalnız public HTTPS staging kullanılacaksa
-- En az iki kalıcı volume için yeterli disk ve ayrı bir backup hedefi
+- Public HTTPS için Caddy
+- Her iki ortam ve off-site backup için yeterli disk
 
-Ubuntu/Debian, Fedora veya başka bir dağıtım için Docker/Caddy paketlerini kendi
-resmi kurulum kaynaklarından yükleyin. Repository root gerektiren paket kurulumunu
-otomatikleştirmez. Node runtime bir deploy kullanıcısı altında örneğin şöyle
-hazırlanabilir:
+Repository root yetkisi isteyen paket kurulumlarını otomatik yapmaz. Deploy
+kullanıcısı için Node örneği:
 
 ```bash
 nvm install 24
@@ -58,87 +79,139 @@ pnpm --version
 
 ## New Server
 
-### 1. SSH ve repository clone
+### 1. Clone once, create two Git worktrees
 
-Deploy kullanıcısına yalnız gereken izinleri verin. Önerilen project path
-`/srv/defterdar`'dır; systemd hardening ile home dizinine bağlı kalmaz.
-
-```bash
-sudo install -d -o "$USER" -g "$(id -gn)" /srv/defterdar
-git clone https://github.com/Mustati0n/defterdar.git /srv/defterdar
-cd /srv/defterdar
-git checkout main
-git status
-```
-
-`node_modules`, `.next`, `dist`, local database, `.env`, log ve cache Git ile
-taşınmaz. Bunlar sunucuda yeniden oluşturulur.
-
-### 2. Environment
+Repository yalnız bir kez clone edilir. Worktree'ler Git object database'i ve
+history'yi paylaşır; source/build dizinleri ise runtime izolasyonu için ayrıdır.
 
 ```bash
-cp .env.server.example .env
-cp apps/web/.env.server.example apps/web/.env.local
-chmod 600 .env apps/web/.env.local
+sudo install -d -o "$USER" -g "$(id -gn)" /srv/defterdar-repo
+git clone https://github.com/Mustati0n/defterdar.git /srv/defterdar-repo
+
+git -C /srv/defterdar-repo worktree add --track \
+  -b server/dev /srv/defterdar-dev origin/main
+git -C /srv/defterdar-repo worktree add --track \
+  -b server/staging /srv/defterdar-staging origin/main
+
+git -C /srv/defterdar-repo worktree list
 ```
 
-Secret üretmek için her kullanımda ayrı değer üretin:
+`server/staging` mutlaka `origin/main` takip etmelidir. DEV daha sonra bir feature
+branch'e geçebilir; STAGING worktree aynı anda etkilenmez.
+
+### 2. Configure separate environment files
+
+```bash
+cd /srv/defterdar-dev
+cp .env.dev.example .env
+cp apps/web/.env.dev.example apps/web/.env.local
+
+cd /srv/defterdar-staging
+cp .env.staging.example .env
+cp apps/web/.env.staging.example apps/web/.env.local
+
+chmod 600 /srv/defterdar-dev/.env \
+  /srv/defterdar-dev/apps/web/.env.local \
+  /srv/defterdar-staging/.env \
+  /srv/defterdar-staging/apps/web/.env.local
+```
+
+Her secret için değer üretin:
 
 ```bash
 openssl rand -hex 32
 ```
 
-`.env` içinde en az şunları değiştirin:
+Kurallar:
 
-- `POSTGRES_PASSWORD` ve `DATABASE_URL` içindeki aynı parola
-- `JWT_ACCESS_SECRET`
-- Self-hosted MinIO için `MINIO_ROOT_USER` ile `S3_ACCESS_KEY_ID` aynı değer
-- Self-hosted MinIO için `MINIO_ROOT_PASSWORD` ile `S3_SECRET_ACCESS_KEY` aynı secret
-- `CORS_ORIGINS=https://<gerçek-domain>`
+- DEV ve STAGING aynı PostgreSQL/JWT/MinIO/S3 secret'ını kullanmaz.
+- Her ortamda `POSTGRES_PASSWORD`, `DATABASE_URL` ve `TEST_DATABASE_URL`
+  içindeki parola eşleşir.
+- Aynı ortamda `MINIO_ROOT_USER` = `S3_ACCESS_KEY_ID` ve
+  `MINIO_ROOT_PASSWORD` = `S3_SECRET_ACCESS_KEY` olur.
+- DEV ve STAGING değerleri birbirinden farklı olur.
+- `CORS_ORIGINS` sırasıyla `https://dev.<DOMAIN>` ve
+  `https://staging.<DOMAIN>` olur.
+- Secret hiçbir zaman `NEXT_PUBLIC_*` değişkenine konmaz.
 
-Hex parola kullanmak PostgreSQL URL encoding belirsizliğini önler. Gerçek
-secret'ları terminal komut satırına argüman olarak yazmayın; `chmod 600` olan
-`.env` dosyasında tutun. Secret'lar hiçbir zaman `NEXT_PUBLIC_*` adına konmaz.
+Davet linkleri web tarafında `window.location.origin` kullanır. Bu nedenle doğru
+hostname üzerinden açılan DEV/STAGING localhost davet linki üretmez; kullanılmayan
+`APP_URL`/`WEB_URL` değişkenleri eklenmemiştir.
 
-Environment sorumlulukları:
-
-| Kategori       | Değişkenler                                                                                                                 |
-| -------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| Application    | `NODE_ENV`, `PORT`, `API_HOST`, `API_PORT`, `API_BODY_LIMIT`, `CORS_ORIGINS`                                                |
-| Auth           | `JWT_ACCESS_SECRET`, `JWT_ACCESS_TTL`, `AUTH_REFRESH_TTL`, `INVITATION_TTL_DAYS`                                            |
-| PostgreSQL     | `DATABASE_URL`, `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_PORT`                                        |
-| Object storage | `S3_ENDPOINT`, `S3_REGION`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_FORCE_PATH_STYLE`, MinIO değerleri |
-| Browser-public | yalnız `apps/web/.env.local` içindeki `NEXT_PUBLIC_API_BASE_URL`                                                            |
-
-Davet linkleri backend'de hostname birleştirmez. Web uygulaması linki
-`window.location.origin` üzerinden oluşturur; doğru domain üzerinden açıldığında
-localhost linki üretmez. Bu nedenle kullanılmayan `APP_URL`, `WEB_URL` veya
-`FRONTEND_URL` değişkenleri eklenmemiştir.
-
-### 3. Preflight ve infrastructure
+İki dosyayı secretsız biçimde karşılaştıran kontrol:
 
 ```bash
-./scripts/server/bootstrap.sh
-docker compose -f compose.server.yml up -d --wait postgres minio
-docker compose -f compose.server.yml run --rm minio-init
-docker compose -f compose.server.yml ps
+/srv/defterdar-dev/scripts/server/check-isolation.sh \
+  /srv/defterdar-dev/.env \
+  /srv/defterdar-staging/.env
 ```
 
-Compose portları yalnız `127.0.0.1` üzerinde bind eder. PostgreSQL ve MinIO
-volume'ları container recreate sırasında korunur. Local geliştirme için mevcut
-`docker-compose.yml` aynen kalır; VPS üzerinde `compose.server.yml` kullanın.
+Script secret değerlerini ekrana yazmaz.
 
-### 4. Install, migration ve build
+### 3. Install dependencies and preflight
 
 ```bash
+cd /srv/defterdar-dev
 pnpm install --frozen-lockfile
-pnpm db:deploy
-pnpm build
+./scripts/server/bootstrap.sh dev
+
+cd /srv/defterdar-staging
+pnpm install --frozen-lockfile
+./scripts/server/bootstrap.sh staging
 ```
 
-Server üzerinde yalnız committed migration'ları çalıştıran Prisma
-`migrate deploy` wrapper'ı (`pnpm db:deploy`) kullanılır. Aşağıdakileri staging
-verisi üzerinde çalıştırmayın:
+Bootstrap Node/pnpm/Docker/env/placeholder/Compose kontrollerini ve diğer worktree
+hazırsa isolation kontrolünü çalıştırır.
+
+### 4. Install instance systemd services
+
+Her iki worktree için aynı instance template kullanılır. Şunları bulun:
+
+```bash
+id -un
+id -gn
+command -v pnpm
+dirname "$(command -v node)"
+```
+
+`deploy/systemd/defterdar-api@.service.example` ve
+`defterdar-web@.service.example` dosyalarında değiştirin:
+
+```text
+<DEPLOY_USER>
+<DEPLOY_GROUP>
+<WORKTREE_ROOT>  → /srv
+<PNPM_PATH>
+<NODE_BIN_DIR>
+```
+
+Sonra template'leri kurun; henüz servisleri başlatmayın:
+
+```bash
+sudo cp deploy/systemd/defterdar-api@.service.example \
+  /etc/systemd/system/defterdar-api@.service
+sudo cp deploy/systemd/defterdar-web@.service.example \
+  /etc/systemd/system/defterdar-web@.service
+sudo systemctl daemon-reload
+```
+
+NVM kullanılıyorsa hem pnpm tam yolu hem Node bin dizini gereklidir.
+
+### 5. First build, migration and start
+
+İlk kurulumda uygulama servisi henüz çalışmadığı için restart/HTTP verify atlanır:
+
+```bash
+cd /srv/defterdar-dev
+DEFTERDAR_RESTART_MODE=none ./scripts/server/deploy.sh dev
+
+cd /srv/defterdar-staging
+DEFTERDAR_RESTART_MODE=none ./scripts/server/deploy.sh staging
+```
+
+Server migration yalnız committed Prisma migration'ları uygulayan
+`pnpm db:deploy` (`prisma migrate deploy`) kullanır. Server verisinde şunları
+kullanmayın:
 
 ```text
 prisma migrate dev
@@ -147,162 +220,149 @@ prisma migrate reset
 pnpm db:migrate
 ```
 
-Fresh kurulum sözleşmesi `empty PostgreSQL → pnpm db:deploy → app start`tır.
-
-### 5. systemd process management
-
-Önce gerçek değerleri bulun:
+Servisleri bağımsız instance'lar olarak etkinleştirin:
 
 ```bash
-pwd
-id -un
-id -gn
-command -v pnpm
-dirname "$(command -v node)"
+sudo systemctl enable --now \
+  defterdar-api@dev.service defterdar-web@dev.service
+sudo systemctl enable --now \
+  defterdar-api@staging.service defterdar-web@staging.service
+
+/srv/defterdar-dev/scripts/server/verify.sh dev
+/srv/defterdar-staging/scripts/server/verify.sh staging
 ```
 
-`deploy/systemd/*.service.example` dosyalarını `/etc/systemd/system` altına
-kopyalayın ve şu placeholder'ları değiştirin:
+### 6. Caddy and HTTPS
 
-```text
-<DEPLOY_USER>
-<DEPLOY_GROUP>
-<PROJECT_DIR>
-<PNPM_PATH>
-<NODE_BIN_DIR>
-```
-
-Sonra:
-
-```bash
-sudo systemctl daemon-reload
-sudo systemctl enable --now defterdar-api.service
-sudo systemctl enable --now defterdar-web.service
-sudo systemctl status defterdar-api.service defterdar-web.service
-```
-
-Root package scriptleri gerçektir:
-
-```bash
-pnpm start:api
-pnpm start:web
-```
-
-Her iki uygulama da reverse proxy arkasında localhost üzerinde dinler. Terminal
-kapatıldığında systemd süreçleri çalışmaya devam eder.
-
-### 6. Caddy ve HTTPS
-
-Public staging için DNS A/AAAA kaydını VPS'e yönlendirdikten sonra
-`deploy/Caddyfile.example` dosyasını kopyalayıp `<YOUR_DOMAIN>` değerini
-değiştirin. Örnek, `/api/*` prefix'ini strip ederek mevcut `/auth`, `/ledgers`,
-`/health` gibi Nest route'larını değiştirmeden proxy eder.
+DNS kayıtlarını VPS'e yönlendirdikten sonra `deploy/Caddyfile.dual.example`
+dosyasını `/etc/caddy/Caddyfile` için temel alın ve `<DOMAIN>` değerini değiştirin.
 
 ```bash
 sudo caddy validate --config /etc/caddy/Caddyfile
 sudo systemctl reload caddy
 ```
 
-Caddy gerçek domain ve erişilebilir 80/443 portları olduğunda HTTPS yönetebilir.
-Bilinmeyen bir domain için sertifika talebi çalıştırmayın. Localhost development
-HTTP kalır; `https://localhost:3000` kullanmak SSL protocol hatası üretir.
+Caddy iki hostname için HTTPS sertifikalarını ayrı yönetir. `/api/*` prefix'ini
+strip ederek mevcut Nest `/health`, `/auth`, `/ledgers` route sözleşmesini bozmaz.
+Public DEV dahil HTTP kullanılmaz. Localhost ve SSH tunnel erişimi HTTP kalabilir.
 
-### 7. Verify
+## Daily commands
 
-```bash
-./scripts/server/verify.sh
-```
+### Deploy DEV
 
-Script PostgreSQL readiness, MinIO health, API `/health`, API `/health/ready`
-ve web HTTP response kontrollerini yapar. Public proxy ayrıca manuel kontrol
-edilmelidir:
+DEV worktree temiz ve branch upstream'i mevcut olmalıdır:
 
 ```bash
-curl --fail --show-error --location https://<YOUR_DOMAIN>/
-curl --fail --show-error https://<YOUR_DOMAIN>/api/health/ready
+cd /srv/defterdar-dev
+./scripts/server/deploy.sh dev
 ```
 
-## Update Existing Server
-
-Normal rutin güncelleme, environment ve systemd bir kez hazırlandıktan sonra:
-
-```bash
-cd /srv/defterdar
-./scripts/server/deploy.sh
-```
-
-Script yaptığı adımları yazdırır:
+Akış:
 
 ```text
-dirty-tree sanity → git pull --ff-only → frozen install
-→ Compose infrastructure → migrate deploy → build
-→ systemd restart → health verification
+dirty-tree guard → git pull --ff-only → frozen install
+→ defterdar-dev PostgreSQL/MinIO → lint → build
+→ DEV migrate deploy → only @dev restart → DEV verify
 ```
 
-Uncommitted server değişikliği varsa fail eder; auto-stash veya overwrite yapmaz.
-Remote development oturumunda process restart istemiyorsanız:
+DEV deploy hiçbir `defterdar-staging` Compose kaynağına veya `@staging`
+systemd servisine komut göndermez.
+
+### Verify DEV
 
 ```bash
-DEFTERDAR_RESTART_MODE=none ./scripts/server/deploy.sh
+cd /srv/defterdar-dev
+./scripts/server/verify.sh dev
+curl --fail https://dev.<DOMAIN>/api/health/ready
 ```
 
-Bu mod build'e kadar gider, çalışan uygulamayı restart/verify etmez.
+### Promote/deploy STAGING
 
-## Development Mode
-
-Remote development yalnız SSH tüneli/VPN gibi kontrollü erişimde önerilir.
-Public internete Next/Nest dev server açmayın.
+Önce doğrulanacak değişiklik GitHub `main` dalına merge/push edilmiş olmalıdır.
+STAGING script'i worktree upstream'inin `origin/main` olduğunu ve HEAD'in güncel
+`origin/main` commit'iyle aynı olduğunu zorunlu tutar.
 
 ```bash
-cp .env.example .env
-cp apps/web/.env.example apps/web/.env.local
-docker compose up -d
-pnpm install
-pnpm db:deploy
-pnpm dev
+cd /srv/defterdar-staging
+./scripts/server/deploy.sh staging
 ```
 
-Yerel bilgisayardan tünel örneği:
-
-```bash
-ssh -L 3000:127.0.0.1:3000 \
-  -L 3001:127.0.0.1:3001 \
-  -L 9001:127.0.0.1:9001 <SSH_USER>@<SERVER_IP>
-```
-
-Sonra `http://localhost:3000` kullanın. VS Code Remote SSH ile source doğrudan
-sunucuda düzenlenebilir; repository editor/plugin kurulumu yapmaz.
-
-Önerilen geliştirme disiplini:
+Akış:
 
 ```text
-Mac/remote editor → feature branch → test → commit → push
-GitHub source of truth → staging server pull/deploy
+dirty-tree guard → fetch/pull origin/main → frozen install
+→ defterdar-staging PostgreSQL/MinIO → lint → full tests → build
+→ only after PASS: STAGING migrate deploy
+→ only @staging restart → STAGING verify
 ```
 
-Server'da düzenleme yapılırsa yine branch, commit ve push kullanılmalıdır.
+Lint/test/build başarısızsa STAGING migration ve restart çalışmaz.
+
+### Verify STAGING
+
+```bash
+cd /srv/defterdar-staging
+./scripts/server/verify.sh staging
+curl --fail https://staging.<DOMAIN>/api/health/ready
+```
+
+## Active remote development
+
+GitHub source of truth olmaya devam eder. VS Code Remote SSH ile yalnız DEV
+worktree üzerinde çalışın. Hot reload başlamadan DEV production-like instance'ını
+durdurun; STAGING çalışmaya devam eder:
+
+```bash
+sudo systemctl stop defterdar-web@dev.service defterdar-api@dev.service
+cd /srv/defterdar-dev
+git status
+git switch -c feature/<short-name>
+./scripts/server/remote-dev.sh dev
+```
+
+`remote-dev.sh` yalnız `dev` kabul eder ve web/API'yi 3200/3201 üzerinde başlatır.
+Caddy WebSocket proxy desteğiyle `https://dev.<DOMAIN>` mobil cihazlardan
+hot-reload DEV'e erişebilir. İş bitince:
+
+```bash
+git status
+pnpm lint
+pnpm test
+git add <explicit-files>
+git commit
+git push -u origin feature/<short-name>
+```
+
+Hot reload'u durdurup DEV systemd akışına dönün:
+
+```bash
+./scripts/server/deploy.sh dev
+./scripts/server/verify.sh dev
+```
+
+Branch GitHub'a push edilmeden VPS'te kalan değişiklik source of truth sayılmaz.
+Deploy script dirty tree üzerinde auto-stash/overwrite yapmaz; fail eder.
 
 ## Firewall / network
 
-Önerilen public ingress:
+Public ingress yalnız:
 
 ```text
-22/tcp  SSH (mümkünse kaynak IP ile sınırla)
-80/tcp  HTTP / Caddy redirect ve ACME
+22/tcp  SSH (mümkünse kaynak IP/VPN ile sınırla)
+80/tcp  HTTP redirect ve ACME
 443/tcp HTTPS
 ```
 
-Public açılmaması gereken portlar:
+Public açmayın:
 
 ```text
-3000  Next
-3001  Nest
-5432  PostgreSQL
-9000  MinIO API
-9001  MinIO console
+3000, 3001, 3200, 3201
+5432, 55432
+9000, 9001, 59000, 59001
 ```
 
-UFW örneği yalnız dokümantasyondur; sunucuda otomatik uygulanmaz:
+Compose bütün publish portlarını `127.0.0.1` üzerinde bind eder. UFW örneği
+yalnız dokümantasyondur:
 
 ```bash
 sudo ufw allow OpenSSH
@@ -316,142 +376,107 @@ SSH kuralını doğrulamadan firewall'u etkinleştirmek bağlantıyı kesebilir.
 
 ## Logs
 
-Application logları systemd journal'a gider:
-
 ```bash
-journalctl -u defterdar-api.service -f
-journalctl -u defterdar-web.service -f
+journalctl -u defterdar-api@dev.service -f
+journalctl -u defterdar-web@dev.service -f
+journalctl -u defterdar-api@staging.service -f
+journalctl -u defterdar-web@staging.service -f
+
+cd /srv/defterdar-dev
+docker compose --env-file .env --project-name defterdar-dev \
+  -f compose.server.yml logs --tail=200 postgres minio
+
+cd /srv/defterdar-staging
+docker compose --env-file .env --project-name defterdar-staging \
+  -f compose.server.yml logs --tail=200 postgres minio
 ```
 
-Infrastructure logları rotate edilen Docker `json-file` loglarıdır:
+Compose `json-file` logları rotation kullanır. Scriptler `.env` içeriğini
+yazdırmaz. JWT/token/database URL/S3 secret uygulama loglarına eklenmemelidir.
+
+## Backup and restore
+
+Her profile ayrı backup dizinine yazılır:
 
 ```bash
-docker compose -f compose.server.yml logs --tail=200 postgres minio
-docker compose -f compose.server.yml logs -f minio
+cd /srv/defterdar-dev
+DEFTERDAR_BACKUP_DIR=/srv/backups/defterdar ./scripts/server/backup-db.sh dev
+
+cd /srv/defterdar-staging
+DEFTERDAR_BACKUP_DIR=/srv/backups/defterdar ./scripts/server/backup-db.sh staging
 ```
 
-JWT, invitation token, database URL veya S3 secret'ı debug loglarına eklemeyin.
-Mevcut HTTP exception filter response metadata'sını loglamaz; server scriptleri de
-`.env` içeriğini yazdırmaz.
+Backup custom `pg_dump` formatında ve `umask 077` ile oluşturulur. Parola command
+line'a taşınmaz. Backup'ı aynı VPS diskinde bırakmak yeterli değildir; şifreli
+off-site hedef kullanın. Cron otomatik kurulmaz.
 
-## Backup
-
-### PostgreSQL
+Restore profile argümanını ve açık onayı zorunlu tutar:
 
 ```bash
-DEFTERDAR_BACKUP_DIR=/srv/backups/defterdar \
-  ./scripts/server/backup-db.sh
-```
-
-Backup custom `pg_dump` formatında, `umask 077` ile oluşturulur. Parola command
-line argümanına taşınmaz; container environment'ından okunur. Backup'ı aynı VPS
-diskinde bırakmak gerçek koruma değildir; şifreli/off-site hedefe kopyalayın.
-Cron otomatik oluşturulmaz.
-
-### MinIO object data
-
-Tutarlı offline volume snapshot için önce API ve MinIO yazımını durdurun:
-
-```bash
-sudo systemctl stop defterdar-api.service
-docker compose -f compose.server.yml stop minio
-mkdir -p /srv/backups/defterdar/minio
-docker run --rm \
-  -v defterdar_minio_data:/data:ro \
-  -v /srv/backups/defterdar/minio:/backup \
-  alpine:3.22 sh -c 'tar czf /backup/minio-$(date -u +%Y%m%dT%H%M%SZ).tgz -C /data .'
-docker compose -f compose.server.yml start minio
-sudo systemctl start defterdar-api.service
-```
-
-Volume adı `COMPOSE_PROJECT_NAME` değiştiyse önce `docker volume ls` ile gerçek
-adı doğrulayın. Snapshot'ı restore tatbikatı olmadan güvenilir kabul etmeyin.
-
-## Restore
-
-Restore destructive bir bakım işlemidir. Önce mevcut DB backup'ı alın, API/web
-servislerini durdurun ve doğru `.env`/Compose project'ini doğrulayın:
-
-```bash
-sudo systemctl stop defterdar-web.service defterdar-api.service
-./scripts/server/backup-db.sh
-./scripts/server/restore-db.sh --confirm /absolute/path/to/defterdar.dump
+sudo systemctl stop defterdar-web@staging.service defterdar-api@staging.service
+cd /srv/defterdar-staging
+./scripts/server/backup-db.sh staging
+./scripts/server/restore-db.sh staging --confirm /absolute/path/to/backup.dump
 pnpm db:status
-sudo systemctl start defterdar-api.service defterdar-web.service
-./scripts/server/verify.sh
+sudo systemctl start defterdar-api@staging.service defterdar-web@staging.service
+./scripts/server/verify.sh staging
 ```
 
-MinIO restore için boş/hedef volume'u doğruladıktan sonra snapshot'ı offline
-olarak açın. Yanlış volume'a restore etmeyin; script bu işlemi otomatik yapmaz.
+Yanlış profile restore etmeyin. MinIO backup için ilgili Compose project volume'u
+offline snapshot alın; DEV ve STAGING volume adlarını `docker volume ls` ile
+doğrulamadan işlem yapmayın.
 
-## ZIP / manual copy fallback
+## ZIP fallback
 
-Önerilen yöntem hâlâ Git clone'dur. Mecburi source ZIP için tracked commit'ten
-artifact üretmek runtime ve secret dosyalarını otomatik dışarıda bırakır:
+Önerilen yöntem Git clone/worktree'dir. Mecburi source artifact:
 
 ```bash
 git status --short
 git archive --format=zip --output=defterdar-source.zip HEAD
 ```
 
-Elle arşiv hazırlanırsa mutlaka dışlayın:
-
-```text
-.env, .env.local, node_modules, .next, dist, coverage,
-logs, *.log, cache, local database/temp files
-```
-
-`.git` olmadan server `git pull` workflow'una katılamaz; bu yüzden ZIP ana
-deployment yöntemi değildir.
+Elle arşivde `.env`, `.env.local`, `node_modules`, `.next`, `dist`, `coverage`,
+logs, cache, local database/temp dosyaları dışlanır. `.git` olmadan pull/worktree
+workflow'u kullanılamaz.
 
 ## Troubleshooting
 
-### Preflight placeholder hatası
+### Isolation failure
 
-`.env` ve `apps/web/.env.local` içindeki `replace-with-*` ve `<YOUR_DOMAIN>`
-değerlerini gerçek, Git-dışı değerlerle değiştirin.
-
-### Database connection
+İki `.env` içinde raporlanan anahtarı ayırın. Database/bucket/port/credential
+paylaşımını bypass etmeyin:
 
 ```bash
-docker compose -f compose.server.yml ps
-docker compose -f compose.server.yml logs --tail=100 postgres
-pnpm db:status
+/srv/defterdar-dev/scripts/server/check-isolation.sh \
+  /srv/defterdar-dev/.env /srv/defterdar-staging/.env
 ```
 
-`POSTGRES_PASSWORD` değiştirmenin mevcut volume içindeki PostgreSQL kullanıcısını
-otomatik değiştirmediğini unutmayın.
+### Environment mismatch
 
-### MinIO / attachments
+`deploy.sh dev` yalnız `DEFTERDAR_ENVIRONMENT=dev` ve
+`COMPOSE_PROJECT_NAME=defterdar-dev` olan dosyayı kabul eder. Aynı kural STAGING
+için geçerlidir. Bu guard yanlış worktree'den yanlış project'e deploy'u önler.
+
+### Service/port conflict
+
+Hot reload öncesinde yalnız `@dev` servislerini durdurun. STAGING servislerine
+dokunmayın:
 
 ```bash
-curl --fail http://127.0.0.1:9000/minio/health/live
-docker compose -f compose.server.yml run --rm minio-init
+systemctl status 'defterdar-*@dev.service'
+systemctl status 'defterdar-*@staging.service'
+ss -lnt | grep -E ':(3000|3001|3200|3201|5432|55432|9000|9001|59000|59001)'
 ```
-
-`MINIO_ROOT_*` ile `S3_ACCESS_KEY_ID` / `S3_SECRET_ACCESS_KEY` self-hosted MinIO
-kurulumunda aynı erişimi temsil etmelidir.
-
-### Service start
-
-```bash
-systemctl status defterdar-api.service defterdar-web.service
-journalctl -u defterdar-api.service -n 100 --no-pager
-journalctl -u defterdar-web.service -n 100 --no-pager
-```
-
-NVM kullanılan sunucuda systemd yolları interaktif shell'den farklı olabilir;
-`command -v pnpm` sonucunu `<PNPM_PATH>`, `dirname "$(command -v node)"`
-sonucunu `<NODE_BIN_DIR>` olarak yazın.
 
 ### Local SSL error
 
-Next development server TLS sunmaz. `http://localhost:3000` kullanın;
-`https://localhost:3000` `SSL_ERROR_RX_RECORD_TOO_LONG` benzeri hata üretir.
+Next development server TLS sunmaz. Caddy hostname'i için `https://dev.<DOMAIN>`;
+SSH tunnel/localhost için `http://localhost:<port>` kullanın.
+`https://localhost:3000` benzeri adresler `SSL_ERROR_RX_RECORD_TOO_LONG` üretir.
 
 ## Production conversion deferred
 
-Gerçek production öncesinde ayrıca domain/DNS doğrulaması, SMTP/email delivery,
+Production öncesinde ayrıca gerçek domain/DNS doğrulaması, email delivery,
 off-site backup otomasyonu ve restore tatbikatı, monitoring/alerting, capacity
-planı, secret manager, security review ve manuel product QA gerekir. Bu görev
-bunları yapılmış saymaz.
+planı, secret manager, security review ve manuel product QA gerekir. DEV veya
+STAGING kurulumu bunları yapılmış saymaz.

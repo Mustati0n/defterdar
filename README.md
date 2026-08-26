@@ -38,10 +38,21 @@ pnpm dev:web   # http://localhost:3000
 
 ## Remote development / staging
 
-VPS aktarımında önerilen yöntem ZIP değil GitHub repository'sini clone etmek ve
-`git pull --ff-only` ile güncellemektir. Server-specific environment, localhost-
-bound infrastructure Compose, Caddy/systemd templates, deploy/verify ve backup
-akışları için [Server Setup](./docs/SERVER_SETUP.md) belgesini izleyin.
+VPS aktarımında önerilen yöntem ZIP değil GitHub repository'sini bir kez clone
+edip DEV ve STAGING için izole Git worktree'leri oluşturmaktır. Her ortam ayrı
+env, Compose project, database, MinIO volume/bucket, port ve systemd instance
+kullanır. Kurulum ve güvenlik sözleşmesi için
+[Server Setup](./docs/SERVER_SETUP.md) belgesini izleyin.
+
+```bash
+# DEV worktree
+./scripts/server/deploy.sh dev
+./scripts/server/verify.sh dev
+
+# STAGING worktree; only current origin/main and full verification
+./scripts/server/deploy.sh staging
+./scripts/server/verify.sh staging
+```
 
 Production-like build sonrası root çalışma komutları:
 

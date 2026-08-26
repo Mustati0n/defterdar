@@ -1,0 +1,25 @@
+# Replace <DOMAIN> only after both DNS names resolve to the VPS. Caddy obtains
+# and renews HTTPS certificates independently for DEV and STAGING.
+dev.<DOMAIN> {
+	encode zstd gzip
+
+	handle_path /api/* {
+		reverse_proxy 127.0.0.1:3201
+	}
+
+	handle {
+		reverse_proxy 127.0.0.1:3200
+	}
+}
+
+staging.<DOMAIN> {
+	encode zstd gzip
+
+	handle_path /api/* {
+		reverse_proxy 127.0.0.1:3001
+	}
+
+	handle {
+		reverse_proxy 127.0.0.1:3000
+	}
+}

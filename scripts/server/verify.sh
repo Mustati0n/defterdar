@@ -3,10 +3,21 @@ set -Eeuo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd -- "$SCRIPT_DIR/../.." && pwd)"
-API_URL="${DEFTERDAR_API_URL:-http://127.0.0.1:3001}"
-WEB_URL="${DEFTERDAR_WEB_URL:-http://127.0.0.1:3000}"
-MINIO_URL="${DEFTERDAR_MINIO_URL:-http://127.0.0.1:9000}"
 cd "$PROJECT_DIR"
+
+fail() {
+  printf '[verify] ERROR: %s\n' "$*" >&2
+  exit 1
+}
+
+# shellcheck source=profile.sh
+source "$SCRIPT_DIR/profile.sh"
+select_profile "${1:-}"
+require_profile_environment
+
+API_URL="${DEFTERDAR_API_URL:-http://127.0.0.1:$(read_env_value "$ENV_FILE" API_PORT)}"
+WEB_URL="${DEFTERDAR_WEB_URL:-http://127.0.0.1:$(read_env_value "$ENV_FILE" PORT)}"
+MINIO_URL="${DEFTERDAR_MINIO_URL:-$(read_env_value "$ENV_FILE" S3_ENDPOINT)}"
 
 check_url() {
   local label="$1"
@@ -15,7 +26,7 @@ check_url() {
   printf '[verify] PASS: %s (%s)\n' "$label" "$url"
 }
 
-docker compose -f compose.server.yml exec -T postgres \
+compose_profile exec -T postgres \
   sh -c 'exec pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"' >/dev/null
 printf '[verify] PASS: PostgreSQL readiness\n'
 
@@ -24,4 +35,4 @@ check_url 'API health' "$API_URL/health"
 check_url 'API readiness' "$API_URL/health/ready"
 check_url 'Web response' "$WEB_URL/"
 
-printf '[verify] All server checks passed.\n'
+printf '[verify] All %s server checks passed.\n' "$PROFILE"

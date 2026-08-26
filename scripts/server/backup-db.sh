@@ -3,17 +3,28 @@ set -Eeuo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd -- "$SCRIPT_DIR/../.." && pwd)"
-BACKUP_ROOT="${DEFTERDAR_BACKUP_DIR:-$HOME/defterdar-backups}"
-BACKUP_DIR="$BACKUP_ROOT/postgres"
 TIMESTAMP="$(date -u +'%Y%m%dT%H%M%SZ')"
-OUTPUT_FILE="$BACKUP_DIR/defterdar-$TIMESTAMP.dump"
 cd "$PROJECT_DIR"
+
+fail() {
+  printf '[backup-db] ERROR: %s\n' "$*" >&2
+  exit 1
+}
+
+# shellcheck source=profile.sh
+source "$SCRIPT_DIR/profile.sh"
+select_profile "${1:-}"
+require_profile_environment
+
+BACKUP_ROOT="${DEFTERDAR_BACKUP_DIR:-$HOME/defterdar-backups}"
+BACKUP_DIR="$BACKUP_ROOT/$PROFILE/postgres"
+OUTPUT_FILE="$BACKUP_DIR/defterdar-$PROFILE-$TIMESTAMP.dump"
 
 umask 077
 mkdir -p "$BACKUP_DIR"
 trap 'rm -f -- "$OUTPUT_FILE"' ERR
 
-docker compose -f compose.server.yml exec -T postgres \
+compose_profile exec -T postgres \
   sh -c 'exec pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" --format=custom --no-owner --no-privileges' \
   >"$OUTPUT_FILE"
 
