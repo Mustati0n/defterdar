@@ -670,6 +670,7 @@ function requireSafeTestDatabaseUrl(): string {
   const isLocal = ['127.0.0.1', 'localhost'].includes(parsed.hostname);
   if (!isLocal) throw new Error('TEST_DATABASE_URL must be local');
   parsed.searchParams.set('schema', TEST_SCHEMA);
+  parsed.searchParams.set('options', `-c search_path=${TEST_SCHEMA}`);
   return parsed.toString();
 }
 
