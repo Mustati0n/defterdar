@@ -60,6 +60,10 @@ describe('PageHeading', () => {
     });
     act(() => window.dispatchEvent(new Event('scroll')));
     expect(heading).toHaveStyle({ '--header-progress': '1' });
+    expect(heading).toHaveAttribute('data-compact-controls');
+    expect(heading).not.toHaveStyle({
+      '--header-flow-offset': expect.anything(),
+    });
 
     Object.defineProperty(window, 'scrollY', {
       configurable: true,

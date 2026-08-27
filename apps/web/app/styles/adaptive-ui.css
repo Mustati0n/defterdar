@@ -85,7 +85,6 @@
 
 .page-heading--adaptive {
   --header-progress: 0;
-  --header-flow-offset: 0px;
   position: sticky;
   z-index: 22;
   top: 0.65rem;
@@ -95,8 +94,8 @@
   isolation: isolate;
   min-height: 72px;
   padding: 0.4rem 0.75rem;
-  margin-bottom: calc(2.2rem + var(--header-flow-offset));
-  overflow: clip;
+  margin-bottom: 2.2rem;
+  overflow: visible;
 }
 .page-heading--adaptive::before {
   position: absolute;
@@ -125,6 +124,10 @@
   pointer-events: none;
   max-height: calc(8rem * (1 - var(--header-progress)));
   opacity: calc(1 - var(--header-progress) * 1.15);
+}
+.page-heading--adaptive[data-compact-controls] .page-heading__intro {
+  max-height: 0;
+  visibility: hidden;
 }
 .page-heading--adaptive .page-heading__intro .eyebrow {
   margin-bottom: 0;
@@ -222,6 +225,26 @@
   .analytics-filters,
   .detail-tabs {
     top: 0.5rem;
+  }
+}
+
+@media (max-width: 680px) {
+  .page-container {
+    width: min(100% - 1.5rem, var(--content-max));
+  }
+  .page-heading h1 {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    font-size: clamp(2rem, 10vw, 3rem);
+  }
+  .collection-toolbar .segmented-control {
+    overflow: visible;
+  }
+  .dialog-card__actions {
+    flex-wrap: wrap;
+  }
+  .dialog-card__actions .button {
+    flex: 1 1 9rem;
   }
 }
 

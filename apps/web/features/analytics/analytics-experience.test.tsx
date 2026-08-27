@@ -1,5 +1,5 @@
-import { render, screen } from '@testing-library/react';
-import { AnalyticsView } from './analytics-experience';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { AnalyticsDateControls, AnalyticsView } from './analytics-experience';
 import { analyticsDateRange, analyticsPresets } from './analytics-date';
 import type { AnalyticsSummary } from '@/lib/types';
 
@@ -104,5 +104,21 @@ describe('analytics product experience', () => {
     expect(new Date(range.from!).getDate()).toBe(1);
     expect(new Date(range.to!).getDate()).toBe(24);
     expect(analyticsDateRange('all')).toEqual({});
+  });
+
+  it('keeps the selected period available through the compact selector', () => {
+    const setPreset = jest.fn();
+    render(
+      <AnalyticsDateControls
+        preset="3months"
+        custom={{ from: '', to: '' }}
+        setPreset={setPreset}
+        setCustom={jest.fn()}
+      />,
+    );
+    const compact = screen.getByLabelText('Tarih aralığı');
+    expect(compact).toHaveValue('3months');
+    fireEvent.change(compact, { target: { value: 'year' } });
+    expect(setPreset).toHaveBeenCalledWith('year');
   });
 });

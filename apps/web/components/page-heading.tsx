@@ -22,8 +22,6 @@ export function PageHeading({
   useEffect(() => {
     if (variant === 'static') return;
     let frame = 0;
-    let expandedHeight = headerRef.current?.getBoundingClientRect().height ?? 72;
-    const compactHeight = 72;
     const update = () => {
       frame = 0;
       const reducedMotion =
@@ -36,23 +34,12 @@ export function PageHeading({
         '--header-progress',
         String(progress),
       );
-      headerRef.current?.style.setProperty(
-        '--header-flow-offset',
-        `${Math.max(0, expandedHeight - compactHeight) * progress}px`,
-      );
       headerRef.current?.toggleAttribute(
         'data-compact-controls',
-        progress >= 0.98,
+        progress >= 0.8,
       );
     };
-    const schedule = (event?: Event) => {
-      if (event?.type === 'resize' && headerRef.current) {
-        const currentHeight = headerRef.current.getBoundingClientRect().height;
-        const currentOffset = Number.parseFloat(
-          headerRef.current.style.getPropertyValue('--header-flow-offset'),
-        );
-        expandedHeight = currentHeight + (Number.isFinite(currentOffset) ? currentOffset : 0);
-      }
+    const schedule = () => {
       if (!frame) frame = window.requestAnimationFrame(update);
     };
     update();
