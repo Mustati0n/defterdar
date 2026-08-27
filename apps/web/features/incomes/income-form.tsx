@@ -178,7 +178,7 @@ export function IncomeForm({
             <>
               <input type="hidden" {...register('ledgerId')} />
               <div className="context-note">
-                {requestedPlan.data?.name ?? 'Seçili bağımsız Plan'}
+                {requestedPlan.data?.name ?? 'Seçili Plan'}
               </div>
             </>
           ) : (

@@ -353,7 +353,7 @@ export function ExpenseForm({
               <>
                 <input type="hidden" {...register('ledgerId')} />
                 <div className="context-note">
-                  {requestedPlan.data?.name ?? 'Seçili bağımsız Plan'} içinde
+                  {requestedPlan.data?.name ?? 'Seçili Plan'} içinde
                   oluşturulacak.
                 </div>
               </>

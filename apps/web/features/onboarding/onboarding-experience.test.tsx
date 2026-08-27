@@ -55,7 +55,7 @@ describe('guided domain tour', () => {
     forward();
     expect(
       screen.getByRole('heading', {
-        name: 'Defter kalır, Plan bağımsız da başlayabilir.',
+        name: 'Defter kalır, Plan bir Deftere eklenmeden de başlayabilir.',
       }),
     ).toBeInTheDocument();
     expect(
@@ -120,7 +120,7 @@ describe('guided domain tour', () => {
     fireEvent.click(screen.getByRole('button', { name: /İleri/ }));
     expect(
       screen.getByRole('heading', {
-        name: /Defter kalır, Plan bağımsız da başlayabilir/,
+        name: /Defter kalır, Plan bir Deftere eklenmeden de başlayabilir/,
       }),
     ).toBeInTheDocument();
     expect(container.querySelector('.onboarding-step')).toHaveClass(

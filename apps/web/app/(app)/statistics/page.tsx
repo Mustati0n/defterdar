@@ -81,7 +81,7 @@ export default function StatisticsPage() {
                 className="button button--quiet"
                 href="/workspace?type=plan&create=plan&standalone=1"
               >
-                Bağımsız Plan oluştur
+                Yeni Plan oluştur
               </Link>
             </div>
           }
@@ -132,7 +132,7 @@ export default function StatisticsPage() {
                       <option value={item.key} key={item.key}>
                         {item.name} ·{' '}
                         {item.plan?.scope === 'STANDALONE'
-                          ? 'Bağımsız'
+                          ? 'Deftere ekli değil'
                           : 'Deftere bağlı'}
                       </option>
                     ))}

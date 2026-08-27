@@ -85,7 +85,9 @@ describe('Overview hierarchy', () => {
       screen.queryByRole('heading', { name: 'Planlar' }),
     ).not.toBeInTheDocument();
     expect(screen.getByText('Henüz Defterin yok.')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Bağımsız Plan' })).toHaveAttribute(
+    expect(
+      screen.getByRole('link', { name: 'Deftere ekli olmayan Plan' }),
+    ).toHaveAttribute(
       'href',
       '/workspace?type=plan&create=plan&standalone=1',
     );

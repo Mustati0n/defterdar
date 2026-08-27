@@ -70,7 +70,7 @@ export function OnboardingStepContent({
         <div className="tour-heading">
           <span className="eyebrow">İki esnek alan</span>
           <h1 id="onboarding-title" ref={headingRef} tabIndex={-1}>
-            Defter kalır, Plan bağımsız da başlayabilir.
+            Defter kalır, Plan bir Deftere eklenmeden de başlayabilir.
           </h1>
           <p>
             Uzun yaşayan hesabı ve geçici etkinlikleri ihtiyacına göre ayır.
@@ -103,7 +103,7 @@ export function OnboardingStepContent({
             <NotebookTabs />
             <small>GEÇİCİ</small>
             <h2>Plan</h2>
-            <p>Bağımsız veya bir Deftere bağlı etkinlik ve organizasyon.</p>
+            <p>İster tek başına, ister bir Deftere ekleyerek etkinlik planla.</p>
             <ul>
               <li>Kapadokya Gezisi</li>
               <li>Cumartesi Pikniği</li>
@@ -113,7 +113,7 @@ export function OnboardingStepContent({
         </div>
         <p className="domain-formula">
           <strong>Defter</strong> = uzun yaşayan alan <span>·</span>{' '}
-          <strong>Plan</strong> = bağımsız ya da bağlı geçici iş
+          <strong>Plan</strong> = tek başına ya da bir Deftere ekli geçici iş
         </p>
       </StepFrame>
     );

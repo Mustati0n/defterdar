@@ -124,7 +124,7 @@ export default function PlanDetailPage() {
         <div>
           <span className="eyebrow">
             {data.scope === 'STANDALONE'
-              ? 'Bağımsız Plan'
+              ? 'Deftere ekli olmayan Plan'
               : 'Deftere bağlı Plan'}{' '}
             · {planStatusLabel(data.status)}
           </span>

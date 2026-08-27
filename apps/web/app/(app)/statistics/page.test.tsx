@@ -89,7 +89,9 @@ describe('flexible analytics scopes', () => {
     ).toBeInTheDocument();
     expect(screen.getByRole('group', { name: 'Planlar' })).toBeInTheDocument();
     expect(
-      screen.getByRole('option', { name: 'Kilis Gezisi · Bağımsız' }),
+      screen.getByRole('option', {
+        name: 'Kilis Gezisi · Deftere ekli değil',
+      }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole('option', { name: 'Akşam Yemeği · Deftere bağlı' }),

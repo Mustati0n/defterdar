@@ -103,7 +103,7 @@ export function CreatePlanDialog({
       });
       toast(
         standalone
-          ? 'Bağımsız Plan oluşturuldu.'
+          ? 'Plan oluşturuldu.'
           : 'Yeni Plan Deftere iliştirildi.',
       );
       reset({ ledgerId: initialLedgerId, currency: 'TRY' });
@@ -162,7 +162,7 @@ export function CreatePlanDialog({
                     Deftere ekle <em>isteğe bağlı</em>
                   </span>
                   <select className="input" {...register('ledgerId')}>
-                    <option value="">Bağımsız (Deftere bağlı değil)</option>
+                    <option value="">Deftere ekleme</option>
                     {activeLedgers.map((ledger) => (
                       <option value={ledger.id} key={ledger.id}>
                         {ledger.name}

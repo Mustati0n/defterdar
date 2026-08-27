@@ -53,7 +53,7 @@ export function PlanCard({
           </li>
         ) : (
           <li>
-            <MapPin /> Bağımsız Plan · {plan.currency}
+            <MapPin /> Deftere ekli değil · {plan.currency}
           </li>
         )}
       </ul>

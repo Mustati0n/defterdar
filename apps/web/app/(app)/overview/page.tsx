@@ -180,8 +180,7 @@ export default function OverviewPage() {
           <div>
             <strong>Henüz Defterin yok.</strong>
             <p>
-              İlk Defterini açabilir veya doğrudan bağımsız bir Planla
-              başlayabilirsin.
+              İlk Defterini açabilir veya bir Deftere eklemeden Plan yapabilirsin.
             </p>
           </div>
           <Link
@@ -194,7 +193,7 @@ export default function OverviewPage() {
             className="button button--quiet button--small"
             href="/workspace?type=plan&create=plan&standalone=1"
           >
-            Bağımsız Plan
+            Deftere ekli olmayan Plan
           </Link>
         </section>
       ) : null}

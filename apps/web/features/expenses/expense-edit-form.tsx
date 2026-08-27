@@ -213,7 +213,7 @@ function LoadedExpenseEditForm({
               </label>
             ) : (
               <div className="context-note">
-                Bağımsız Plan bağlantısı korunur.
+                Planın mevcut Defter bağlantısı korunur.
               </div>
             )}
             {!standalonePlan ? (
