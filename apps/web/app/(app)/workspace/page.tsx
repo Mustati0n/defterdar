@@ -17,6 +17,7 @@ import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { LedgerCard } from '@/components/ledger-card';
 import { PageHeading } from '@/components/page-heading';
 import { PlanCard } from '@/components/plan-card';
+import { AnchoredMenu } from '@/components/ui/anchored-menu';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/states';
 import { useAllPlans, useLedgers } from '@/features/data/hooks';
 import type { Ledger, Plan } from '@/lib/types';
@@ -107,13 +108,17 @@ function WorkspaceContent() {
       : null;
   });
   const createMenuRef = useRef<HTMLDivElement>(null);
+  const createTriggerRef = useRef<HTMLButtonElement>(null);
   const ledgers = useLedgers(true);
   const plans = useAllPlans(true);
 
   useEffect(() => {
     if (!createMenuOpen) return;
     const close = (event: MouseEvent) => {
-      if (!createMenuRef.current?.contains(event.target as Node))
+      if (
+        !createMenuRef.current?.contains(event.target as Node) &&
+        !(event.target as Element).closest?.('[data-anchored-menu]')
+      )
         setCreateMenuOpen(false);
     };
     document.addEventListener('mousedown', close);
@@ -143,6 +148,7 @@ function WorkspaceContent() {
         action={
           <div className="workspace-create" ref={createMenuRef}>
             <button
+              ref={createTriggerRef}
               className="button button--primary"
               type="button"
               aria-expanded={createMenuOpen}
@@ -151,8 +157,13 @@ function WorkspaceContent() {
             >
               <Plus /> Yeni <ChevronDown />
             </button>
-            {createMenuOpen ? (
-              <div className="workspace-create__menu" role="menu">
+            <AnchoredMenu
+              anchorRef={createTriggerRef}
+              open={createMenuOpen}
+              onDismiss={() => setCreateMenuOpen(false)}
+              className="workspace-create__menu"
+            >
+              <div role="menu">
                 <button
                   type="button"
                   role="menuitem"
@@ -182,7 +193,7 @@ function WorkspaceContent() {
                   </span>
                 </button>
               </div>
-            ) : null}
+            </AnchoredMenu>
           </div>
         }
         tools={

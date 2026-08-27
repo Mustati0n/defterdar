@@ -101,6 +101,22 @@ describe('Defterler & Planlar workspace', () => {
     ).toBeInTheDocument();
   });
 
+  it('renders search, filters and both create actions from Yeni', () => {
+    render(<WorkspacePage />);
+    expect(
+      screen.getByLabelText('Defter ve planlarda ara'),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Son/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Tümü/ })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Yeni/ }));
+    expect(
+      screen.getByRole('menuitem', { name: /Yeni Defter/ }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('menuitem', { name: /Yeni Plan/ }),
+    ).toBeInTheDocument();
+  });
+
   it('uses truthful active and archived filters', () => {
     expect(
       filterWorkspaceItems(

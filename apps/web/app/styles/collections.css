@@ -84,10 +84,8 @@
   width: 1rem;
 }
 .workspace-create__menu {
-  position: absolute;
-  z-index: 30;
-  top: calc(100% + 0.55rem);
-  right: 0;
+  position: fixed;
+  z-index: 60;
   display: grid;
   width: min(270px, calc(100vw - 2rem));
   padding: 0.45rem;
@@ -154,11 +152,21 @@
     width: 100%;
   }
   .segmented-control {
-    max-width: 100%;
-    overflow-x: auto;
+    width: 100%;
+    flex-wrap: wrap;
   }
   .segmented-control button {
+    min-width: min-content;
+    flex: 1 1 5rem;
     min-height: 44px;
+  }
+  .workspace-type-filter button {
+    flex-basis: 4.5rem;
+  }
+  .workspace-grid .workspace-card--compact,
+  .workspace-grid .workspace-card--regular,
+  .workspace-grid .workspace-card--tall {
+    min-height: 240px;
   }
   .collection-count {
     width: 100%;
