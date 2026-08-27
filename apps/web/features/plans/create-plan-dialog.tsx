@@ -51,6 +51,7 @@ export function CreatePlanDialog({
   hideTrigger?: boolean;
 }) {
   const [internalOpen, setInternalOpen] = useState(defaultOpen);
+  const [showDetails, setShowDetails] = useState(Boolean(initialLedgerId));
   const open = controlledOpen ?? internalOpen;
   const mutation = useCreatePlan();
   const toast = useToast();
@@ -75,6 +76,7 @@ export function CreatePlanDialog({
   const nameRef = useRef<HTMLInputElement>(null);
   const nameRegistration = register('name');
   const setOpen = (next: boolean) => {
+    if (!next) setShowDetails(Boolean(initialLedgerId));
     if (controlledOpen === undefined) setInternalOpen(next);
     onOpenChange?.(next);
   };
@@ -102,9 +104,7 @@ export function CreatePlanDialog({
         },
       });
       toast(
-        standalone
-          ? 'Plan oluşturuldu.'
-          : 'Yeni Plan Deftere iliştirildi.',
+        standalone ? 'Plan oluşturuldu.' : 'Yeni Plan Deftere iliştirildi.',
       );
       reset({ ledgerId: initialLedgerId, currency: 'TRY' });
       setOpen(false);
@@ -154,9 +154,11 @@ export function CreatePlanDialog({
             </button>
             <span className="eyebrow">Yeni Plan</span>
             <h2 id="new-plan-title">Sıradaki plan ne?</h2>
-            <p>Bir etkinliği planla; istersen düzenli bir hesabın Defterine ekle.</p>
+            <p>
+              Bir etkinliği planla; istersen düzenli bir hesabın Defterine ekle.
+            </p>
             <form onSubmit={handleSubmit(onSubmit)} className="stack-form">
-              {!initialLedgerId ? (
+              {!initialLedgerId && showDetails ? (
                 <label className="field">
                   <span>
                     Deftere ekle <em>isteğe bağlı</em>
@@ -175,15 +177,26 @@ export function CreatePlanDialog({
               )}
               {initialLedgerId ? (
                 <div className="context-note">
-                  {activeLedgers.find(
-                    (ledger) => ledger.id === initialLedgerId,
-                  )?.name ?? 'Seçili Defter'}{' '}
+                  {activeLedgers.find((ledger) => ledger.id === initialLedgerId)
+                    ?.name ?? 'Seçili Defter'}{' '}
                   içinde oluşturulacak.
                 </div>
               ) : null}
-              {standalone ? (
+              {!initialLedgerId && !showDetails ? (
+                <button
+                  className="button button--quiet plan-details-toggle"
+                  type="button"
+                  aria-expanded={showDetails}
+                  onClick={() => setShowDetails(true)}
+                >
+                  Daha fazla seçenek
+                </button>
+              ) : null}
+              {!initialLedgerId && showDetails && standalone ? (
                 <label className="field field--short">
-                  <span>Para birimi</span>
+                  <span>
+                    Para birimi <em>isteğe bağlı</em>
+                  </span>
                   <input
                     className="input"
                     maxLength={3}
@@ -194,7 +207,7 @@ export function CreatePlanDialog({
                     <small>{errors.currency.message}</small>
                   ) : null}
                 </label>
-              ) : selectedLedger ? (
+              ) : showDetails && selectedLedger ? (
                 <div className="context-note">
                   Para birimi Defterden gelir: {selectedLedger.currency}
                 </div>

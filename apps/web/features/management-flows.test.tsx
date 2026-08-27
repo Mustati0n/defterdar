@@ -49,18 +49,14 @@ function providers(children: ReactNode) {
 
 describe('Ledger and Plan management flows', () => {
   beforeEach(() => {
-    jest
-      .mocked(useCreateLedger)
-      .mockReturnValue({
-        mutateAsync: jest.fn().mockResolvedValue(ledger),
-        isPending: false,
-      } as unknown as ReturnType<typeof useCreateLedger>);
-    jest
-      .mocked(useCreatePlan)
-      .mockReturnValue({
-        mutateAsync: jest.fn().mockResolvedValue({ id: 'plan-1' }),
-        isPending: false,
-      } as unknown as ReturnType<typeof useCreatePlan>);
+    jest.mocked(useCreateLedger).mockReturnValue({
+      mutateAsync: jest.fn().mockResolvedValue(ledger),
+      isPending: false,
+    } as unknown as ReturnType<typeof useCreateLedger>);
+    jest.mocked(useCreatePlan).mockReturnValue({
+      mutateAsync: jest.fn().mockResolvedValue({ id: 'plan-1' }),
+      isPending: false,
+    } as unknown as ReturnType<typeof useCreatePlan>);
   });
 
   it('creates a Ledger and opens its detail', async () => {
@@ -86,9 +82,8 @@ describe('Ledger and Plan management flows', () => {
       />,
     );
     expect(screen.getByText(/Ev içinde oluşturulacak/)).toBeInTheDocument();
-    expect(
-      screen.queryByRole('combobox', { name: /Bağlı defter/ }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/Deftere ekle/)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/Para birimi/)).not.toBeInTheDocument();
     fireEvent.change(screen.getByLabelText('Plan adı'), {
       target: { value: 'Tatil' },
     });
@@ -96,6 +91,46 @@ describe('Ledger and Plan management flows', () => {
     await waitFor(() =>
       expect(jest.mocked(useCreatePlan)().mutateAsync).toHaveBeenCalledWith(
         expect.objectContaining({ ledgerId: 'ledger-1' }),
+      ),
+    );
+  });
+
+  it('keeps optional Ledger and currency details out of quick Plan creation', () => {
+    providers(<CreatePlanDialog defaultOpen ledgers={[ledger]} />);
+    expect(screen.queryByLabelText(/Deftere ekle/)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/Para birimi/)).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Daha fazla seçenek' }));
+
+    expect(screen.getByLabelText(/Deftere ekle/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Para birimi/)).toBeInTheDocument();
+  });
+
+  it('inherits the selected Ledger currency without submitting a second currency', async () => {
+    providers(
+      <CreatePlanDialog
+        defaultOpen
+        ledgers={[{ ...ledger, currency: 'EUR' }]}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Daha fazla seçenek' }));
+    fireEvent.change(screen.getByLabelText(/Deftere ekle/), {
+      target: { value: 'ledger-1' },
+    });
+    expect(screen.queryByLabelText(/Para birimi/)).not.toBeInTheDocument();
+    expect(
+      screen.getByText(/Para birimi Defterden gelir: EUR/),
+    ).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Plan adı'), {
+      target: { value: 'Avrupa turu' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Planı ekle' }));
+    await waitFor(() =>
+      expect(jest.mocked(useCreatePlan)().mutateAsync).toHaveBeenCalledWith(
+        expect.objectContaining({
+          ledgerId: 'ledger-1',
+          input: expect.not.objectContaining({ currency: expect.anything() }),
+        }),
       ),
     );
   });
