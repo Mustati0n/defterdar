@@ -5,8 +5,9 @@ import { gzipSync } from 'node:zlib';
 const nextRoot = join(process.cwd(), '.next');
 const routes = {
   login: 'server/app/login.html',
-  ledgers: 'server/app/ledgers.html',
-  plans: 'server/app/plans.html',
+  overview: 'server/app/overview.html',
+  workspace: 'server/app/workspace.html',
+  statistics: 'server/app/statistics.html',
   expense: 'server/app/expenses/new.html',
   income: 'server/app/incomes/new.html',
 };

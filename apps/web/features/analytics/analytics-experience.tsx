@@ -125,12 +125,15 @@ export function AnalyticsView({
         </article>
       </section>
 
-      {largestCategory && Number(largestCategory.expenseMinor) > 0 ? (
+      {largestCategory?.category && Number(largestCategory.expenseMinor) > 0 ? (
         <p className="analytics-insight">
-          Bu dönemde en çok{' '}
-          <strong>{largestCategory.category?.name ?? 'Kategorisiz'}</strong>{' '}
+          Bu dönemde en çok <strong>{largestCategory.category.name}</strong>{' '}
           için harcadın:{' '}
           {formatMoneyFromMinor(largestCategory.expenseMinor, data.currency)}.
+        </p>
+      ) : largestCategory && Number(largestCategory.expenseMinor) > 0 ? (
+        <p className="analytics-insight">
+          Bu dönemdeki harcamaların henüz bir kategoriye bağlanmamış.
         </p>
       ) : null}
 

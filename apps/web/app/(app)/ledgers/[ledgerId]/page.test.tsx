@@ -42,6 +42,8 @@ const ledger = {
   archivedAt: null,
   createdAt: '2026-01-01',
   updatedAt: '2026-01-01',
+  activeMemberCount: 1,
+  activePlanCount: 0,
 };
 
 function detailData(type: 'PERSONAL' | 'SHARED') {

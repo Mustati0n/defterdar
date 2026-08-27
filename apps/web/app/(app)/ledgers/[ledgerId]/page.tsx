@@ -119,11 +119,12 @@ export default function LedgerDetailPage() {
             <span>
               <UsersRound />
               {data.type === 'SHARED'
-                ? `${members.data?.length ?? '—'} kişi`
+                ? `${data.activeMemberCount ?? members.data?.length ?? '—'} kişi`
                 : 'Kişisel alan'}
             </span>
             <span>
-              <BookOpenText /> {plans.data?.length ?? '—'} aktif plan
+              <BookOpenText />{' '}
+              {data.activePlanCount ?? plans.data?.length ?? '—'} aktif plan
             </span>
             {data.type === 'SHARED' ? (
               <Link href={`/ledgers/${ledgerId}?view=balances`}>

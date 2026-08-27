@@ -293,6 +293,18 @@
 .detail-full {
   min-height: 310px;
 }
+.expense-list > a {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+.expense-list > a > div {
+  display: grid;
+  min-width: 0;
+  gap: 0.15rem;
+}
+.expense-list > a > div:last-child {
+  justify-items: end;
+  text-align: right;
+}
 .balance-list {
   display: grid;
   gap: 0.3rem;
