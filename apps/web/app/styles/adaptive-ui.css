@@ -85,15 +85,18 @@
 
 .page-heading--adaptive {
   --header-progress: 0;
+  --header-flow-offset: 0px;
   position: sticky;
   z-index: 22;
   top: 0.65rem;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(150px, 0.38fr) minmax(0, 1fr);
   align-items: end;
   isolation: isolate;
-  min-height: 84px;
-  padding: 0.6rem 0.85rem;
+  min-height: 72px;
+  padding: 0.4rem 0.75rem;
+  margin-bottom: calc(2.2rem + var(--header-flow-offset));
+  overflow: clip;
 }
 .page-heading--adaptive::before {
   position: absolute;
@@ -129,13 +132,22 @@
 .page-heading--adaptive h1 {
   width: max-content;
   max-width: 100%;
+  margin-bottom: 0;
   font-size: var(--font-page-title);
+  line-height: 0.9;
   transform: scale(calc(1 - var(--header-progress) * 0.52));
   transform-origin: left bottom;
 }
 .page-heading__tools {
   grid-column: 1 / -1;
   margin-top: 0.85rem;
+}
+.page-heading--adaptive .page-heading__tools {
+  width: 100%;
+  grid-column: 2;
+  grid-row: 1;
+  align-self: end;
+  margin-top: 0;
 }
 .page-heading--adaptive .page-heading__tools,
 .page-heading--adaptive .page-heading__action {
@@ -184,6 +196,8 @@
     background: transparent;
     box-shadow: none;
     backdrop-filter: none;
+    margin-bottom: 2.2rem;
+    overflow: visible;
   }
   .page-heading--adaptive::before {
     display: none;

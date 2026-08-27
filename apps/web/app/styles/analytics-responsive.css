@@ -13,7 +13,7 @@
 }
 .analytics-header-tools {
   display: grid;
-  grid-template-columns: minmax(220px, 0.45fr) minmax(0, 1fr);
+  grid-template-columns: minmax(150px, 0.42fr) minmax(0, 1fr);
   align-items: end;
   gap: 1rem;
 }
@@ -27,18 +27,41 @@
   margin: 0;
 }
 .analytics-target-field .input {
-  min-width: 220px;
+  min-width: 0;
 }
-.page-heading--adaptive.is-compact .analytics-header-tools {
-  grid-template-columns: minmax(180px, 0.35fr) minmax(0, 1fr);
-  gap: 0.55rem;
+.page-heading--adaptive .analytics-header-tools {
+  gap: calc(1rem - var(--header-progress) * 0.45rem);
 }
-.page-heading--adaptive.is-compact .analytics-header-tools .field > span {
-  position: absolute;
-  width: 1px;
-  height: 1px;
+.page-heading--adaptive .analytics-header-tools .field > span {
+  max-height: calc(1.5rem * (1 - var(--header-progress)));
   overflow: hidden;
-  clip-path: inset(50%);
+  opacity: calc(1 - var(--header-progress) * 1.15);
+}
+.page-heading--adaptive .analytics-filters {
+  position: relative;
+  min-height: 44px;
+  overflow: hidden;
+}
+.analytics-preset-expanded {
+  max-height: calc(6rem * (1 - var(--header-progress)));
+  opacity: calc(1 - var(--header-progress));
+}
+.analytics-preset-compact {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  min-height: 44px;
+  opacity: var(--header-progress);
+  visibility: hidden;
+  pointer-events: none;
+}
+.page-heading--adaptive[data-compact-controls] .analytics-preset-expanded {
+  visibility: hidden;
+  pointer-events: none;
+}
+.page-heading--adaptive[data-compact-controls] .analytics-preset-compact {
+  visibility: visible;
+  pointer-events: auto;
 }
 .analytics-filters .segmented-control {
   flex-wrap: wrap;
@@ -459,8 +482,7 @@
 }
 
 @media (max-width: 900px) {
-  .analytics-header-tools,
-  .page-heading--adaptive.is-compact .analytics-header-tools {
+  .analytics-header-tools {
     grid-template-columns: 1fr;
   }
   .analytics-grid,
@@ -472,6 +494,15 @@
   }
 }
 @media (max-width: 700px) {
+  .analytics-preset-expanded {
+    max-height: none;
+    opacity: 1;
+    visibility: visible !important;
+    pointer-events: auto !important;
+  }
+  .analytics-preset-compact {
+    display: none;
+  }
   .analytics-filters {
     align-items: stretch;
     flex-direction: column;

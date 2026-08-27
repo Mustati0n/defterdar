@@ -403,7 +403,7 @@ export function AnalyticsDateControls({
   return (
     <div className="analytics-filters" aria-label="İstatistik tarih aralığı">
       <div
-        className="segmented-control"
+        className="segmented-control analytics-preset-expanded"
         role="group"
         aria-label="Tarih seçenekleri"
       >
@@ -419,6 +419,18 @@ export function AnalyticsDateControls({
           </button>
         ))}
       </div>
+      <select
+        className="input analytics-preset-compact"
+        aria-label="Tarih aralığı"
+        value={preset}
+        onChange={(event) => setPreset(event.target.value as AnalyticsPreset)}
+      >
+        {analyticsPresets.map((item) => (
+          <option value={item.id} key={item.id}>
+            {item.label}
+          </option>
+        ))}
+      </select>
       {preset === 'custom' ? (
         <div className="analytics-custom-dates">
           <label className="field">
