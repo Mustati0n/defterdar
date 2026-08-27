@@ -14,7 +14,7 @@ kullanır.
 - [x] F — Slim adaptive header system
 - [x] G — Visual material system (ledger/plan colors)
 - [x] H — Layout and interaction fixes
-- [ ] I — Full QA / deploy
+- [x] I — Full QA / deploy
 
 ## Progress notes
 
@@ -76,3 +76,16 @@ kullanır.
 - Ledger detail sections separated with `--detail-grid` margin.
 - Activity moved to secondary "Hareket geçmişi" (ledger + plan).
 - Insight copy already truthful for uncategorized spending.
+
+### I — Full QA / deploy
+
+- Frontend: 45 suites / 144 tests PASS.
+- Backend: 6 suites / 83 tests PASS.
+- Lint, production build, Prisma validate/generate/status PASS; 14 migrations
+  are applied.
+- DEV deploy and health/readiness verification PASS.
+- STAGING promoted to verified commit `a56e45127589`; migration, full test
+  suite, build, and health/readiness verification PASS.
+- GitHub push remains unavailable because this server has no HTTPS
+  credentials; complete-history bundle backup created at
+  `/srv/backups/defterdar/decision-light-a56e451.bundle`.
