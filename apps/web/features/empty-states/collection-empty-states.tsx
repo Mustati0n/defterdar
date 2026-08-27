@@ -17,7 +17,10 @@ export function LedgerEmptyState() {
           takip etmek için bir Defter oluştur.
         </p>
       </div>
-      <Link className="button button--primary" href="/ledgers?create=1">
+      <Link
+        className="button button--primary"
+        href="/workspace?type=ledger&create=ledger"
+      >
         <Plus /> Defter oluştur
       </Link>
     </div>

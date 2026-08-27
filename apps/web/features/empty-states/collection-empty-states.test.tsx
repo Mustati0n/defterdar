@@ -6,7 +6,7 @@ describe('smart collection empty states', () => {
     render(<LedgerEmptyState />);
     expect(
       screen.getByRole('link', { name: /Defter oluştur/ }),
-    ).toHaveAttribute('href', '/ledgers?create=1');
+    ).toHaveAttribute('href', '/workspace?type=ledger&create=ledger');
   });
 
   it('keeps Ledger context in an empty Plan CTA', () => {

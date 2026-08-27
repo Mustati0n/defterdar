@@ -116,7 +116,7 @@ export default function PlanDetailPage() {
 
   return (
     <>
-      <Link className="back-link" href="/plans">
+      <Link className="back-link" href="/workspace?type=plan">
         <ArrowLeft /> Planlara dön
       </Link>
       <section className="detail-cover detail-cover--plan">

@@ -12,9 +12,10 @@ import { ledgerRoleLabel } from '@/lib/format';
 interface LedgerCardProps {
   ledger: Ledger;
   index?: number;
+  size?: 'compact' | 'regular' | 'tall';
 }
 
-export function LedgerNotebookCard({ ledger }: LedgerCardProps) {
+export function LedgerNotebookCard({ ledger, size }: LedgerCardProps) {
   const RoleIcon =
     ledger.role === 'OWNER'
       ? Crown
@@ -24,7 +25,7 @@ export function LedgerNotebookCard({ ledger }: LedgerCardProps) {
 
   return (
     <Link
-      className={`ledger-card ledger-card--${ledger.type.toLowerCase()}${ledger.archivedAt ? ' ledger-card--archived' : ''}`}
+      className={`ledger-card ledger-card--${ledger.type.toLowerCase()}${ledger.archivedAt ? ' ledger-card--archived' : ''}${size ? ` workspace-card--${size}` : ''}`}
       href={`/ledgers/${ledger.id}`}
     >
       <span className="ledger-card__rings" aria-hidden="true">

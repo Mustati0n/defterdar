@@ -57,7 +57,7 @@ export function LedgerSettingsPanel({
     if (confirm === 'leave')
       mutation.mutate(async () => {
         await api.ledgers.leave(ledger.id);
-        router.push('/ledgers');
+        router.push('/workspace?type=ledger');
       });
     if (confirm === 'transfer' && targetOwner)
       mutation.mutate(() =>

@@ -71,12 +71,15 @@ export default function StatisticsPage() {
           description="Sahte bir kişisel alan oluşturulmaz; ilk gerçek çalışma alanın burada görünür."
           action={
             <div className="empty-state__actions">
-              <Link className="button button--primary" href="/ledgers?create=1">
+              <Link
+                className="button button--primary"
+                href="/workspace?type=ledger&create=ledger"
+              >
                 <Plus /> Defter oluştur
               </Link>
               <Link
                 className="button button--quiet"
-                href="/plans?create=1&standalone=1"
+                href="/workspace?type=plan&create=plan&standalone=1"
               >
                 Bağımsız Plan oluştur
               </Link>

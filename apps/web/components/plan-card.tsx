@@ -13,15 +13,17 @@ export function PlanCard({
   plan,
   ledger,
   index = 0,
+  size,
 }: {
   plan: Plan;
   ledger?: Ledger;
   index?: number;
+  size?: 'compact' | 'regular' | 'tall';
 }) {
   const variant = index % 2 === 0 ? 'checklist' : 'ticket';
   return (
     <Link
-      className={`plan-card plan-card--${variant}`}
+      className={`plan-card plan-card--${variant}${size ? ` workspace-card--${size}` : ''}`}
       href={`/plans/${plan.id}`}
     >
       <span className="plan-card__pin" aria-hidden="true" />

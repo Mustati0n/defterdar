@@ -2,7 +2,6 @@
 
 import {
   BarChart3,
-  BookOpenText,
   ChevronLeft,
   CircleUserRound,
   LayoutDashboard,
@@ -35,14 +34,18 @@ const QuickActionDialog = dynamic(
 
 const navigation = [
   { href: '/overview', label: 'Özet', icon: LayoutDashboard },
-  { href: '/ledgers', label: 'Defterler', icon: BookOpenText },
-  { href: '/plans', label: 'Planlar', icon: NotebookTabs },
+  { href: '/workspace', label: 'Defterler & Planlar', icon: NotebookTabs },
   { href: '/statistics', label: 'İstatistikler', icon: BarChart3 },
   { href: '/settings', label: 'Ayarlar', icon: Settings },
 ];
 
 export function matchesPath(pathname: string, href: string) {
-  return pathname === href || pathname.startsWith(`${href}/`);
+  return (
+    pathname === href ||
+    pathname.startsWith(`${href}/`) ||
+    (href === '/workspace' &&
+      (pathname.startsWith('/ledgers/') || pathname.startsWith('/plans/')))
+  );
 }
 
 export function AppShell({ children }: { children: ReactNode }) {
