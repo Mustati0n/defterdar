@@ -3,6 +3,7 @@ import { ActivityPageDto } from '../../activity/dto/activity-response.dto.js';
 import { BalanceResponseDto } from '../../balances/dto/balance-response.dto.js';
 import { LedgerResponseDto } from '../../ledgers/dto/ledger-response.dto.js';
 import { PlanResponseDto } from '../../plans/dto/plan-response.dto.js';
+import { SettlementResponseDto } from '../../settlements/dto/settlement-response.dto.js';
 
 class LedgerBalanceOverviewDto {
   @ApiProperty({ format: 'uuid' }) ledgerId!: string;
@@ -29,4 +30,7 @@ export class OverviewResponseDto {
 
   @ApiPropertyOptional({ type: ActivityPageDto, nullable: true })
   activity!: ActivityPageDto | null;
+
+  @ApiProperty({ type: SettlementResponseDto, isArray: true })
+  pendingPayments!: SettlementResponseDto[];
 }

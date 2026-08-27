@@ -41,6 +41,7 @@ describe('Overview hierarchy', () => {
         ledgerBalances: [],
         planBalances: [],
         activity: { items: [], nextCursor: null },
+        pendingPayments: [],
       },
       isLoading: false,
       isError: false,
@@ -70,6 +71,7 @@ describe('Overview hierarchy', () => {
         ledgerBalances: [],
         planBalances: [],
         activity: null,
+        pendingPayments: [],
       },
       isLoading: false,
       isError: false,
@@ -85,7 +87,7 @@ describe('Overview hierarchy', () => {
     expect(screen.getByText('Henüz Defterin yok.')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Bağımsız Plan' })).toHaveAttribute(
       'href',
-      '/plans?create=1&standalone=1',
+      '/workspace?type=plan&create=plan&standalone=1',
     );
     expect(screen.queryByText('Şimdi ne yapmak istersin?')).toBeNull();
   });
@@ -113,6 +115,7 @@ describe('Overview hierarchy', () => {
         ledgerBalances: [],
         planBalances: [],
         activity: { items: [], nextCursor: null },
+        pendingPayments: [],
       },
       isLoading: false,
       isError: false,

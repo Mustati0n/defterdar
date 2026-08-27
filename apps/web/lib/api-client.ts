@@ -516,6 +516,18 @@ export const api = {
       apiRequest<Settlement>(`/settlements/${settlementId}/void`, {
         method: 'POST',
       }),
+    confirm: (settlementId: string) =>
+      apiRequest<Settlement>(`/settlements/${settlementId}/confirm`, {
+        method: 'POST',
+      }),
+    reject: (settlementId: string) =>
+      apiRequest<Settlement>(`/settlements/${settlementId}/reject`, {
+        method: 'POST',
+      }),
+    cancel: (settlementId: string) =>
+      apiRequest<Settlement>(`/settlements/${settlementId}/cancel`, {
+        method: 'POST',
+      }),
   },
   offsets: {
     availability: (expenseSplitId: string, signal?: AbortSignal) =>

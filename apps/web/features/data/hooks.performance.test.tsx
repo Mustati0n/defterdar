@@ -84,6 +84,7 @@ describe('performance query boundaries', () => {
       ledgerBalances: [],
       planBalances: [],
       activity: null,
+      pendingPayments: [],
     };
     const overview = jest
       .spyOn(api.overview, 'get')

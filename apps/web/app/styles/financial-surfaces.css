@@ -51,6 +51,57 @@
 .balance-hero--closed .balance-hero__icon {
   background: var(--color-success);
 }
+.payment-attention {
+  display: grid;
+  gap: 0.75rem;
+  padding: clamp(1rem, 2vw, 1.4rem);
+  border: 1px solid rgba(130, 58, 70, 0.28);
+  border-radius: var(--radius-lg);
+  background: #fff8e9;
+  box-shadow: var(--shadow-paper);
+}
+.payment-attention__heading,
+.payment-attention__item,
+.payment-attention__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.payment-attention__heading > svg {
+  color: var(--color-wine);
+}
+.payment-attention__heading h2 {
+  margin: 0.1rem 0 0;
+  font-size: 1.15rem;
+}
+.payment-attention__item {
+  justify-content: space-between;
+  min-height: 64px;
+  padding-top: 0.75rem;
+  border-top: 1px dashed var(--color-line);
+}
+.payment-attention__item small {
+  display: block;
+  margin-top: 0.2rem;
+  color: var(--color-muted);
+}
+.payment-attention .button {
+  min-height: 44px;
+}
+.status-chip--payment-pending {
+  color: #694800;
+  background: #f6df9a;
+}
+.status-chip--payment-confirmed {
+  color: #174a32;
+  background: #dcecdf;
+}
+.status-chip--payment-rejected,
+.status-chip--payment-cancelled,
+.status-chip--payment-void {
+  color: var(--color-muted);
+  background: var(--color-paper-deep);
+}
 .suggestion-group + .suggestion-group {
   margin-top: 1.5rem;
 }
@@ -278,6 +329,15 @@
   .payment-direction,
   .offset-story {
     grid-template-columns: 1fr;
+  }
+  .payment-attention__item,
+  .payment-attention__actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .payment-attention__actions .button,
+  .payment-attention__item > .button {
+    width: 100%;
   }
   .payment-direction svg,
   .offset-story > svg {

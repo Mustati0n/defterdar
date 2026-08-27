@@ -149,6 +149,7 @@ export interface OverviewResponse {
   ledgerBalances: Array<{ ledgerId: string; balance: BalanceResponse }>;
   planBalances: Array<{ planId: string; balance: BalanceResponse }>;
   activity: ActivityPage | null;
+  pendingPayments: Settlement[];
 }
 
 export interface AnalyticsSummary {
@@ -226,6 +227,14 @@ export interface Settlement {
   settledAt: string;
   createdById: string;
   createdAt: string;
+  status: 'PENDING' | 'CONFIRMED' | 'REJECTED' | 'CANCELLED' | 'VOID';
+  confirmedById: string | null;
+  confirmedBy: Pick<User, 'id' | 'displayName'> | null;
+  confirmedAt: string | null;
+  rejectedById: string | null;
+  rejectedBy: Pick<User, 'id' | 'displayName'> | null;
+  rejectedAt: string | null;
+  cancelledAt: string | null;
   voidedAt: string | null;
 }
 

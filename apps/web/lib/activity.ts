@@ -12,6 +12,11 @@ const actions: Record<string, string> = {
   'member.joined': 'deftere katıldı',
   'settlement.created': 'bir ödemeyi kaydetti',
   'settlement.voided': 'bir ödeme kaydını geri aldı',
+  'payment.marked_paid': 'ödemeyi yaptığını bildirdi',
+  'payment.confirmed': 'ödemeyi aldığını onayladı',
+  'payment.rejected': 'ödemenin gelmediğini bildirdi',
+  'payment.cancelled': 'ödeme bildirimini iptal etti',
+  'payment.voided': 'onaylanmış ödeme kaydını geri aldı',
   'offset.created': 'bir payı mevcut borçtan düştü',
   'offset.voided': 'bir Borçtan düş işlemini geri aldı',
 };
