@@ -6,7 +6,6 @@ const base: Ledger = {
   id: 'ledger-1',
   name: 'Ev hesabı',
   description: 'Uzun süre kullanılan ortak ev kayıtları',
-  type: 'SHARED',
   currency: 'TRY',
   ownerId: 'me',
   role: 'OWNER',
@@ -15,23 +14,31 @@ const base: Ledger = {
   archivedAt: null,
   createdAt: '2026-01-01',
   updatedAt: '2026-01-01',
+  isCollaborative: true,
 };
 
 describe('LedgerNotebookCard', () => {
-  it('uses one physical notebook family for PERSONAL and SHARED Ledgers', () => {
+  it('uses one physical notebook family for single-person and collaborative Ledgers', () => {
     const { rerender } = render(<LedgerNotebookCard ledger={base} />);
     const shared = screen.getByRole('link', { name: /Ev hesabı/ });
-    expect(shared).toHaveClass('ledger-card', 'ledger-card--shared');
+    expect(shared).toHaveClass('ledger-card', 'ledger-card--collaborative');
     expect(shared.querySelector('.ledger-card__rings')).toBeInTheDocument();
 
     rerender(
       <LedgerNotebookCard
-        ledger={{ ...base, id: 'personal-1', type: 'PERSONAL', name: 'Benim' }}
+        ledger={{
+          ...base,
+          id: 'personal-1',
+          name: 'Benim',
+          activeMemberCount: 1,
+          isCollaborative: false,
+        }}
       />,
     );
     const personal = screen.getByRole('link', { name: /Benim/ });
-    expect(personal).toHaveClass('ledger-card', 'ledger-card--personal');
+    expect(personal).toHaveClass('ledger-card');
+    expect(personal).not.toHaveClass('ledger-card--collaborative');
     expect(personal.querySelector('.ledger-card__rings')).toBeInTheDocument();
-    expect(screen.getByText('Kişisel defter')).toBeInTheDocument();
+    expect(screen.getByText('Defter')).toBeInTheDocument();
   });
 });

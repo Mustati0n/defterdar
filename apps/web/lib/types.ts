@@ -29,7 +29,6 @@ export interface Ledger {
   id: string;
   name: string;
   description: string | null;
-  type: 'PERSONAL' | 'SHARED';
   currency: string;
   ownerId: string;
   role: LedgerRole;
@@ -38,6 +37,7 @@ export interface Ledger {
   archivedAt: string | null;
   activeMemberCount?: number;
   activePlanCount?: number;
+  isCollaborative?: boolean;
 }
 
 export interface CreateLedgerInput {

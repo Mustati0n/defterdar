@@ -180,8 +180,8 @@ export default function OverviewPage() {
           <div>
             <strong>Henüz Defterin yok.</strong>
             <p>
-              Kişisel kayıt alanını isteğe bağlı açabilir veya doğrudan bağımsız
-              bir Planla başlayabilirsin.
+              İlk Defterini açabilir veya doğrudan bağımsız bir Planla
+              başlayabilirsin.
             </p>
           </div>
           <Link

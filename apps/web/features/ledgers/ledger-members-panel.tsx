@@ -27,7 +27,7 @@ export function LedgerMembersPanel({
   const invitations = useQuery({
     queryKey: queryKeys.invitations(ledger.id),
     queryFn: ({ signal }) => api.ledgers.invitations(ledger.id, signal),
-    enabled: ledger.type === 'SHARED' && ledger.role !== 'MEMBER',
+    enabled: ledger.role !== 'MEMBER',
   });
   const refresh = async () => {
     await Promise.all([
@@ -45,8 +45,6 @@ export function LedgerMembersPanel({
     onSuccess: refresh,
     onError: (error) => toast(message(error), 'error'),
   });
-
-  if (ledger.type === 'PERSONAL') return null;
 
   async function createInvite() {
     try {

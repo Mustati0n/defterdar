@@ -92,8 +92,8 @@
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: end;
   isolation: isolate;
-  min-height: 128px;
-  padding: 0.75rem 0.85rem;
+  min-height: 84px;
+  padding: 0.6rem 0.85rem;
 }
 .page-heading--adaptive::before {
   position: absolute;
@@ -108,23 +108,34 @@
 }
 .page-heading__copy {
   min-width: 0;
+  display: grid;
+  align-content: end;
+  justify-items: start;
 }
 .page-heading--adaptive .page-heading__copy {
-  transform: translate3d(0, calc(var(--header-progress) * -8px), 0);
+  transform: translate3d(0, calc(var(--header-progress) * -6px), 0);
+}
+.page-heading--adaptive .page-heading__intro {
+  display: grid;
+  gap: 0.3rem;
+  overflow: hidden;
+  pointer-events: none;
+  max-height: calc(8rem * (1 - var(--header-progress)));
+  opacity: calc(1 - var(--header-progress) * 1.15);
+}
+.page-heading--adaptive .page-heading__intro .eyebrow {
+  margin-bottom: 0;
 }
 .page-heading--adaptive h1 {
   width: max-content;
   max-width: 100%;
-  transform: scale(calc(1 - var(--header-progress) * 0.12));
+  font-size: var(--font-page-title);
+  transform: scale(calc(1 - var(--header-progress) * 0.52));
   transform-origin: left bottom;
-}
-.page-heading--adaptive .eyebrow,
-.page-heading--adaptive .page-heading__copy p {
-  opacity: calc(1 - var(--header-progress) * 0.82);
 }
 .page-heading__tools {
   grid-column: 1 / -1;
-  margin-top: 1.1rem;
+  margin-top: 0.85rem;
 }
 .page-heading--adaptive .page-heading__tools,
 .page-heading--adaptive .page-heading__action {
@@ -183,9 +194,12 @@
   .page-heading--adaptive .page-heading__action {
     transform: none;
   }
-  .page-heading--adaptive .eyebrow,
-  .page-heading--adaptive .page-heading__copy p {
+  .page-heading--adaptive .page-heading__intro {
+    max-height: none;
     opacity: 1;
+  }
+  .page-heading--adaptive h1 {
+    font-size: clamp(2rem, 8vw, 2.75rem);
   }
   .page-heading__tools {
     width: 100%;
@@ -212,5 +226,9 @@
   .page-heading--adaptive .page-heading__tools,
   .page-heading--adaptive .page-heading__action {
     transform: none !important;
+  }
+  .page-heading--adaptive .page-heading__intro {
+    max-height: none;
+    opacity: 1;
   }
 }

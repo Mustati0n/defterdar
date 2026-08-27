@@ -243,8 +243,6 @@ export const api = {
       apiRequest<Ledger>(`/ledgers/${ledgerId}`, { signal }),
     create: (input: CreateLedgerInput) =>
       apiRequest<Ledger>('/ledgers', { method: 'POST', body: input }),
-    createPersonal: (input: CreateLedgerInput) =>
-      apiRequest<Ledger>('/ledgers/personal', { method: 'POST', body: input }),
     update: (
       ledgerId: string,
       input: { name?: string; description?: string | null },

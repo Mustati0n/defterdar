@@ -4,7 +4,6 @@ import {
   HandCoins,
   NotebookTabs,
   ReceiptText,
-  UserRound,
   UsersRound,
 } from 'lucide-react';
 import type { RefObject, ReactNode } from 'react';
@@ -92,7 +91,7 @@ export function OnboardingStepContent({
             <ul>
               <li>Ev arkadaşları</li>
               <li>Yurt odası</li>
-              <li>Kişisel Defterim</li>
+              <li>Ev bütçesi</li>
             </ul>
           </article>
           <span className="domain-compare__link">
@@ -130,26 +129,13 @@ export function OnboardingStepContent({
         <p>Boş bir ekrana bırakmıyoruz. Sana en anlamlı gelen ilk kaydı seç.</p>
       </div>
       <div className="first-action-grid">
-        <button
-          type="button"
-          onClick={() => finish('/ledgers?create=personal')}
-        >
-          <span>
-            <UserRound />
-          </span>
-          <div>
-            <strong>Kişisel Defter oluştur</strong>
-            <small>İstersen yalnız sana ait hesabı aç</small>
-          </div>
-          <ArrowRight />
-        </button>
         <button type="button" onClick={() => finish('/ledgers?create=1')}>
           <span>
             <UsersRound />
           </span>
           <div>
-            <strong>Yeni ortak Defter oluştur</strong>
-            <small>Düzenli ortak hesabı başlat</small>
+            <strong>Defter oluştur</strong>
+            <small>Düzenli bir hesap aç, istersen birlikte tut</small>
           </div>
           <ArrowRight />
         </button>
@@ -161,8 +147,8 @@ export function OnboardingStepContent({
             <NotebookTabs />
           </span>
           <div>
-            <strong>Bağımsız Plan oluştur</strong>
-            <small>Deftere bağlamadan gezi veya etkinlik ekle</small>
+            <strong>Plan oluştur</strong>
+            <small>Gezi veya etkinlik ekle</small>
           </div>
           <ArrowRight />
         </button>

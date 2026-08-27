@@ -72,11 +72,9 @@ describe('guided domain tour', () => {
     render(<OnboardingExperience />);
     forward();
     forward();
-    fireEvent.click(
-      screen.getByRole('button', { name: /Kişisel Defter oluştur/ }),
-    );
+    fireEvent.click(screen.getByRole('button', { name: /Defter oluştur/ }));
     expect(complete).toHaveBeenCalled();
-    expect(push).toHaveBeenCalledWith('/ledgers?create=personal');
+    expect(push).toHaveBeenCalledWith('/ledgers?create=1');
   });
 
   it('uses opposite direction states and updates completed progress', () => {

@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { CalendarPlus, X } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 import { useToast } from '@/components/ui/toast';
 import { useCreatePlan } from '@/features/data/hooks';
@@ -39,7 +39,6 @@ export function CreatePlanDialog({
   ledgers,
   defaultOpen = false,
   initialLedgerId = '',
-  defaultStandalone = false,
   open: controlledOpen,
   onOpenChange,
   hideTrigger = false,
@@ -47,16 +46,12 @@ export function CreatePlanDialog({
   ledgers: Ledger[];
   defaultOpen?: boolean;
   initialLedgerId?: string;
-  defaultStandalone?: boolean;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   hideTrigger?: boolean;
 }) {
   const [internalOpen, setInternalOpen] = useState(defaultOpen);
   const open = controlledOpen ?? internalOpen;
-  const [standalone, setStandalone] = useState(
-    defaultStandalone || !initialLedgerId,
-  );
   const mutation = useCreatePlan();
   const toast = useToast();
   const router = useRouter();
@@ -65,12 +60,17 @@ export function CreatePlanDialog({
     register,
     handleSubmit,
     reset,
-    setError,
+    control,
     formState: { errors },
   } = useForm<Values>({
     resolver: zodResolver(schema),
     defaultValues: { ledgerId: initialLedgerId, currency: 'TRY' },
   });
+  const selectedLedgerId = useWatch({ control, name: 'ledgerId' });
+  const standalone = !selectedLedgerId;
+  const selectedLedger = activeLedgers.find(
+    (ledger) => ledger.id === selectedLedgerId,
+  );
   const dialogRef = useRef<HTMLElement>(null);
   const nameRef = useRef<HTMLInputElement>(null);
   const nameRegistration = register('name');
@@ -86,13 +86,9 @@ export function CreatePlanDialog({
   });
 
   async function onSubmit(values: Values) {
-    if (!standalone && !values.ledgerId) {
-      setError('ledgerId', { message: 'Bir defter seçin.' });
-      return;
-    }
     try {
       const plan = await mutation.mutateAsync({
-        ledgerId: standalone ? null : values.ledgerId!,
+        ledgerId: values.ledgerId || null,
         input: {
           name: values.name,
           description: values.description || null,
@@ -158,71 +154,34 @@ export function CreatePlanDialog({
             </button>
             <span className="eyebrow">Yeni Plan</span>
             <h2 id="new-plan-title">Sıradaki plan ne?</h2>
-            <p>Bağımsız başla veya düzenli bir hesabın Defterine bağla.</p>
+            <p>Bir etkinliği planla; istersen düzenli bir hesabın Defterine ekle.</p>
             <form onSubmit={handleSubmit(onSubmit)} className="stack-form">
               {!initialLedgerId ? (
-                <fieldset className="field">
-                  <legend>Plan kapsamı</legend>
-                  <div className="segmented-control">
-                    <button
-                      className={standalone ? 'is-active' : ''}
-                      type="button"
-                      aria-pressed={standalone}
-                      onClick={() => setStandalone(true)}
-                    >
-                      Bağımsız
-                    </button>
-                    <button
-                      className={!standalone ? 'is-active' : ''}
-                      type="button"
-                      aria-pressed={!standalone}
-                      disabled={!activeLedgers.length}
-                      onClick={() => setStandalone(false)}
-                    >
-                      Deftere bağlı
-                    </button>
-                  </div>
-                </fieldset>
-              ) : null}
-              {!standalone ? (
                 <label className="field">
-                  <span>Bağlı Defter</span>
-                  {initialLedgerId ? (
-                    <input type="hidden" {...register('ledgerId')} />
-                  ) : (
-                    <select
-                      className="input"
-                      aria-invalid={Boolean(errors.ledgerId)}
-                      aria-describedby={
-                        errors.ledgerId ? 'plan-ledger-error' : undefined
-                      }
-                      {...register('ledgerId')}
-                    >
-                      <option value="" disabled>
-                        Defter seç
+                  <span>
+                    Deftere ekle <em>isteğe bağlı</em>
+                  </span>
+                  <select className="input" {...register('ledgerId')}>
+                    <option value="">Bağımsız (Deftere bağlı değil)</option>
+                    {activeLedgers.map((ledger) => (
+                      <option value={ledger.id} key={ledger.id}>
+                        {ledger.name}
                       </option>
-                      {activeLedgers.map((ledger) => (
-                        <option value={ledger.id} key={ledger.id}>
-                          {ledger.name}
-                        </option>
-                      ))}
-                    </select>
-                  )}
-                  {initialLedgerId ? (
-                    <div className="context-note">
-                      {activeLedgers.find(
-                        (ledger) => ledger.id === initialLedgerId,
-                      )?.name ?? 'Seçili Defter'}{' '}
-                      içinde oluşturulacak.
-                    </div>
-                  ) : null}
-                  {errors.ledgerId ? (
-                    <small id="plan-ledger-error">
-                      {errors.ledgerId.message}
-                    </small>
-                  ) : null}
+                    ))}
+                  </select>
                 </label>
               ) : (
+                <input type="hidden" {...register('ledgerId')} />
+              )}
+              {initialLedgerId ? (
+                <div className="context-note">
+                  {activeLedgers.find(
+                    (ledger) => ledger.id === initialLedgerId,
+                  )?.name ?? 'Seçili Defter'}{' '}
+                  içinde oluşturulacak.
+                </div>
+              ) : null}
+              {standalone ? (
                 <label className="field field--short">
                   <span>Para birimi</span>
                   <input
@@ -235,7 +194,11 @@ export function CreatePlanDialog({
                     <small>{errors.currency.message}</small>
                   ) : null}
                 </label>
-              )}
+              ) : selectedLedger ? (
+                <div className="context-note">
+                  Para birimi Defterden gelir: {selectedLedger.currency}
+                </div>
+              ) : null}
               <label className="field">
                 <span>Plan adı</span>
                 <input

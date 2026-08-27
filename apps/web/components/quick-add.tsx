@@ -80,8 +80,8 @@ export function QuickAdd({
       )
     : actions;
   const contextualActions = availableActions.map((action) =>
-    ledger.data?.type === 'PERSONAL' && action.kind === 'expense'
-      ? { ...action, help: 'Kişisel giderini kaydet' }
+    ledger.data && !ledger.data.isCollaborative && action.kind === 'expense'
+      ? { ...action, help: 'Giderini kaydet' }
       : action,
   );
   const contextLabel = context.planId

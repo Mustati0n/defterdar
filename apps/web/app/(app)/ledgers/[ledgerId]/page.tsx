@@ -39,22 +39,14 @@ import { AnalyticsExperience } from '@/features/analytics/analytics-experience';
 import { CategoryManager } from '@/features/settings/category-manager';
 import { PageIntro } from '@/features/page-intro/page-intro';
 
-const primarySharedViews = [
+const primaryViews = [
   { id: 'general', label: 'Genel', icon: BookOpenText },
   { id: 'balances', label: 'Bakiyeler', icon: WalletCards },
   { id: 'analytics', label: 'İstatistikler', icon: BarChart3 },
 ] as const;
-const primaryPersonalViews = [
-  { id: 'general', label: 'Genel', icon: BookOpenText },
-  { id: 'analytics', label: 'İstatistikler', icon: BarChart3 },
-] as const;
-const secondarySharedViews = [
-  { id: 'activity', label: 'Tüm hareketler', icon: Clock3 },
+const secondaryViews = [
+  { id: 'activity', label: 'Hareket geçmişi', icon: Clock3 },
   { id: 'members', label: 'Üyeler', icon: UsersRound },
-  { id: 'settings', label: 'Ayarlar', icon: Settings },
-] as const;
-const secondaryPersonalViews = [
-  { id: 'activity', label: 'Tüm hareketler', icon: Clock3 },
   { id: 'settings', label: 'Ayarlar', icon: Settings },
 ] as const;
 type LedgerView =
@@ -82,11 +74,11 @@ export default function LedgerDetailPage() {
     );
 
   const data = ledger.data;
-  const primaryViews =
-    data.type === 'PERSONAL' ? primaryPersonalViews : primarySharedViews;
-  const secondaryViews =
-    data.type === 'PERSONAL' ? secondaryPersonalViews : secondarySharedViews;
-  const allowedViews = [...primaryViews, ...secondaryViews].map(
+  const collaborative = Boolean(data.isCollaborative);
+  const visiblePrimaryViews = collaborative
+    ? primaryViews
+    : primaryViews.filter((view) => view.id !== 'balances');
+  const allowedViews = [...visiblePrimaryViews, ...secondaryViews].map(
     (view) => view.id,
   ) as LedgerView[];
   const activeView = resolveDetailView(
@@ -104,29 +96,30 @@ export default function LedgerDetailPage() {
       <Link className="back-link" href="/workspace?type=ledger">
         <ArrowLeft /> Defterler &amp; Planlara dön
       </Link>
-      <section className="detail-cover detail-cover--ledger">
+      <section
+        className={`detail-cover detail-cover--ledger${collaborative ? ' detail-cover--collaborative' : ''}`}
+      >
         <span className="detail-cover__bookmark">
           {ledgerRoleLabel(data.role)}
         </span>
         <div>
           <span className="eyebrow eyebrow--light">
-            {data.type === 'PERSONAL' ? 'Kişisel defter' : 'Ortak defter'} ·{' '}
-            {data.currency}
+            {collaborative ? 'Ortak defter' : 'Defter'} · {data.currency}
           </span>
           <h1>{data.name}</h1>
           {data.description ? <p>{data.description}</p> : null}
           <div className="detail-cover__meta" aria-label="Defter özeti">
             <span>
               <UsersRound />
-              {data.type === 'SHARED'
+              {collaborative
                 ? `${data.activeMemberCount ?? members.data?.length ?? '—'} kişi`
-                : 'Kişisel alan'}
+                : 'Tek kişilik alan'}
             </span>
             <span>
               <BookOpenText />{' '}
               {data.activePlanCount ?? plans.data?.length ?? '—'} aktif plan
             </span>
-            {data.type === 'SHARED' ? (
+            {collaborative ? (
               <Link href={`/ledgers/${ledgerId}?view=balances`}>
                 <CircleDollarSign />
                 {myBalanceState === 'receivable'
@@ -147,7 +140,7 @@ export default function LedgerDetailPage() {
         label="Defter bölümleri"
         basePath={`/ledgers/${ledgerId}`}
         activeView={activeView}
-        primary={primaryViews}
+        primary={visiblePrimaryViews}
         secondary={secondaryViews}
       />
 
@@ -178,7 +171,7 @@ export default function LedgerDetailPage() {
                     <div>
                       <strong>{expense.title}</strong>
                       <small>
-                        {data.type === 'PERSONAL'
+                        {!collaborative
                           ? (expense.category?.name ?? 'Kategorisiz')
                           : `${expense.payer.displayName} ödedi · ${expense.splits.length} kişi paylaştı`}
                       </small>
@@ -209,8 +202,8 @@ export default function LedgerDetailPage() {
                   <h3>Henüz harcama yok.</h3>
                   <p>
                     {!data.archivedAt
-                      ? data.type === 'PERSONAL'
-                        ? 'İlk kişisel harcamanı ekleyebilirsin.'
+                      ? !collaborative
+                        ? 'İlk harcamanı ekleyebilirsin.'
                         : 'İlk harcamayı eklediğinde paylar ve bakiyeler hesaplanır.'
                       : 'Bu Defter arşivde olduğu için yeni harcama eklenemez; mevcut kayıtlar okunmaya devam eder.'}
                   </p>
@@ -295,7 +288,7 @@ export default function LedgerDetailPage() {
         </>
       ) : null}
       {activeView === 'activity' ? <ActivityFeed ledgerId={ledgerId} /> : null}
-      {activeView === 'balances' && data.type === 'SHARED' ? (
+      {activeView === 'balances' && collaborative ? (
         <>
           <PageIntro
             pageKey="balances"
@@ -321,10 +314,10 @@ export default function LedgerDetailPage() {
         <AnalyticsExperience
           scope="ledger"
           resourceId={ledgerId}
-          personal={data.type === 'PERSONAL'}
+          personal={!collaborative}
         />
       ) : null}
-      {activeView === 'members' && data.type === 'SHARED' ? (
+      {activeView === 'members' ? (
         <LedgerMembersPanel ledger={data} members={members.data ?? []} />
       ) : null}
       {activeView === 'settings' ? (

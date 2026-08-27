@@ -33,7 +33,6 @@ const ledger: Ledger = {
   id: 'ledger-1',
   name: 'Ev hesabı',
   description: 'Ortak giderler',
-  type: 'SHARED',
   currency: 'TRY',
   ownerId: 'me',
   role: 'OWNER',
@@ -42,6 +41,7 @@ const ledger: Ledger = {
   archivedAt: null,
   activeMemberCount: 3,
   activePlanCount: 1,
+  isCollaborative: true,
 };
 const plan: Plan = {
   id: 'plan-1',

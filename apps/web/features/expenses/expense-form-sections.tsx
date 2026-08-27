@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import type { FieldErrors, UseFormRegister } from 'react-hook-form';
 import type { SplitMethod } from '@/lib/types';
-import { formatMoneyFromMinor } from '@/lib/format';
+import { formatMoneyFromMinor, splitMethodLabel } from '@/lib/format';
 import type { ExpenseFormValues } from './expense-form-config';
 import { splitOptions } from './expense-form-config';
 
@@ -145,7 +145,7 @@ export function ExpensePreview({
   return (
     <section className="paper-section split-preview">
       <span className="eyebrow">Canlı özet</span>
-      <h3>Paylaştırma önizlemesi</h3>
+      <h3>{splitMethodLabel(splitMethod)}</h3>
       {preview.map((item) => (
         <div key={item.userId}>
           <span>
@@ -211,7 +211,7 @@ export function SplitMethodSection({
           className="advanced-split"
           open={splitMethod !== 'EQUAL' || undefined}
         >
-          <summary>Diğer paylaşım yöntemleri</summary>
+          <summary>Paylaşımı değiştir</summary>
           <div>
             {splitOptions.slice(1).map((option) => (
               <label key={option.value}>
@@ -277,7 +277,7 @@ export function GiftOption({
           <Gift />
         </span>
         <span>
-          <strong>Bu benden — Ismarla</strong>
+          <strong>Ben ısmarlıyorum</strong>
           <small>Kimse için geri ödeme borcu oluşmasın.</small>
         </span>
         <Check />

@@ -32,8 +32,8 @@ jest.mock('@/features/analytics/analytics-experience', () => ({
 const ledger = {
   id: 'ledger-1',
   name: 'Ev hesabı',
-  type: 'SHARED' as const,
   currency: 'TRY',
+  isCollaborative: true,
 };
 const standalone = {
   id: 'plan-1',

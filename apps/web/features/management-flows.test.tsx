@@ -25,13 +25,14 @@ const ledger: Ledger = {
   id: 'ledger-1',
   name: 'Ev',
   description: null,
-  type: 'SHARED',
   currency: 'TRY',
   ownerId: 'owner',
   role: 'OWNER',
   createdAt: '2026-01-01',
   updatedAt: '2026-01-01',
   archivedAt: null,
+  isCollaborative: true,
+  activeMemberCount: 2,
 };
 
 function providers(children: ReactNode) {
@@ -120,10 +121,10 @@ describe('Ledger and Plan management flows', () => {
     expect(screen.queryByText('MEMBER')).not.toBeInTheDocument();
   });
 
-  it('renders no shared member controls for a PERSONAL Ledger', () => {
+  it('keeps member controls available for a single-person Ledger', () => {
     providers(
       <LedgerMembersPanel
-        ledger={{ ...ledger, type: 'PERSONAL' }}
+        ledger={{ ...ledger, isCollaborative: false, activeMemberCount: 1 }}
         members={[
           {
             user: { id: 'owner', displayName: 'Ece' },
@@ -133,10 +134,10 @@ describe('Ledger and Plan management flows', () => {
         ]}
       />,
     );
-    expect(screen.queryByText('Üyeler ve roller')).not.toBeInTheDocument();
+    expect(screen.getByText('Üyeler ve roller')).toBeInTheDocument();
     expect(
-      screen.queryByRole('button', { name: 'Davet oluştur' }),
-    ).not.toBeInTheDocument();
+      screen.getByRole('button', { name: 'Davet oluştur' }),
+    ).toBeInTheDocument();
   });
 
   it('blocks mutation fields for an archived Ledger', () => {

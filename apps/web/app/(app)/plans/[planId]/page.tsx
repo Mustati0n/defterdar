@@ -45,10 +45,10 @@ import { PageIntro } from '@/features/page-intro/page-intro';
 
 const primaryViews = [
   { id: 'general', label: 'Genel', icon: CheckSquare2 },
-  { id: 'activity', label: 'Hareketler', icon: Clock3 },
   { id: 'balances', label: 'Hesap', icon: WalletCards },
 ] as const;
 const secondaryViews = [
+  { id: 'activity', label: 'Hareket geçmişi', icon: Clock3 },
   { id: 'analytics', label: 'İstatistikler', icon: BarChart3 },
   { id: 'participants', label: 'Katılımcılar', icon: UsersRound },
   { id: 'settings', label: 'Ayarlar', icon: Settings },

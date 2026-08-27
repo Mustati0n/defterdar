@@ -300,9 +300,6 @@ function WorkspaceContent() {
       <CreateLedgerDialog
         open={creator === 'ledger'}
         onOpenChange={(open) => !open && setCreator(null)}
-        defaultType={
-          searchParams.get('personal') === '1' ? 'PERSONAL' : 'SHARED'
-        }
         hideTrigger
       />
       <CreatePlanDialog
@@ -310,7 +307,6 @@ function WorkspaceContent() {
         open={creator === 'plan'}
         onOpenChange={(open) => !open && setCreator(null)}
         initialLedgerId={searchParams.get('ledgerId') ?? ''}
-        defaultStandalone={searchParams.get('standalone') === '1'}
         hideTrigger
       />
     </>

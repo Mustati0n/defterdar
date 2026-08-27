@@ -87,9 +87,7 @@ export function IncomeForm({
 
   useEffect(() => {
     if (!ledgerId && !requestedPlanId && ledgers.data?.length) {
-      const defaultLedger =
-        ledgers.data.find((ledger) => ledger.type === 'PERSONAL') ??
-        ledgers.data[0];
+      const defaultLedger = ledgers.data[0];
       if (defaultLedger) setValue('ledgerId', defaultLedger.id);
     }
   }, [ledgerId, ledgers.data, requestedPlanId, setValue]);

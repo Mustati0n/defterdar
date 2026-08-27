@@ -55,6 +55,21 @@
 .detail-cover--ledger h1 {
   color: white;
 }
+.detail-cover--collaborative {
+  border-left-color: var(--color-wine);
+}
+.detail-cover--collaborative::after {
+  position: absolute;
+  top: 0;
+  right: 24px;
+  bottom: 0;
+  width: 3px;
+  content: '';
+  background: rgba(221, 198, 155, 0.55);
+}
+.detail-cover--collaborative .detail-cover__bookmark {
+  background: var(--color-wine);
+}
 .detail-cover--ledger > div {
   position: relative;
   z-index: 1;
@@ -249,6 +264,7 @@
   display: grid;
   grid-template-columns: 0.9fr 1.1fr;
   gap: 1.5rem;
+  margin-top: clamp(1.5rem, 2.5vw, 2rem);
 }
 .paper-section,
 .lined-section {

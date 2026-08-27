@@ -119,56 +119,54 @@ export function LedgerSettingsPanel({
           </p>
         )}
       </div>
-      {ledger.type === 'SHARED' || ledger.role !== 'OWNER' ? (
-        <div className="danger-zone">
-          <h3>Üyelik ve yaşam döngüsü</h3>
-          {ledger.role === 'OWNER' && ledger.type !== 'PERSONAL' ? (
-            <button
-              className="button button--quiet"
-              type="button"
-              onClick={() => setConfirm('archive')}
+      <div className="danger-zone">
+        <h3>Üyelik ve yaşam döngüsü</h3>
+        {ledger.role === 'OWNER' ? (
+          <button
+            className="button button--quiet"
+            type="button"
+            onClick={() => setConfirm('archive')}
+          >
+            {ledger.archivedAt ? <RefreshCw /> : <Archive />}
+            {ledger.archivedAt ? 'Defteri yeniden aç' : 'Defteri arşivle'}
+          </button>
+        ) : null}
+        {ledger.role !== 'OWNER' ? (
+          <button
+            className="button button--danger"
+            type="button"
+            onClick={() => setConfirm('leave')}
+          >
+            <LogOut /> Defterden ayrıl
+          </button>
+        ) : null}
+        {ledger.role === 'OWNER' ? (
+          <div className="transfer-row">
+            <select
+              className="input"
+              value={targetOwner}
+              onChange={(event) => setTargetOwner(event.target.value)}
             >
-              {ledger.archivedAt ? <RefreshCw /> : <Archive />}
-              {ledger.archivedAt ? 'Defteri yeniden aç' : 'Defteri arşivle'}
-            </button>
-          ) : null}
-          {ledger.role !== 'OWNER' ? (
+              <option value="">Yeni sahip seç</option>
+              {members
+                .filter((member) => member.role !== 'OWNER')
+                .map((member) => (
+                  <option value={member.user.id} key={member.user.id}>
+                    {member.user.displayName}
+                  </option>
+                ))}
+            </select>
             <button
               className="button button--danger"
               type="button"
-              onClick={() => setConfirm('leave')}
+              disabled={!targetOwner}
+              onClick={() => setConfirm('transfer')}
             >
-              <LogOut /> Defterden ayrıl
+              Sahipliği aktar
             </button>
-          ) : null}
-          {ledger.role === 'OWNER' && ledger.type !== 'PERSONAL' ? (
-            <div className="transfer-row">
-              <select
-                className="input"
-                value={targetOwner}
-                onChange={(event) => setTargetOwner(event.target.value)}
-              >
-                <option value="">Yeni sahip seç</option>
-                {members
-                  .filter((member) => member.role !== 'OWNER')
-                  .map((member) => (
-                    <option value={member.user.id} key={member.user.id}>
-                      {member.user.displayName}
-                    </option>
-                  ))}
-              </select>
-              <button
-                className="button button--danger"
-                type="button"
-                disabled={!targetOwner}
-                onClick={() => setConfirm('transfer')}
-              >
-                Sahipliği aktar
-              </button>
-            </div>
-          ) : null}
-        </div>
-      ) : null}
+          </div>
+        ) : null}
+      </div>
       <ConfirmationDialog
         open={Boolean(confirm)}
         title={

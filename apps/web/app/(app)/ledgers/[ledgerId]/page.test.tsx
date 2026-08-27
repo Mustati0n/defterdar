@@ -35,7 +35,6 @@ const ledger = {
   id: 'ledger-1',
   name: 'Günlük',
   description: null,
-  type: 'PERSONAL' as const,
   currency: 'TRY',
   ownerId: 'me',
   role: 'OWNER' as const,
@@ -44,11 +43,20 @@ const ledger = {
   updatedAt: '2026-01-01',
   activeMemberCount: 1,
   activePlanCount: 0,
+  isCollaborative: false,
 };
 
-function detailData(type: 'PERSONAL' | 'SHARED') {
+function detailData(collaborative: boolean) {
   return {
-    ledger: { data: { ...ledger, type }, isLoading: false, isError: false },
+    ledger: {
+      data: {
+        ...ledger,
+        isCollaborative: collaborative,
+        activeMemberCount: collaborative ? 2 : 1,
+      },
+      isLoading: false,
+      isError: false,
+    },
     plans: { data: [] },
     members: {
       data: [{ user: { id: 'me', displayName: 'Ece' }, role: 'OWNER' }],
@@ -62,28 +70,25 @@ function detailData(type: 'PERSONAL' | 'SHARED') {
 describe('Ledger detail information architecture', () => {
   beforeEach(() => {
     view = null;
-    jest.mocked(useLedgerDetailData).mockReturnValue(detailData('PERSONAL'));
+    jest.mocked(useLedgerDetailData).mockReturnValue(detailData(false));
   });
 
-  it('hides shared-only destinations and group language for PERSONAL Ledger', () => {
+  it('hides group balance language for a single-person Ledger', () => {
     render(<LedgerDetailPage />);
     expect(screen.getByLabelText('Defter özeti')).toHaveTextContent(
-      'Kişisel alan',
+      'Tek kişilik alan',
     );
     expect(
       screen.getByRole('heading', { name: 'Son harcamalar' }),
     ).toBeInTheDocument();
     expect(screen.queryByText('Aktif üyeler')).not.toBeInTheDocument();
     expect(
-      screen.queryByRole('link', { name: /Bakiyeler/ }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('link', { name: /Üyeler/ }),
+      screen.queryByRole('link', { name: /^Bakiyeler$/ }),
     ).not.toBeInTheDocument();
   });
 
-  it('retains valid shared capabilities at secondary weight', () => {
-    jest.mocked(useLedgerDetailData).mockReturnValue(detailData('SHARED'));
+  it('retains valid collaborative capabilities at secondary weight', () => {
+    jest.mocked(useLedgerDetailData).mockReturnValue(detailData(true));
     render(<LedgerDetailPage />);
     expect(screen.getByRole('link', { name: /^Bakiyeler$/ })).toHaveAttribute(
       'href',
@@ -93,7 +98,7 @@ describe('Ledger detail information architecture', () => {
       'href',
       '/ledgers/ledger-1?view=members',
     );
-    expect(screen.getByLabelText('Defter özeti')).toHaveTextContent('1 kişi');
+    expect(screen.getByLabelText('Defter özeti')).toHaveTextContent('2 kişi');
     expect(screen.getAllByText('Sahip')).toHaveLength(1);
   });
 

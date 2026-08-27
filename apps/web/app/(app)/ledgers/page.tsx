@@ -8,6 +8,5 @@ export default async function LegacyLedgersPage({
   const params = await searchParams;
   const target = new URLSearchParams({ type: 'ledger' });
   if (params.create) target.set('create', 'ledger');
-  if (params.create === 'personal') target.set('personal', '1');
   redirect(`/workspace?${target.toString()}`);
 }

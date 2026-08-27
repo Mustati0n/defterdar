@@ -28,7 +28,7 @@ export default function StatisticsPage() {
       kind: 'ledger' as const,
       id: ledger.id,
       name: ledger.name,
-      personal: ledger.type === 'PERSONAL',
+      personal: !ledger.isCollaborative,
       plan: undefined,
     })),
     ...(plans.data ?? []).map((plan) => ({

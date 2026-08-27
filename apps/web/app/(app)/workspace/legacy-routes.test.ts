@@ -11,7 +11,7 @@ describe('legacy collection routes', () => {
       searchParams: Promise.resolve({ create: 'personal' }),
     });
     expect(redirect).toHaveBeenCalledWith(
-      '/workspace?type=ledger&create=ledger&personal=1',
+      '/workspace?type=ledger&create=ledger',
     );
   });
 

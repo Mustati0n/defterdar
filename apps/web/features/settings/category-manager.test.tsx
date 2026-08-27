@@ -16,13 +16,13 @@ const ledger = {
   id: 'l1',
   name: 'Ev',
   description: null,
-  type: 'SHARED' as const,
   currency: 'TRY',
   ownerId: 'u1',
   role: 'OWNER' as const,
   createdAt: '2026-01-01',
   updatedAt: '2026-01-01',
   archivedAt: null,
+  isCollaborative: true,
 };
 const market = {
   id: 'c1',

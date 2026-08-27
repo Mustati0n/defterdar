@@ -2,9 +2,10 @@
 
 1. Yeni User sıfır Ledger ve sıfır Plan ile başlayabilir. Registration otomatik
    Personal Ledger oluşturmaz.
-2. User isterse en fazla bir `PERSONAL` Ledger oluşturur. Var olan Personal
-   Ledgers korunur; davet, ayrılma, transfer ve archive desteklenmez.
-3. `SHARED` Ledger creator'ı atomik OWNER olur. Aktif OWNER/member invariant'ları
+2. User isterse istediği kadar Defter oluşturur. Collaboration kullanıcı
+   seçimi değildir; aktif üyelikten türetilir (`activeMemberCount > 1`).
+   Tek kişilik Defter sonradan davetle ortak hale gelebilir.
+3. Defter creator'ı atomik OWNER olur. Aktif OWNER/member invariant'ları
    database trigger ve partial unique indexlerle korunur.
 4. Membership ve finans geçmişi hard delete edilmez; `leftAt`, `archivedAt` ve
    `voidedAt` kullanılır.

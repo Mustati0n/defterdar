@@ -55,9 +55,11 @@ export function PageHeading({
       ref={headerRef}
     >
       <div className="page-heading__copy">
-        <span className="eyebrow">{eyebrow}</span>
+        <div className="page-heading__intro">
+          <span className="eyebrow">{eyebrow}</span>
+          <p>{description}</p>
+        </div>
         <h1>{title}</h1>
-        <p>{description}</p>
       </div>
       {tools ? <div className="page-heading__tools">{tools}</div> : null}
       {action ? <div className="page-heading__action">{action}</div> : null}

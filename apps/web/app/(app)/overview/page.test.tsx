@@ -23,13 +23,13 @@ const ledger = {
   id: 'ledger-1',
   name: 'Kişisel Defterim',
   description: null,
-  type: 'PERSONAL' as const,
   currency: 'TRY',
   ownerId: 'me',
   role: 'OWNER' as const,
   archivedAt: null,
   createdAt: '2026-08-24T10:00:00Z',
   updatedAt: '2026-08-24T10:00:00Z',
+  isCollaborative: false,
 };
 
 describe('Overview hierarchy', () => {
@@ -97,7 +97,7 @@ describe('Overview hierarchy', () => {
       data: {
         ledgers: [
           ledger,
-          { ...ledger, id: 'ledger-2', name: 'Ev', type: 'SHARED' },
+          { ...ledger, id: 'ledger-2', name: 'Ev', isCollaborative: true },
           {
             ...ledger,
             id: 'ledger-3',

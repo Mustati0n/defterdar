@@ -16,6 +16,7 @@ tmp/
 *.tmp
 *.swp
 *.swo
+*.tsbuildinfo
 .DS_Store
 .idea/
 .vscode/

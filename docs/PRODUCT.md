@@ -6,15 +6,16 @@ gizli bir Personal alan varsaymaz.
 
 ## Defter
 
-Defter uzun süreli çalışma alanıdır. `PERSONAL` yalnız sahibinin kişisel nakit
-akışını, `SHARED` ise üyelerin ortak geçmiş ve yükümlülüklerini taşır. Yeni
-kullanıcı sıfır Defterle başlar; isterse `POST /ledgers/personal` ile en fazla
-bir Personal Defter oluşturur. Eski kullanıcıların Personal kayıtları değişmez.
+Defter uzun süreli çalışma alanıdır. Kullanıcı kişisel/ortak ayrımı seçmez;
+collaboration aktif üyelikten türetilir. Tek sahipli Defter tek kişilik,
+ek üyesi olan Defter ortak Defter olarak sunulur. Yeni kullanıcı sıfır Defterle
+başlar; dilediği kadar Defter oluşturabilir ve herhangi birine sonradan arkadaş
+davet edebilir.
 
-Shared Defter creator'ı atomik olarak `OWNER` olur. `OWNER`, `ADMIN`, `MEMBER`
+Defter creator'ı atomik olarak `OWNER` olur. `OWNER`, `ADMIN`, `MEMBER`
 rolleri, soft membership yaşam döngüsü, hash-only davetler ve archive-only
-geçmiş modeli uygulanır. Personal Defter davet, ownership transfer ve archive
-kabul etmez.
+geçmiş modeli uygulanır. Davet, ownership transfer ve archive her Defterde
+geçerlidir.
 
 ## Plan
 

@@ -298,7 +298,7 @@ function LoadedExpenseEditForm({
             className="advanced-split"
             open={method !== 'EQUAL' || undefined}
           >
-            <summary>Diğer paylaşım yöntemleri</summary>
+            <summary>Paylaşımı değiştir</summary>
             <div>
               {(['EXACT', 'PERCENTAGE', 'SHARES'] as const).map((value) => (
                 <label key={value}>
@@ -356,7 +356,7 @@ function LoadedExpenseEditForm({
           checked={isGift}
           onChange={(event) => setIsGift(event.target.checked)}
         />
-        <span>Bu benden — Ismarla</span>
+        <span>Ben ısmarlıyorum</span>
       </label>
       {error ? (
         <div className="form-error" role="alert">
