@@ -52,7 +52,6 @@ function detailData(type: 'PERSONAL' | 'SHARED') {
       data: [{ user: { id: 'me', displayName: 'Ece' }, role: 'OWNER' }],
     },
     balance: { data: { currency: 'TRY', positions: [], suggestions: [] } },
-    activity: { data: { items: [], nextCursor: null } },
     expenses: { data: [] },
     incomes: { data: [] },
   } as unknown as ReturnType<typeof useLedgerDetailData>;
@@ -66,8 +65,11 @@ describe('Ledger detail information architecture', () => {
 
   it('hides shared-only destinations and group language for PERSONAL Ledger', () => {
     render(<LedgerDetailPage />);
+    expect(screen.getByLabelText('Defter özeti')).toHaveTextContent(
+      'Kişisel alan',
+    );
     expect(
-      screen.getByRole('heading', { name: 'Kişisel özet' }),
+      screen.getByRole('heading', { name: 'Son harcamalar' }),
     ).toBeInTheDocument();
     expect(screen.queryByText('Aktif üyeler')).not.toBeInTheDocument();
     expect(
@@ -89,7 +91,7 @@ describe('Ledger detail information architecture', () => {
       'href',
       '/ledgers/ledger-1?view=members',
     );
-    expect(screen.getByText('Aktif üyeler')).toBeInTheDocument();
+    expect(screen.getByLabelText('Defter özeti')).toHaveTextContent('1 kişi');
     expect(screen.getAllByText('Sahip')).toHaveLength(1);
   });
 
@@ -101,7 +103,7 @@ describe('Ledger detail information architecture', () => {
     view = 'invalid';
     rendered.rerender(<LedgerDetailPage />);
     expect(
-      screen.getByRole('heading', { name: 'Kişisel özet' }),
+      screen.getByRole('heading', { name: 'Son harcamalar' }),
     ).toBeInTheDocument();
   });
 });

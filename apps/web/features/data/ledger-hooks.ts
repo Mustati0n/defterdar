@@ -70,18 +70,8 @@ export function useLedgerDetailData(
     staleTime: 15_000,
     refetchOnWindowFocus: true,
   });
-  const activity = useQuery({
-    queryKey: queryKeys.activityPreview(ledgerId),
-    queryFn: ({ signal }) =>
-      api.ledgers.activity(ledgerId, 12, undefined, undefined, signal),
-    enabled: Boolean(ledgerId && isGeneral),
-  });
   const expenses = useExpenses(ledgerId, undefined, isGeneral);
-  const incomes = useIncomes(
-    ledgerId,
-    undefined,
-    Boolean(isGeneral && ledger.data?.type === 'PERSONAL'),
-  );
+  const incomes = useIncomes(ledgerId, undefined, isGeneral);
 
-  return { ledger, plans, members, balance, activity, expenses, incomes };
+  return { ledger, plans, members, balance, expenses, incomes };
 }

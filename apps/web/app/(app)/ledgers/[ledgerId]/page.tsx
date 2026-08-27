@@ -27,7 +27,6 @@ import {
   LedgerMembersPanel,
   LedgerSettingsPanel,
 } from '@/features/ledgers/ledger-management';
-import { activitySentence } from '@/lib/activity';
 import { ExpenseIndicators } from '@/features/expenses/expense-indicators';
 import { BalanceExperience } from '@/features/financial/balance-experience';
 import { positionState } from '@/features/financial/financial-ux';
@@ -70,7 +69,7 @@ export default function LedgerDetailPage() {
     ['general', 'activity', 'balances', 'analytics', 'members', 'settings'],
     'general',
   ) as LedgerDetailView;
-  const { ledger, plans, members, balance, activity, expenses, incomes } =
+  const { ledger, plans, members, balance, expenses, incomes } =
     useLedgerDetailData(ledgerId, requestedView);
 
   if (ledger.isLoading) return <LoadingState label="Defter açılıyor…" />;
@@ -102,8 +101,8 @@ export default function LedgerDetailPage() {
 
   return (
     <>
-      <Link className="back-link" href="/ledgers">
-        <ArrowLeft /> Defterlere dön
+      <Link className="back-link" href="/workspace?type=ledger">
+        <ArrowLeft /> Defterler &amp; Planlara dön
       </Link>
       <section className="detail-cover detail-cover--ledger">
         <span className="detail-cover__bookmark">
@@ -116,6 +115,31 @@ export default function LedgerDetailPage() {
           </span>
           <h1>{data.name}</h1>
           {data.description ? <p>{data.description}</p> : null}
+          <div className="detail-cover__meta" aria-label="Defter özeti">
+            <span>
+              <UsersRound />
+              {data.type === 'SHARED'
+                ? `${members.data?.length ?? '—'} kişi`
+                : 'Kişisel alan'}
+            </span>
+            <span>
+              <BookOpenText /> {plans.data?.length ?? '—'} aktif plan
+            </span>
+            {data.type === 'SHARED' ? (
+              <Link href={`/ledgers/${ledgerId}?view=balances`}>
+                <CircleDollarSign />
+                {myBalanceState === 'receivable'
+                  ? `${formatMoneyFromMinor(Math.abs(myPosition?.netMinor ?? 0), data.currency)} alacak`
+                  : myBalanceState === 'payable'
+                    ? `${formatMoneyFromMinor(Math.abs(myPosition?.netMinor ?? 0), data.currency)} ödeme`
+                    : 'Hesap kapalı'}
+              </Link>
+            ) : (
+              <span>
+                <CircleDollarSign /> {expenses.data?.length ?? '—'} harcama
+              </span>
+            )}
+          </div>
         </div>
       </section>
       <DetailNavigation
@@ -128,97 +152,6 @@ export default function LedgerDetailPage() {
 
       {activeView === 'general' ? (
         <>
-          <div className="detail-grid">
-            <section className="paper-section">
-              <span className="eyebrow">Defter özeti</span>
-              <h2>
-                {data.type === 'PERSONAL' ? 'Kişisel özet' : 'Ortak hesap'}
-              </h2>
-              <div className="summary-list">
-                {data.type === 'SHARED' ? (
-                  <div>
-                    <UsersRound />
-                    <span>
-                      <small>Aktif üyeler</small>
-                      <strong>{members.data?.length ?? '—'}</strong>
-                    </span>
-                  </div>
-                ) : (
-                  <div>
-                    <ReceiptText />
-                    <span>
-                      <small>Harcamalar</small>
-                      <strong>{expenses.data?.length ?? '—'}</strong>
-                    </span>
-                  </div>
-                )}
-                <div>
-                  <BookOpenText />
-                  <span>
-                    <small>Bağlı planlar</small>
-                    <strong>{plans.data?.length ?? '—'}</strong>
-                  </span>
-                </div>
-                {data.type === 'SHARED' ? (
-                  <Link
-                    className="summary-list__balance"
-                    href={`/ledgers/${ledgerId}?view=balances`}
-                  >
-                    <CircleDollarSign />
-                    <span>
-                      <small>Bakiyen</small>
-                      <strong>
-                        {myBalanceState === 'receivable'
-                          ? `${formatMoneyFromMinor(Math.abs(myPosition?.netMinor ?? 0), data.currency)} alacağın var`
-                          : myBalanceState === 'payable'
-                            ? `${formatMoneyFromMinor(Math.abs(myPosition?.netMinor ?? 0), data.currency)} ödemen var`
-                            : 'Hesaplar kapalı'}
-                      </strong>
-                    </span>
-                    <span>Bakiyeleri gör</span>
-                  </Link>
-                ) : (
-                  <div>
-                    <CircleDollarSign />
-                    <span>
-                      <small>Gelirler</small>
-                      <strong>{incomes.data?.length ?? '—'}</strong>
-                    </span>
-                  </div>
-                )}
-              </div>
-            </section>
-            <section className="lined-section">
-              <div className="section-heading">
-                <div>
-                  <span className="eyebrow">Son kayıtlar</span>
-                  <h2>Yakın hareketler</h2>
-                </div>
-                {activity.data?.items.length ? (
-                  <Link href={`/ledgers/${ledgerId}?view=activity`}>
-                    Daha fazlasını gör
-                  </Link>
-                ) : null}
-              </div>
-              <ol className="compact-activity">
-                {(activity.data?.items ?? []).slice(0, 5).map((item) => (
-                  <li key={item.id}>
-                    <span />
-                    <div>
-                      <strong>{item.actor?.displayName ?? 'Sistem'}</strong>
-                      <p>{activitySentence(item)}</p>
-                    </div>
-                    <time>
-                      {new Date(item.createdAt).toLocaleDateString('tr-TR')}
-                    </time>
-                  </li>
-                ))}
-                {!activity.data?.items.length ? (
-                  <li className="muted-copy">Henüz hareket kaydı yok.</li>
-                ) : null}
-              </ol>
-            </section>
-          </div>
           <section className="paper-section expense-section">
             <div className="section-heading">
               <div>
@@ -302,7 +235,7 @@ export default function LedgerDetailPage() {
                 {!data.archivedAt ? (
                   <Link
                     className="button button--quiet button--small"
-                    href={`/plans?create=1&ledgerId=${ledgerId}`}
+                    href={`/workspace?create=plan&ledgerId=${ledgerId}`}
                   >
                     <Plus /> Plan ekle
                   </Link>
