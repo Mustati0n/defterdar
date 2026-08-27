@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 
 export function PageHeading({
   eyebrow,
@@ -18,24 +18,22 @@ export function PageHeading({
   variant?: 'adaptive' | 'static';
 }) {
   const headerRef = useRef<HTMLElement>(null);
-  const compactRef = useRef(false);
-  const [compact, setCompact] = useState(false);
 
   useEffect(() => {
     if (variant === 'static') return;
     let frame = 0;
     const update = () => {
       frame = 0;
-      const longPage =
-        document.documentElement.scrollHeight > window.innerHeight + 180;
-      const next = !longPage
-        ? false
-        : compactRef.current
-          ? window.scrollY > 64
-          : window.scrollY > 160;
-      if (next === compactRef.current) return;
-      compactRef.current = next;
-      setCompact(next);
+      const reducedMotion =
+        typeof window.matchMedia === 'function' &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const progress = reducedMotion
+        ? 0
+        : Math.min(1, Math.max(0, window.scrollY / 240));
+      headerRef.current?.style.setProperty(
+        '--header-progress',
+        String(progress),
+      );
     };
     const schedule = () => {
       if (!frame) frame = window.requestAnimationFrame(update);
@@ -52,8 +50,8 @@ export function PageHeading({
 
   return (
     <header
-      className={`page-heading page-heading--${variant}${compact ? ' is-compact' : ''}`}
-      data-compact={compact || undefined}
+      className={`page-heading page-heading--${variant}`}
+      data-scroll-linked={variant === 'adaptive' || undefined}
       ref={headerRef}
     >
       <div className="page-heading__copy">

@@ -25,31 +25,14 @@ html[data-density='compact'] .smart-form__side {
 html[data-adaptive-header='off'] .page-heading--adaptive {
   position: relative;
   top: auto;
+  --header-progress: 0 !important;
 }
-html[data-adaptive-header='off'] .page-heading--adaptive.is-compact {
-  display: flex;
-  align-items: end;
-  padding: 0.15rem;
-  border: 0;
-  background: transparent;
-  box-shadow: none;
-  backdrop-filter: none;
+html[data-adaptive-header='off'] .page-heading--adaptive::before,
+html[data-motion='reduced'] .page-heading--adaptive::before {
+  opacity: 0;
 }
-html[data-adaptive-header='off']
-  .page-heading--adaptive.is-compact
-  :is(.eyebrow, .page-heading__copy p) {
-  display: revert;
-}
-html[data-adaptive-header='off'] .page-heading--adaptive.is-compact h1 {
-  margin-bottom: 0.7rem;
-  font-size: clamp(2.2rem, 5vw, 4.6rem);
-  white-space: normal;
-}
-html[data-adaptive-header='off']
-  .page-heading--adaptive.is-compact
-  .page-heading__tools {
-  width: 100%;
-  margin-top: 1.1rem;
+html[data-motion='reduced'] .page-heading--adaptive {
+  --header-progress: 0 !important;
 }
 
 html[data-motion='reduced'] *,
