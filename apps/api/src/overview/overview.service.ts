@@ -22,13 +22,15 @@ export class OverviewService {
       this.plansService.listForUser(userId, false),
     ]);
     const activePlans = plans.filter((plan) => plan.status === 'ACTIVE');
-    const sharedLedgers = ledgers.filter((ledger) => ledger.type === 'SHARED');
+    const collaborativeLedgers = ledgers.filter(
+      (ledger) => (ledger.activeMemberCount ?? 1) > 1,
+    );
     const firstLedger = ledgers[0];
 
     const [ledgerBalances, planBalances, activityResult, pendingRows] =
       await Promise.all([
         Promise.all(
-          sharedLedgers.map(async (ledger) => ({
+          collaborativeLedgers.map(async (ledger) => ({
             ledgerId: ledger.id,
             balance: await this.balancesService.ledger(ledger.id, userId),
           })),

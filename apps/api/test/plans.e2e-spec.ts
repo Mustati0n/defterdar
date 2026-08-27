@@ -76,7 +76,7 @@ describe('Plan lifecycle and participant API', () => {
     ]) {
       users.set(name, await register(name));
     }
-    const personal = await api('owner').post('/ledgers/personal').send({
+    const personal = await api('owner').post('/ledgers').send({
       currency: 'TRY',
       name: 'Kişisel Defterim',
     });

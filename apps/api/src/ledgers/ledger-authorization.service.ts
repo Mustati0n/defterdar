@@ -7,7 +7,6 @@ import {
 import { PrismaService } from '../prisma/prisma.service.js';
 
 export type LedgerRoleName = 'OWNER' | 'ADMIN' | 'MEMBER';
-export type LedgerTypeName = 'PERSONAL' | 'SHARED';
 
 export interface LedgerAccessContext {
   membershipId: string;
@@ -16,7 +15,6 @@ export interface LedgerAccessContext {
     id: string;
     name: string;
     description: string | null;
-    type: LedgerTypeName;
     currency: string;
     ownerId: string;
     createdAt: Date;
@@ -47,7 +45,6 @@ export class LedgerAuthorizationService {
             id: true,
             name: true,
             ownerId: true,
-            type: true,
             updatedAt: true,
           },
         },

@@ -95,12 +95,13 @@ describe('Ledger, membership, invitation, and authorization API', () => {
       users.set(name, await register(name));
     }
 
-    const personal = await api('owner').post('/ledgers/personal').send({
+    const personal = await api('owner').post('/ledgers').send({
       currency: 'try',
       description: 'Yalnız bana ait kayıtlar',
       name: '  Kişisel Defterim  ',
     });
     expect(personal.status).toBe(201);
+    expect(personal.body.isCollaborative).toBe(false);
     identity('owner').personalLedgerId = personal.body.id as string;
 
     const creation = await api('owner').post('/ledgers').send({
@@ -142,25 +143,25 @@ describe('Ledger, membership, invitation, and authorization API', () => {
     }
   });
 
-  describe('PERSONAL ledger and SHARED creation', () => {
-    it('keeps registration ledger-free and creates PERSONAL only by opt-in', async () => {
+  describe('Ledger creation and collaboration derivation', () => {
+    it('keeps registration ledger-free and creates an owner-only ledger', async () => {
       const owner = identity('owner');
       const empty = await api('outsider').get('/ledgers');
       const response = await api('owner').get('/ledgers');
-      const personal = response.body.find(
-        (ledger: { type: string }) => ledger.type === 'PERSONAL',
+      const solo = response.body.find(
+        (ledger: { id: string }) => ledger.id === owner.personalLedgerId,
       );
 
       expect(response.status).toBe(200);
       expect(empty.status).toBe(200);
       expect(empty.body).toEqual([]);
-      expect(personal).toMatchObject({
+      expect(solo).toMatchObject({
         currency: 'TRY',
         id: owner.personalLedgerId,
         name: 'Kişisel Defterim',
         ownerId: owner.id,
         role: 'OWNER',
-        type: 'PERSONAL',
+        isCollaborative: false,
       });
 
       const invariant = await database.query<{
@@ -173,30 +174,37 @@ describe('Ledger, membership, invitation, and authorization API', () => {
          FROM "ledger_e2e"."Ledger" l
          JOIN "ledger_e2e"."LedgerMembership" m
            ON m."ledgerId" = l.id AND m."leftAt" IS NULL AND m.role = 'OWNER'
-         WHERE l."ownerId" = $1 AND l.type = 'PERSONAL'`,
-        [owner.id],
+         WHERE l.id = $1`,
+        [owner.personalLedgerId],
       );
       expect(invariant.rows[0]).toEqual({ ledgers: 1, owners: 1 });
     });
 
-    it('rejects a second explicit PERSONAL ledger', async () => {
-      const response = await api('owner').post('/ledgers/personal').send({
+    it('allows multiple owner-only ledgers for the same user', async () => {
+      const second = await api('owner').post('/ledgers').send({
         currency: 'TRY',
-        name: 'İkinci Kişisel',
+        name: 'İkinci Defterim',
       });
-      expect(response.status).toBe(409);
+      const third = await api('owner').post('/ledgers').send({
+        currency: 'TRY',
+        name: 'Üçüncü Defterim',
+      });
+      expect(second.status).toBe(201);
+      expect(second.body.isCollaborative).toBe(false);
+      expect(third.status).toBe(201);
+      expect(third.body.isCollaborative).toBe(false);
     });
 
-    it('does not let the generic SHARED endpoint select PERSONAL type', async () => {
+    it('rejects an unknown ledger type field on creation', async () => {
       const response = await api('owner').post('/ledgers').send({
         currency: 'TRY',
-        name: 'İkinci Kişisel',
+        name: 'Tür Alanlı',
         type: 'PERSONAL',
       });
       expect(response.status).toBe(400);
     });
 
-    it('blocks invitations, leave, and archive for PERSONAL ledgers', async () => {
+    it('allows invitations, leave, and archive on an owner-only ledger', async () => {
       const personalId = identity('owner').personalLedgerId;
       const invitation = await api('owner')
         .post(`/ledgers/${personalId}/invitations`)
@@ -204,21 +212,32 @@ describe('Ledger, membership, invitation, and authorization API', () => {
       const leave = await api('owner').post(`/ledgers/${personalId}/leave`);
       const archive = await api('owner').post(`/ledgers/${personalId}/archive`);
 
-      expect(invitation.status).toBe(400);
+      expect(invitation.status).toBe(201);
       expect(leave.status).toBe(400);
-      expect(archive.status).toBe(400);
+      expect(archive.status).toBe(201);
+      const unarchive = await api('owner').post(
+        `/ledgers/${personalId}/unarchive`,
+      );
+      expect(unarchive.status).toBe(201);
     });
 
-    it('creates SHARED ledger and OWNER membership atomically', async () => {
+    it('creates a ledger and OWNER membership atomically', async () => {
       expect(sharedCreationBody).toMatchObject({
         currency: 'TRY',
         name: 'Ev Arkadaşlarım',
         ownerId: identity('owner').id,
         role: 'OWNER',
-        type: 'SHARED',
+        isCollaborative: false,
       });
       const owners = await activeOwnerCount(sharedLedgerId);
       expect(owners).toBe(1);
+    });
+
+    it('derives collaboration from active members after invitations', async () => {
+      const response = await api('owner').get(`/ledgers/${sharedLedgerId}`);
+      expect(response.status).toBe(200);
+      expect(response.body.isCollaborative).toBe(true);
+      expect(response.body.activeMemberCount).toBeGreaterThan(1);
     });
   });
 

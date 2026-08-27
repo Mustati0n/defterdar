@@ -42,10 +42,7 @@ export class LedgerMembershipsService {
     actorId: string,
     input: ChangeMemberRoleDto,
   ): Promise<MemberResponseDto> {
-    const context = await this.authorization.requireRole(ledgerId, actorId, [
-      'OWNER',
-    ]);
-    this.requireShared(context.ledger.type);
+    await this.authorization.requireRole(ledgerId, actorId, ['OWNER']);
     const target = await this.findActiveMembership(ledgerId, targetUserId);
     if (target.role === 'OWNER') {
       throw new BadRequestException('OWNER role requires ownership transfer');
@@ -77,10 +74,7 @@ export class LedgerMembershipsService {
     targetUserId: string,
     actorId: string,
   ): Promise<void> {
-    const context = await this.authorization.requireRole(ledgerId, actorId, [
-      'OWNER',
-    ]);
-    this.requireShared(context.ledger.type);
+    await this.authorization.requireRole(ledgerId, actorId, ['OWNER']);
     const target = await this.findActiveMembership(ledgerId, targetUserId);
     if (target.role === 'OWNER') {
       throw new BadRequestException('OWNER cannot be removed');
@@ -107,7 +101,6 @@ export class LedgerMembershipsService {
     if (context.ledger.archivedAt) {
       throw new ConflictException('Ledger is archived');
     }
-    this.requireShared(context.ledger.type);
     if (context.role === 'OWNER') {
       throw new BadRequestException('Transfer ownership before leaving');
     }
@@ -135,7 +128,6 @@ export class LedgerMembershipsService {
     const context = await this.authorization.requireRole(ledgerId, actorId, [
       'OWNER',
     ]);
-    this.requireShared(context.ledger.type);
     if (input.newOwnerUserId === actorId) {
       throw new BadRequestException('New owner must be another member');
     }
@@ -160,7 +152,6 @@ export class LedgerMembershipsService {
               archivedAt: null,
               id: ledgerId,
               ownerId: actorId,
-              type: 'SHARED',
             },
             data: { ownerId: input.newOwnerUserId },
           });
@@ -210,14 +201,6 @@ export class LedgerMembershipsService {
       throw new NotFoundException('Member not found');
     }
     return membership;
-  }
-
-  private requireShared(type: 'PERSONAL' | 'SHARED'): void {
-    if (type !== 'SHARED') {
-      throw new BadRequestException(
-        'Operation is not allowed on PERSONAL ledger',
-      );
-    }
   }
 
   private hasPrismaCode(error: unknown, code: string): boolean {

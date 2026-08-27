@@ -1,6 +1,5 @@
 import {
   BadRequestException,
-  ConflictException,
   Injectable,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -13,6 +12,15 @@ import {
   type LedgerRoleName,
 } from './ledger-authorization.service.js';
 import { ActivityLogService } from '../activity/activity-log.service.js';
+
+const MEMBER_COUNT_SELECT = {
+  _count: {
+    select: {
+      memberships: { where: { leftAt: null } },
+      plans: { where: { archivedAt: null, status: 'ACTIVE' } },
+    },
+  },
+} as const;
 
 @Injectable()
 export class LedgersService {
@@ -57,17 +65,27 @@ export class LedgersService {
         role,
         activeMemberCount: _count.memberships,
         activePlanCount: _count.plans,
+        isCollaborative: _count.memberships > 1,
       };
     });
   }
 
   async get(ledgerId: string, userId: string): Promise<LedgerResponseDto> {
-    return this.toResponse(
-      await this.authorization.requireMember(ledgerId, userId),
-    );
+    const context = await this.authorization.requireMember(ledgerId, userId);
+    const counts = await this.prisma.ledger.findUniqueOrThrow({
+      where: { id: ledgerId },
+      include: MEMBER_COUNT_SELECT,
+    });
+    return {
+      ...context.ledger,
+      role: context.role,
+      activeMemberCount: counts._count.memberships,
+      activePlanCount: counts._count.plans,
+      isCollaborative: counts._count.memberships > 1,
+    };
   }
 
-  async createShared(
+  async create(
     userId: string,
     input: CreateLedgerDto,
   ): Promise<LedgerResponseDto> {
@@ -78,8 +96,8 @@ export class LedgersService {
           description: input.description ?? null,
           name: input.name,
           ownerId: userId,
-          type: 'SHARED',
         },
+        select: { id: true },
       });
       await transaction.ledgerMembership.create({
         data: { ledgerId: created.id, role: 'OWNER', userId },
@@ -94,51 +112,14 @@ export class LedgersService {
         },
         transaction,
       );
-      return created;
+      const full = await transaction.ledger.findUniqueOrThrow({
+        where: { id: created.id },
+        include: MEMBER_COUNT_SELECT,
+      });
+      return full;
     });
 
-    return { ...ledger, role: 'OWNER' };
-  }
-
-  async createPersonal(
-    userId: string,
-    input: CreateLedgerDto,
-  ): Promise<LedgerResponseDto> {
-    try {
-      const ledger = await this.prisma.$transaction(async (transaction) => {
-        const created = await transaction.ledger.create({
-          data: {
-            currency: input.currency,
-            description: input.description ?? null,
-            name: input.name,
-            ownerId: userId,
-            type: 'PERSONAL',
-          },
-        });
-        await transaction.ledgerMembership.create({
-          data: { ledgerId: created.id, role: 'OWNER', userId },
-        });
-        await this.activity.record(
-          {
-            ledgerId: created.id,
-            actorUserId: userId,
-            entityType: 'Ledger',
-            entityId: created.id,
-            action: 'ledger.created',
-            metadata: { type: 'PERSONAL' },
-          },
-          transaction,
-        );
-        return created;
-      });
-
-      return { ...ledger, role: 'OWNER' };
-    } catch (error) {
-      if ((error as { code?: unknown }).code === 'P2002') {
-        throw new ConflictException('A PERSONAL ledger already exists');
-      }
-      throw error;
-    }
+    return this.mapCounts(ledger, 'OWNER');
   }
 
   async update(
@@ -163,6 +144,7 @@ export class LedgersService {
             ? { description: input.description }
             : {}),
         },
+        include: MEMBER_COUNT_SELECT,
       });
       await this.activity.record(
         {
@@ -176,7 +158,7 @@ export class LedgersService {
       );
       return updated;
     });
-    return { ...ledger, role: context.role };
+    return this.mapCounts(ledger, context.role);
   }
 
   async archive(ledgerId: string, userId: string): Promise<LedgerResponseDto> {
@@ -186,9 +168,6 @@ export class LedgersService {
       ['OWNER'],
       { allowArchived: true },
     );
-    if (context.ledger.type === 'PERSONAL') {
-      throw new BadRequestException('PERSONAL ledger cannot be archived');
-    }
     if (context.ledger.archivedAt) {
       return this.toResponse(context);
     }
@@ -197,6 +176,7 @@ export class LedgersService {
       const updated = await tx.ledger.update({
         where: { id: ledgerId },
         data: { archivedAt: new Date() },
+        include: MEMBER_COUNT_SELECT,
       });
       await this.activity.record(
         {
@@ -210,7 +190,7 @@ export class LedgersService {
       );
       return updated;
     });
-    return { ...ledger, role: context.role };
+    return this.mapCounts(ledger, context.role);
   }
 
   async unarchive(
@@ -223,9 +203,6 @@ export class LedgersService {
       ['OWNER'],
       { allowArchived: true },
     );
-    if (context.ledger.type === 'PERSONAL') {
-      throw new BadRequestException('PERSONAL ledger cannot be unarchived');
-    }
     if (!context.ledger.archivedAt) {
       return this.toResponse(context);
     }
@@ -234,6 +211,7 @@ export class LedgersService {
       const updated = await tx.ledger.update({
         where: { id: ledgerId },
         data: { archivedAt: null },
+        include: MEMBER_COUNT_SELECT,
       });
       await this.activity.record(
         {
@@ -247,10 +225,29 @@ export class LedgersService {
       );
       return updated;
     });
-    return { ...ledger, role: context.role };
+    return this.mapCounts(ledger, context.role);
   }
 
   private toResponse(context: LedgerAccessContext): LedgerResponseDto {
     return { ...context.ledger, role: context.role as LedgerRoleName };
+  }
+
+  private mapCounts(
+    ledger: {
+      _count: {
+        memberships: number;
+        plans: number;
+      };
+    } & Record<string, unknown>,
+    role: LedgerRoleName,
+  ): LedgerResponseDto {
+    const { _count, ...data } = ledger;
+    return {
+      ...(data as Record<string, unknown>),
+      role,
+      activeMemberCount: _count.memberships,
+      activePlanCount: _count.plans,
+      isCollaborative: _count.memberships > 1,
+    } as LedgerResponseDto;
   }
 }

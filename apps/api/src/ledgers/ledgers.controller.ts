@@ -51,25 +51,13 @@ export class LedgersController {
   }
 
   @Post()
-  @ApiOperation({ summary: 'Create a SHARED ledger and OWNER membership' })
+  @ApiOperation({ summary: 'Create a ledger and OWNER membership' })
   @ApiCreatedResponse({ type: LedgerResponseDto })
   create(
     @CurrentUser() user: SafeUser,
     @Body() input: CreateLedgerDto,
   ): Promise<LedgerResponseDto> {
-    return this.ledgersService.createShared(user.id, input);
-  }
-
-  @Post('personal')
-  @ApiOperation({
-    summary: "Create the current user's optional PERSONAL ledger",
-  })
-  @ApiCreatedResponse({ type: LedgerResponseDto })
-  createPersonal(
-    @CurrentUser() user: SafeUser,
-    @Body() input: CreateLedgerDto,
-  ): Promise<LedgerResponseDto> {
-    return this.ledgersService.createPersonal(user.id, input);
+    return this.ledgersService.create(user.id, input);
   }
 
   @Get(':ledgerId')
@@ -94,7 +82,7 @@ export class LedgersController {
   }
 
   @Post(':ledgerId/archive')
-  @ApiOperation({ summary: 'Archive a SHARED ledger as OWNER' })
+  @ApiOperation({ summary: 'Archive a ledger as OWNER' })
   @ApiOkResponse({ type: LedgerResponseDto })
   archive(
     @Param('ledgerId', new ParseUUIDPipe({ version: '4' })) ledgerId: string,
@@ -104,7 +92,7 @@ export class LedgersController {
   }
 
   @Post(':ledgerId/unarchive')
-  @ApiOperation({ summary: 'Unarchive a SHARED ledger as OWNER' })
+  @ApiOperation({ summary: 'Unarchive a ledger as OWNER' })
   @ApiOkResponse({ type: LedgerResponseDto })
   unarchive(
     @Param('ledgerId', new ParseUUIDPipe({ version: '4' })) ledgerId: string,
@@ -114,7 +102,7 @@ export class LedgersController {
   }
 
   @Post(':ledgerId/leave')
-  @ApiOperation({ summary: 'Leave a SHARED ledger as ADMIN or MEMBER' })
+  @ApiOperation({ summary: 'Leave a ledger as ADMIN or MEMBER' })
   @ApiOkResponse({ description: 'Membership marked as left' })
   async leave(
     @Param('ledgerId', new ParseUUIDPipe({ version: '4' })) ledgerId: string,
@@ -125,7 +113,7 @@ export class LedgersController {
   }
 
   @Post(':ledgerId/transfer-ownership')
-  @ApiOperation({ summary: 'Transfer SHARED ledger ownership atomically' })
+  @ApiOperation({ summary: 'Transfer ledger ownership atomically' })
   @ApiOkResponse({ type: OwnershipTransferResponseDto })
   transferOwnership(
     @Param('ledgerId', new ParseUUIDPipe({ version: '4' })) ledgerId: string,

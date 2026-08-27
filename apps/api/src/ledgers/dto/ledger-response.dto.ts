@@ -10,9 +10,6 @@ export class LedgerResponseDto {
   @ApiPropertyOptional({ nullable: true })
   description!: string | null;
 
-  @ApiProperty({ enum: ['PERSONAL', 'SHARED'] })
-  type!: 'PERSONAL' | 'SHARED';
-
   @ApiProperty({ example: 'TRY' })
   currency!: string;
 
@@ -36,6 +33,12 @@ export class LedgerResponseDto {
 
   @ApiPropertyOptional({ minimum: 0 })
   activePlanCount?: number;
+
+  @ApiPropertyOptional({
+    description:
+      'Derived from active membership; true when the ledger has members beyond the owner.',
+  })
+  isCollaborative?: boolean;
 }
 
 export class OwnershipTransferResponseDto {
