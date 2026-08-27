@@ -1003,10 +1003,11 @@ describe('Plan lifecycle and participant API', () => {
       });
     expect(partial.status).toBe(201);
     expect(partial.body.currency).toBe('TRY');
+    expect(partial.body.status).toBe('PENDING');
     const afterPartial = await api('owner').get(
       `/ledgers/${ledgerId}/balances`,
     );
-    expect(afterPartial.body.suggestions[0].amountMinor).toBe(6_000);
+    expect(afterPartial.body.suggestions[0].amountMinor).toBe(10_000);
     expect(
       (
         await api('admin')
@@ -1019,6 +1020,48 @@ describe('Plan lifecycle and participant API', () => {
           })
       ).status,
     ).toBe(409);
+    expect(
+      (await api('admin').post(`/settlements/${partial.body.id}/confirm`))
+        .status,
+    ).toBe(403);
+    const confirmedPartial = await api('owner').post(
+      `/settlements/${partial.body.id}/confirm`,
+    );
+    expect(confirmedPartial.status).toBe(201);
+    expect(confirmedPartial.body.status).toBe('CONFIRMED');
+    expect(
+      (await api('owner').get(`/ledgers/${ledgerId}/balances`)).body
+        .suggestions[0].amountMinor,
+    ).toBe(6_000);
+
+    const rejected = await api('admin')
+      .post(`/ledgers/${ledgerId}/settlements`)
+      .send({
+        fromUserId: identity('admin').id,
+        toUserId: identity('owner').id,
+        amountMinor: 1_000,
+        settledAt: '2026-08-23T14:30:00.000Z',
+      });
+    expect(
+      (await api('owner').post(`/settlements/${rejected.body.id}/reject`)).body
+        .status,
+    ).toBe('REJECTED');
+    const cancelled = await api('admin')
+      .post(`/ledgers/${ledgerId}/settlements`)
+      .send({
+        fromUserId: identity('admin').id,
+        toUserId: identity('owner').id,
+        amountMinor: 1_000,
+        settledAt: '2026-08-23T14:45:00.000Z',
+      });
+    expect(
+      (await api('admin').post(`/settlements/${cancelled.body.id}/cancel`)).body
+        .status,
+    ).toBe('CANCELLED');
+    expect(
+      (await api('owner').get(`/ledgers/${ledgerId}/balances`)).body
+        .suggestions[0].amountMinor,
+    ).toBe(6_000);
     const full = await api('owner')
       .post(`/ledgers/${ledgerId}/settlements`)
       .send({
@@ -1028,6 +1071,7 @@ describe('Plan lifecycle and participant API', () => {
         settledAt: '2026-08-23T15:00:00.000Z',
       });
     expect(full.status).toBe(201);
+    expect(full.body.status).toBe('CONFIRMED');
     expect(
       (await api('owner').get(`/ledgers/${ledgerId}/balances`)).body.positions,
     ).toEqual([]);
@@ -1077,10 +1121,62 @@ describe('Plan lifecycle and participant API', () => {
       api('admin').post(`/ledgers/${ledgerId}/settlements`).send(payload),
     ]);
     expect(results.map((result) => result.status).sort()).toEqual([201, 409]);
+    const pending = results.find((result) => result.status === 201)!;
+    const confirmations = await Promise.all([
+      api('owner').post(`/settlements/${pending.body.id}/confirm`),
+      api('owner').post(`/settlements/${pending.body.id}/confirm`),
+    ]);
+    expect(confirmations.map((result) => result.status)).toEqual([201, 201]);
+    expect(
+      (await api('owner').get(`/ledgers/${ledgerId}/balances`)).body
+        .suggestions[0].amountMinor,
+    ).toBe(2_000);
     const list = await api('owner').get(`/ledgers/${ledgerId}/settlements`);
     expect(
-      list.body.filter((item: { voidedAt: string | null }) => !item.voidedAt),
+      list.body.filter(
+        (item: { status: string }) => item.status === 'CONFIRMED',
+      ),
     ).toHaveLength(1);
+  });
+
+  it('confirms a receiver-recorded payment immediately without a pending step', async () => {
+    const ledgerId = await createLedger('owner', 'Direct Confirm Defteri');
+    await inviteTo(ledgerId, 'admin');
+    expect(
+      (
+        await api('owner')
+          .post(`/ledgers/${ledgerId}/expenses`)
+          .send({
+            title: 'Direct payment debt',
+            amountMinor: 4_000,
+            payerUserId: identity('owner').id,
+            expenseDate: '2026-08-23T13:00:00.000Z',
+            isGift: false,
+            split: {
+              method: 'EXACT',
+              entries: [{ userId: identity('admin').id, amountMinor: 4_000 }],
+            },
+          })
+      ).status,
+    ).toBe(201);
+
+    const direct = await api('owner')
+      .post(`/ledgers/${ledgerId}/settlements`)
+      .send({
+        fromUserId: identity('admin').id,
+        toUserId: identity('owner').id,
+        amountMinor: 4_000,
+        settledAt: '2026-08-23T14:00:00.000Z',
+      });
+    expect(direct.status).toBe(201);
+    expect(direct.body).toMatchObject({
+      status: 'CONFIRMED',
+      confirmedById: identity('owner').id,
+    });
+    expect(direct.body.confirmedAt).not.toBeNull();
+    expect(
+      (await api('owner').get(`/ledgers/${ledgerId}/balances`)).body.positions,
+    ).toEqual([]);
   });
 
   it('allows scoped settlements on completed plans but rejects archived plans', async () => {
@@ -1129,6 +1225,11 @@ describe('Plan lifecycle and participant API', () => {
         settledAt: '2026-08-23T15:00:00.000Z',
       });
     expect(settled.status).toBe(201);
+    expect(settled.body.status).toBe('PENDING');
+    expect(
+      (await api('owner').post(`/settlements/${settled.body.id}/confirm`))
+        .status,
+    ).toBe(201);
     expect(
       (await api('owner').get(`/plans/${planId}/balances`)).body.positions,
     ).toEqual([]);
@@ -1864,17 +1965,21 @@ describe('Plan lifecycle and participant API', () => {
     expect(
       (await api('owner').post(`/incomes/${voidedIncome.body.id}/void`)).status,
     ).toBe(201);
+    const analyticsPayment = await api('admin')
+      .post(`/ledgers/${ledgerId}/settlements`)
+      .send({
+        planId,
+        fromUserId: identity('admin').id,
+        toUserId: identity('owner').id,
+        amountMinor: 1_000,
+        settledAt: '2026-01-30T10:00:00.000Z',
+      });
+    expect(analyticsPayment.status).toBe(201);
     expect(
       (
-        await api('admin')
-          .post(`/ledgers/${ledgerId}/settlements`)
-          .send({
-            planId,
-            fromUserId: identity('admin').id,
-            toUserId: identity('owner').id,
-            amountMinor: 1_000,
-            settledAt: '2026-01-30T10:00:00.000Z',
-          })
+        await api('owner').post(
+          `/settlements/${analyticsPayment.body.id}/confirm`,
+        )
       ).status,
     ).toBe(201);
 

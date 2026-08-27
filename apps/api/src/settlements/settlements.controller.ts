@@ -112,4 +112,34 @@ export class SettlementsController {
   ) {
     return this.service.void(id, user.id);
   }
+
+  @Post('settlements/:settlementId/confirm')
+  @ApiOperation({ summary: 'Confirm receipt of a pending payment' })
+  @ApiOkResponse({ type: SettlementResponseDto })
+  confirm(
+    @Param('settlementId', new ParseUUIDPipe({ version: '4' })) id: string,
+    @CurrentUser() user: SafeUser,
+  ) {
+    return this.service.confirm(id, user.id);
+  }
+
+  @Post('settlements/:settlementId/reject')
+  @ApiOperation({ summary: 'Reject a pending payment claim' })
+  @ApiOkResponse({ type: SettlementResponseDto })
+  reject(
+    @Param('settlementId', new ParseUUIDPipe({ version: '4' })) id: string,
+    @CurrentUser() user: SafeUser,
+  ) {
+    return this.service.reject(id, user.id);
+  }
+
+  @Post('settlements/:settlementId/cancel')
+  @ApiOperation({ summary: 'Cancel an initiated pending payment' })
+  @ApiOkResponse({ type: SettlementResponseDto })
+  cancel(
+    @Param('settlementId', new ParseUUIDPipe({ version: '4' })) id: string,
+    @CurrentUser() user: SafeUser,
+  ) {
+    return this.service.cancel(id, user.id);
+  }
 }

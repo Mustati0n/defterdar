@@ -44,13 +44,14 @@ export class FinancialProjectionService {
       client.settlement.findMany({
         where: {
           ledgerId,
+          status: 'CONFIRMED',
+          voidedAt: null,
           ...(options.planId ? { planId: options.planId } : {}),
         },
         select: {
           fromUserId: true,
           toUserId: true,
           amountMinor: true,
-          voidedAt: true,
         },
       }),
     ]);
@@ -64,7 +65,7 @@ export class FinancialProjectionService {
         fromUserId: settlement.fromUserId,
         toUserId: settlement.toUserId,
         amountMinor: settlement.amountMinor,
-        voided: settlement.voidedAt !== null,
+        voided: false,
       })),
     );
   }

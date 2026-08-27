@@ -106,8 +106,22 @@ export class SettlementsService {
       if (from >= 0n) throw new ConflictException('fromUser is not a debtor');
       if (to <= 0n) throw new ConflictException('toUser is not a creditor');
       const maximum = -from < to ? -from : to;
-      if (amount > maximum)
+      const reserved = await tx.settlement.aggregate({
+        where: {
+          ledgerId,
+          planId,
+          fromUserId: dto.fromUserId,
+          toUserId: dto.toUserId,
+          status: 'PENDING',
+          voidedAt: null,
+        },
+        _sum: { amountMinor: true },
+      });
+      const available = maximum - (reserved._sum.amountMinor ?? 0n);
+      if (amount > available)
         throw new ConflictException('Settlement exceeds the current balance');
+      const creditorConfirmed = actorId === dto.toUserId;
+      const now = new Date();
       const created = await tx.settlement.create({
         data: {
           ledgerId,
@@ -119,6 +133,9 @@ export class SettlementsService {
           note: dto.note?.trim() || null,
           settledAt: dto.settledAt,
           createdById: actorId,
+          status: creditorConfirmed ? 'CONFIRMED' : 'PENDING',
+          confirmedById: creditorConfirmed ? actorId : null,
+          confirmedAt: creditorConfirmed ? now : null,
         },
         select: { id: true },
       });
@@ -129,7 +146,15 @@ export class SettlementsService {
           actorUserId: actorId,
           entityType: 'Settlement',
           entityId: created.id,
-          action: 'settlement.created',
+          action: creditorConfirmed
+            ? 'payment.confirmed'
+            : 'payment.marked_paid',
+          metadata: {
+            amountMinor: amount.toString(),
+            currency,
+            fromUserId: dto.fromUserId,
+            toUserId: dto.toUserId,
+          },
         },
         tx,
       );
@@ -172,11 +197,163 @@ export class SettlementsService {
       include: {
         fromUser: { select: { id: true, displayName: true } },
         toUser: { select: { id: true, displayName: true } },
+        confirmedBy: { select: { id: true, displayName: true } },
+        rejectedBy: { select: { id: true, displayName: true } },
       },
     });
     if (!settlement) throw new NotFoundException('Settlement not found');
     await this.authorizeScope(settlement.ledgerId, settlement.planId, actorId);
     return { ...settlement, amountMinor: settlement.amountMinor.toString() };
+  }
+
+  async confirm(id: string, actorId: string) {
+    const scope = await this.prisma.settlement.findUnique({
+      where: { id },
+      select: { ledgerId: true, planId: true },
+    });
+    if (!scope) throw new NotFoundException('Settlement not found');
+    await this.authorizeScope(scope.ledgerId, scope.planId, actorId);
+
+    await this.serializable(async (tx) => {
+      const settlement = await tx.settlement.findUnique({ where: { id } });
+      if (!settlement) throw new NotFoundException('Settlement not found');
+      if (settlement.status === 'CONFIRMED') return;
+      if (settlement.status !== 'PENDING') {
+        throw new ConflictException('Payment is no longer pending');
+      }
+      if (actorId !== settlement.toUserId) {
+        throw new ForbiddenException(
+          'Only the payment recipient can confirm receipt',
+        );
+      }
+
+      const positions = await this.projection.positions(settlement.ledgerId, {
+        planId: settlement.planId ?? undefined,
+        client: tx,
+      });
+      const from =
+        positions.find((item) => item.userId === settlement.fromUserId)
+          ?.netMinor ?? 0n;
+      const to =
+        positions.find((item) => item.userId === settlement.toUserId)
+          ?.netMinor ?? 0n;
+      const maximum = from < 0n && to > 0n ? (-from < to ? -from : to) : 0n;
+      if (settlement.amountMinor > maximum) {
+        throw new ConflictException(
+          'Payment exceeds the remaining confirmed balance',
+        );
+      }
+
+      const updated = await tx.settlement.updateMany({
+        where: { id, status: 'PENDING', voidedAt: null },
+        data: {
+          status: 'CONFIRMED',
+          confirmedById: actorId,
+          confirmedAt: new Date(),
+        },
+      });
+      if (updated.count !== 1) {
+        throw new ConflictException('Payment is no longer pending');
+      }
+      await this.activity.record(
+        {
+          ledgerId: settlement.ledgerId,
+          planId: settlement.planId,
+          actorUserId: actorId,
+          entityType: 'Settlement',
+          entityId: id,
+          action: 'payment.confirmed',
+          metadata: {
+            amountMinor: settlement.amountMinor.toString(),
+            currency: settlement.currency,
+            fromUserId: settlement.fromUserId,
+            toUserId: settlement.toUserId,
+          },
+        },
+        tx,
+      );
+    });
+    return this.get(id, actorId);
+  }
+
+  async reject(id: string, actorId: string) {
+    const settlement = await this.prisma.settlement.findUnique({
+      where: { id },
+    });
+    if (!settlement) throw new NotFoundException('Settlement not found');
+    await this.authorizeScope(settlement.ledgerId, settlement.planId, actorId);
+    if (actorId !== settlement.toUserId) {
+      throw new ForbiddenException(
+        'Only the payment recipient can reject receipt',
+      );
+    }
+    if (settlement.status === 'REJECTED') return this.get(id, actorId);
+    if (settlement.status !== 'PENDING') {
+      throw new ConflictException('Payment is no longer pending');
+    }
+    await this.prisma.$transaction(async (tx) => {
+      const updated = await tx.settlement.updateMany({
+        where: { id, status: 'PENDING', voidedAt: null },
+        data: {
+          status: 'REJECTED',
+          rejectedById: actorId,
+          rejectedAt: new Date(),
+        },
+      });
+      if (updated.count !== 1) {
+        throw new ConflictException('Payment is no longer pending');
+      }
+      await this.activity.record(
+        {
+          ledgerId: settlement.ledgerId,
+          planId: settlement.planId,
+          actorUserId: actorId,
+          entityType: 'Settlement',
+          entityId: id,
+          action: 'payment.rejected',
+        },
+        tx,
+      );
+    });
+    return this.get(id, actorId);
+  }
+
+  async cancel(id: string, actorId: string) {
+    const settlement = await this.prisma.settlement.findUnique({
+      where: { id },
+    });
+    if (!settlement) throw new NotFoundException('Settlement not found');
+    await this.authorizeScope(settlement.ledgerId, settlement.planId, actorId);
+    if (actorId !== settlement.createdById) {
+      throw new ForbiddenException(
+        'Only the payment initiator can cancel a pending payment',
+      );
+    }
+    if (settlement.status === 'CANCELLED') return this.get(id, actorId);
+    if (settlement.status !== 'PENDING') {
+      throw new ConflictException('Payment is no longer pending');
+    }
+    await this.prisma.$transaction(async (tx) => {
+      const updated = await tx.settlement.updateMany({
+        where: { id, status: 'PENDING', voidedAt: null },
+        data: { status: 'CANCELLED', cancelledAt: new Date() },
+      });
+      if (updated.count !== 1) {
+        throw new ConflictException('Payment is no longer pending');
+      }
+      await this.activity.record(
+        {
+          ledgerId: settlement.ledgerId,
+          planId: settlement.planId,
+          actorUserId: actorId,
+          entityType: 'Settlement',
+          entityId: id,
+          action: 'payment.cancelled',
+        },
+        tx,
+      );
+    });
+    return this.get(id, actorId);
   }
 
   async void(id: string, actorId: string) {
@@ -187,6 +364,7 @@ export class SettlementsService {
         ledgerId: true,
         planId: true,
         createdById: true,
+        status: true,
         voidedAt: true,
       },
     });
@@ -203,11 +381,14 @@ export class SettlementsService {
       settlement.createdById !== actorId
     )
       throw new ForbiddenException('Insufficient settlement permissions');
+    if (settlement.status !== 'CONFIRMED' && settlement.status !== 'VOID') {
+      throw new ConflictException('Only confirmed payments can be voided');
+    }
     if (!settlement.voidedAt)
       await this.prisma.$transaction(async (tx) => {
         await tx.settlement.update({
           where: { id },
-          data: { voidedAt: new Date() },
+          data: { status: 'VOID', voidedAt: new Date() },
         });
         await this.activity.record(
           {
@@ -216,7 +397,7 @@ export class SettlementsService {
             actorUserId: actorId,
             entityType: 'Settlement',
             entityId: id,
-            action: 'settlement.voided',
+            action: 'payment.voided',
           },
           tx,
         );

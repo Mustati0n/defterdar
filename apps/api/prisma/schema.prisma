@@ -47,6 +47,14 @@ enum AttachmentStatus {
   READY
 }
 
+enum SettlementStatus {
+  PENDING
+  CONFIRMED
+  REJECTED
+  CANCELLED
+  VOID
+}
+
 model User {
   id                         String               @id @default(uuid()) @db.Uuid
   email                      String               @unique
@@ -64,6 +72,8 @@ model User {
   settlementsFrom            Settlement[]         @relation("SettlementFrom")
   settlementsTo              Settlement[]         @relation("SettlementTo")
   createdSettlements         Settlement[]         @relation("SettlementCreator")
+  confirmedSettlements       Settlement[]         @relation("SettlementConfirmer")
+  rejectedSettlements        Settlement[]         @relation("SettlementRejector")
   createdExpenseSplitOffsets ExpenseSplitOffset[] @relation("OffsetCreator")
   createdCategories          Category[]           @relation("CategoryCreator")
   createdIncomes             Income[]             @relation("IncomeCreator")
@@ -325,28 +335,40 @@ model ExpenseSplit {
 }
 
 model Settlement {
-  id          String    @id @default(uuid()) @db.Uuid
-  ledgerId    String?   @db.Uuid
-  planId      String?   @db.Uuid
-  fromUserId  String    @db.Uuid
-  toUserId    String    @db.Uuid
-  amountMinor BigInt
-  currency    String    @db.VarChar(3)
-  note        String?
-  settledAt   DateTime  @db.Timestamptz(3)
-  createdById String    @db.Uuid
-  createdAt   DateTime  @default(now()) @db.Timestamptz(3)
-  voidedAt    DateTime? @db.Timestamptz(3)
-  ledger      Ledger?   @relation(fields: [ledgerId], references: [id], onDelete: Restrict)
-  plan        Plan?     @relation(fields: [planId], references: [id], onDelete: Restrict)
-  fromUser    User      @relation("SettlementFrom", fields: [fromUserId], references: [id], onDelete: Restrict)
-  toUser      User      @relation("SettlementTo", fields: [toUserId], references: [id], onDelete: Restrict)
-  createdBy   User      @relation("SettlementCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  id            String           @id @default(uuid()) @db.Uuid
+  ledgerId      String?          @db.Uuid
+  planId        String?          @db.Uuid
+  fromUserId    String           @db.Uuid
+  toUserId      String           @db.Uuid
+  amountMinor   BigInt
+  currency      String           @db.VarChar(3)
+  note          String?
+  settledAt     DateTime         @db.Timestamptz(3)
+  createdById   String           @db.Uuid
+  createdAt     DateTime         @default(now()) @db.Timestamptz(3)
+  status        SettlementStatus @default(CONFIRMED)
+  confirmedById String?          @db.Uuid
+  confirmedAt   DateTime?        @db.Timestamptz(3)
+  rejectedById  String?          @db.Uuid
+  rejectedAt    DateTime?        @db.Timestamptz(3)
+  cancelledAt   DateTime?        @db.Timestamptz(3)
+  voidedAt      DateTime?        @db.Timestamptz(3)
+  ledger        Ledger?          @relation(fields: [ledgerId], references: [id], onDelete: Restrict)
+  plan          Plan?            @relation(fields: [planId], references: [id], onDelete: Restrict)
+  fromUser      User             @relation("SettlementFrom", fields: [fromUserId], references: [id], onDelete: Restrict)
+  toUser        User             @relation("SettlementTo", fields: [toUserId], references: [id], onDelete: Restrict)
+  createdBy     User             @relation("SettlementCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  confirmedBy   User?            @relation("SettlementConfirmer", fields: [confirmedById], references: [id], onDelete: Restrict)
+  rejectedBy    User?            @relation("SettlementRejector", fields: [rejectedById], references: [id], onDelete: Restrict)
 
   @@index([ledgerId])
   @@index([planId])
   @@index([fromUserId])
   @@index([toUserId])
+  @@index([confirmedById])
+  @@index([rejectedById])
+  @@index([ledgerId, status])
+  @@index([planId, status])
   @@index([ledgerId, settledAt])
 }
 
