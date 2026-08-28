@@ -46,6 +46,7 @@ describe('PageHeading', () => {
       />,
     );
     const heading = screen.getByRole('banner');
+    expect(heading).toHaveClass('page-heading--with-action');
     expect(heading).toHaveStyle({ '--header-progress': '0' });
     Object.defineProperty(window, 'scrollY', {
       configurable: true,
@@ -71,6 +72,24 @@ describe('PageHeading', () => {
     });
     act(() => window.dispatchEvent(new Event('scroll')));
     expect(heading).toHaveStyle({ '--header-progress': '0.25' });
+  });
+
+  it('marks tool-bearing headers so their grid can reserve a separate track', () => {
+    render(
+      <PageHeading
+        eyebrow="Rakamlar"
+        title="İstatistikler"
+        description="Açıklama"
+        tools={
+          <select aria-label="Analiz alanı">
+            <option>Ev</option>
+          </select>
+        }
+      />,
+    );
+
+    expect(screen.getByRole('banner')).toHaveClass('page-heading--with-tools');
+    expect(screen.getByLabelText('Analiz alanı')).toBeVisible();
   });
 
   it('keeps a static short-page header stable', () => {

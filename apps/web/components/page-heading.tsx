@@ -54,7 +54,7 @@ export function PageHeading({
 
   return (
     <header
-      className={`page-heading page-heading--${variant}`}
+      className={`page-heading page-heading--${variant}${action ? ' page-heading--with-action' : ''}${tools ? ' page-heading--with-tools' : ''}`}
       data-scroll-linked={variant === 'adaptive' || undefined}
       ref={headerRef}
     >
