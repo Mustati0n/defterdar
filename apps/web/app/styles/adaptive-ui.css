@@ -301,7 +301,7 @@
   }
 }
 
-@media (max-width: 1100px) and (min-width: 761px) {
+@media (max-width: 820px) and (min-width: 761px) {
   .page-heading--adaptive[data-compact-controls].page-heading--with-action {
     grid-template-columns: minmax(0, 1fr) auto;
     grid-template-areas:
