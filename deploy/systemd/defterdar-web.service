@@ -1,0 +1,25 @@
+[Unit]
+Description=Defterdar Next.js web
+After=network-online.target defterdar-api.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=defterdar
+Group=defterdar
+WorkingDirectory=/srv/defterdar
+EnvironmentFile=/srv/defterdar/.env
+EnvironmentFile=/srv/defterdar/apps/web/.env.local
+Environment=NODE_ENV=production
+Environment=PATH=/usr/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/sbin:/bin
+ExecStart=/usr/bin/pnpm start:web
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=read-only
+ProtectSystem=full
+
+[Install]
+WantedBy=multi-user.target

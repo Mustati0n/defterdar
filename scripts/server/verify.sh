@@ -12,8 +12,8 @@ fail() {
 
 # shellcheck source=profile.sh
 source "$SCRIPT_DIR/profile.sh"
-select_profile "${1:-}"
-require_profile_environment
+select_environment "$@"
+require_environment
 
 API_URL="${DEFTERDAR_API_URL:-http://127.0.0.1:$(read_env_value "$ENV_FILE" API_PORT)}"
 WEB_URL="${DEFTERDAR_WEB_URL:-http://127.0.0.1:$(read_env_value "$ENV_FILE" PORT)}"
@@ -35,7 +35,7 @@ check_url() {
   curl --fail --silent --show-error --location --max-time 10 "$url" >/dev/null
 }
 
-compose_profile exec -T postgres \
+compose_environment exec -T postgres \
   sh -c 'exec pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"' >/dev/null
 printf '[verify] PASS: PostgreSQL readiness\n'
 
@@ -44,4 +44,4 @@ check_url 'API health' "$API_URL/health"
 check_url 'API readiness' "$API_URL/health/ready"
 check_url 'Web response' "$WEB_URL/"
 
-printf '[verify] All %s server checks passed.\n' "$PROFILE"
+printf '[verify] All canonical server checks passed.\n'

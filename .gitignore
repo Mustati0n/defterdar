@@ -4,8 +4,6 @@ node_modules/
 .env.*
 !.env.example
 !.env.server.example
-!.env.dev.example
-!.env.staging.example
 dist/
 .next/
 coverage/
@@ -21,5 +19,4 @@ tmp/
 .idea/
 .vscode/
 apps/api/src/generated/prisma/
-!apps/web/.env.dev.example
-!apps/web/.env.staging.example
+!apps/web/.env.server.example

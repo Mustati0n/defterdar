@@ -16,7 +16,7 @@ fail() {
 
 # shellcheck source=profile.sh
 source "$SCRIPT_DIR/profile.sh"
-select_profile "${1:-}"
+select_environment "$@"
 
 for command_name in git node pnpm docker curl openssl; do
   command -v "$command_name" >/dev/null 2>&1 || fail "Missing command: $command_name"
@@ -30,32 +30,21 @@ expected_pnpm="$(node -p "require('./package.json').packageManager.split('@')[1]
 actual_pnpm="$(pnpm --version)"
 [[ "$actual_pnpm" == "$expected_pnpm" ]] || fail "pnpm $expected_pnpm is required; found $actual_pnpm."
 
-require_profile_environment
-[[ -f apps/web/.env.local ]] || fail "Missing apps/web/.env.local. Copy apps/web/.env.$PROFILE.example."
+require_environment
+[[ -f apps/web/.env.local ]] || fail 'Missing apps/web/.env.local.'
 
 if grep -Eq 'replace-with-|<(YOUR_)?DOMAIN>' "$ENV_FILE" apps/web/.env.local; then
   fail 'Environment files still contain template placeholders.'
 fi
 
-compose_profile config --quiet
-
-other_env="$(dirname "$PROJECT_DIR")/defterdar-$OTHER_PROFILE/.env"
-if [[ -f "$other_env" ]]; then
-  if [[ "$PROFILE" == 'dev' ]]; then
-    "$SCRIPT_DIR/check-isolation.sh" "$ENV_FILE" "$other_env"
-  else
-    "$SCRIPT_DIR/check-isolation.sh" "$other_env" "$ENV_FILE"
-  fi
-else
-  log "Other profile environment not found at $other_env; run check-isolation.sh after both worktrees are configured."
-fi
+compose_environment config --quiet
 
 if [[ "$(uname -s)" != 'Linux' ]]; then
   log 'Warning: server templates target Linux; current host is not Linux.'
 fi
 
 log "Project: $PROJECT_DIR"
-log "Environment: $PROFILE"
+log 'Environment: production'
 log "Compose project: $COMPOSE_PROJECT"
 log "Node: $(node --version)"
 log "pnpm: $actual_pnpm"
