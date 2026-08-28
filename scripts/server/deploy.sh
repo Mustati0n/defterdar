@@ -21,10 +21,15 @@ source "$SCRIPT_DIR/profile.sh"
 select_environment "$@"
 require_environment
 
-git rev-parse --is-inside-work-tree >/dev/null 2>&1 || fail 'Project is not a Git working tree.'
-[[ -z "$(git status --porcelain)" ]] || fail 'Working tree is dirty. Commit or discard server changes explicitly; deploy will not auto-stash.'
+git_command=(git)
+if [[ "$EUID" -eq 0 ]]; then
+  git_command+=( -c "safe.directory=$PROJECT_DIR" )
+fi
 
-log "Candidate commit: $(git rev-parse --short=12 HEAD)"
+"${git_command[@]}" rev-parse --is-inside-work-tree >/dev/null 2>&1 || fail 'Project is not a Git working tree.'
+[[ -z "$("${git_command[@]}" status --porcelain)" ]] || fail 'Working tree is dirty. Commit or discard server changes explicitly; deploy will not auto-stash.'
+
+log "Candidate commit: $("${git_command[@]}" rev-parse --short=12 HEAD)"
 
 "$SCRIPT_DIR/bootstrap.sh"
 
@@ -50,8 +55,13 @@ pnpm db:deploy
 case "$RESTART_MODE" in
   systemd)
     log 'Restarting canonical Defterdar application services.'
-    sudo systemctl restart defterdar-api.service
-    sudo systemctl restart defterdar-web.service
+    if [[ "$EUID" -eq 0 ]]; then
+      systemctl restart defterdar-api.service
+      systemctl restart defterdar-web.service
+    else
+      sudo systemctl restart defterdar-api.service
+      sudo systemctl restart defterdar-web.service
+    fi
     ;;
   none)
     log 'Restart skipped (DEFTERDAR_RESTART_MODE=none).'
