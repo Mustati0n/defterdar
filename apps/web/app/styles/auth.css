@@ -162,10 +162,11 @@
   border-radius: 8px;
 }
 .auth-panel {
-  display: grid;
+  display: flex;
   min-width: 0;
   width: 100%;
-  place-items: center;
+  align-items: center;
+  justify-content: center;
   padding: 3rem;
   background-color: var(--color-cream);
   background-image: repeating-linear-gradient(
@@ -177,8 +178,8 @@
   grid-row: 1;
 }
 .auth-panel__inner {
-  width: min(430px, 100%);
-  max-width: 100%;
+  width: 100%;
+  max-width: 430px;
   padding: clamp(1.8rem, 4vw, 3.2rem);
   border: 1px solid rgba(215, 205, 183, 0.8);
   border-radius: 4px 22px 7px 20px;
