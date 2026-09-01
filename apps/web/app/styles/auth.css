@@ -180,6 +180,7 @@
 .auth-panel__inner {
   width: 100%;
   max-width: 430px;
+  min-width: 0;
   padding: clamp(1.8rem, 4vw, 3.2rem);
   border: 1px solid rgba(215, 205, 183, 0.8);
   border-radius: 4px 22px 7px 20px;
@@ -195,10 +196,17 @@
 }
 .auth-form {
   display: grid;
+  min-width: 0;
   gap: 1.15rem;
+}
+.auth-form .field,
+.auth-form .input-wrap {
+  min-width: 0;
+  max-width: 100%;
 }
 .input-wrap {
   display: flex;
+  width: 100%;
   min-height: 48px;
   align-items: center;
   gap: 0.7rem;
