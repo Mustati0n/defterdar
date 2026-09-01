@@ -49,9 +49,7 @@ export function useLedgerDetailData(
   const members = useQuery({
     queryKey: queryKeys.members(ledgerId),
     queryFn: ({ signal }) => api.ledgers.members(ledgerId, signal),
-    enabled: Boolean(
-      ledgerId && (view === 'members' || isGeneral),
-    ),
+    enabled: Boolean(ledgerId && (view === 'members' || isGeneral)),
   });
   const balance = useQuery({
     queryKey: queryKeys.ledgerBalance(ledgerId),

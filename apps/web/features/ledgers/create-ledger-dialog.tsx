@@ -70,7 +70,9 @@ export function CreateLedgerDialog({
   function addInvite() {
     const parsed = emailSchema.safeParse(inviteDraft);
     if (!parsed.success) {
-      setInviteError(parsed.error.issues[0]?.message ?? 'Geçerli bir e-posta yazın.');
+      setInviteError(
+        parsed.error.issues[0]?.message ?? 'Geçerli bir e-posta yazın.',
+      );
       return;
     }
     const normalized = parsed.data.toLocaleLowerCase('tr-TR');
@@ -84,15 +86,17 @@ export function CreateLedgerDialog({
   }
 
   async function deliverInvites(ledger: Ledger): Promise<number> {
-    let failed = 0;
-    for (const email of invites) {
-      try {
-        await api.ledgers.invite(ledger.id, email);
-      } catch {
-        failed += 1;
-      }
-    }
-    return failed;
+    const results = await Promise.all(
+      invites.map(async (email) => {
+        try {
+          await api.ledgers.invite(ledger.id, email);
+          return false;
+        } catch {
+          return true;
+        }
+      }),
+    );
+    return results.filter(Boolean).length;
   }
 
   async function onSubmit(values: Values) {
@@ -255,7 +259,10 @@ export function CreateLedgerDialog({
                 </div>
                 {inviteError ? <small>{inviteError}</small> : null}
                 {invites.length ? (
-                  <div className="invite-chip-list" aria-label="Eklenecek kişiler">
+                  <div
+                    className="invite-chip-list"
+                    aria-label="Eklenecek kişiler"
+                  >
                     {invites.map((email) => (
                       <span className="invite-chip" key={email}>
                         <MailPlus />

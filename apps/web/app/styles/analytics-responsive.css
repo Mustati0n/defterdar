@@ -33,7 +33,6 @@
   min-width: 0;
 }
 .page-heading--adaptive .analytics-header-tools {
-  gap: calc(1rem - var(--header-progress) * 0.45rem);
   min-width: 0;
 }
 .page-heading--adaptive .analytics-header-tools .field > span {
@@ -41,45 +40,11 @@
   overflow: hidden;
   opacity: calc(1 - var(--header-progress) * 1.15);
 }
-.page-heading--adaptive .analytics-header-tools .analytics-filters {
-  position: relative;
-  top: auto;
-  min-height: 44px;
-  overflow: hidden;
-}
-.page-heading--adaptive[data-compact-controls] .analytics-header-tools {
-  grid-template-columns: minmax(7rem, 0.8fr) minmax(6.5rem, 0.55fr);
-  justify-content: end;
-  gap: 0.45rem;
-}
-.page-heading--adaptive[data-compact-controls]
-  .analytics-header-tools
-  .analytics-target-field {
-  min-width: 0;
-}
-.page-heading--adaptive[data-compact-controls] .analytics-header-tools .input {
-  min-width: 0;
-}
 .analytics-preset-expanded {
-  max-height: calc(6rem * (1 - var(--header-progress)));
-  opacity: calc(1 - var(--header-progress));
+  min-width: 0;
 }
 .analytics-preset-compact {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  min-height: 44px;
-  opacity: var(--header-progress);
-  visibility: hidden;
-  pointer-events: none;
-}
-.page-heading--adaptive[data-compact-controls] .analytics-preset-expanded {
-  visibility: hidden;
-  pointer-events: none;
-}
-.page-heading--adaptive[data-compact-controls] .analytics-preset-compact {
-  visibility: visible;
-  pointer-events: auto;
+  display: none;
 }
 .analytics-filters .segmented-control {
   flex-wrap: wrap;
@@ -116,7 +81,7 @@
 }
 .analytics-summary-grid article {
   display: grid;
-  grid-template-columns: auto 1fr;
+  grid-template-columns: auto minmax(0, 1fr);
   gap: 0.15rem 0.75rem;
   padding: 1.3rem;
   border: 1px solid var(--color-line);
@@ -145,6 +110,8 @@
 .analytics-summary-grid strong {
   font: 800 clamp(1.4rem, 2.5vw, 2.15rem) var(--font-display);
   color: var(--color-navy);
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .analytics-summary-grid p {
   margin: 0;
@@ -336,6 +303,8 @@
 }
 .analytics-final-summary > div strong {
   font: 800 clamp(2rem, 5vw, 3.5rem) var(--font-display);
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .analytics-final-summary > div span {
   color: var(--color-gold-soft);
@@ -514,15 +483,6 @@
   }
 }
 @media (max-width: 700px) {
-  .analytics-preset-expanded {
-    max-height: none;
-    opacity: 1;
-    visibility: visible !important;
-    pointer-events: auto !important;
-  }
-  .analytics-preset-compact {
-    display: none;
-  }
   .analytics-filters {
     align-items: stretch;
     flex-direction: column;

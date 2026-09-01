@@ -40,6 +40,8 @@
   font-family: var(--font-display);
   font-size: clamp(2rem, 5vw, 3.6rem);
   color: var(--color-navy);
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .balance-hero p {
   margin: 0;

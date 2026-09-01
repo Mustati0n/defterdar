@@ -34,10 +34,6 @@ export function PageHeading({
         '--header-progress',
         String(progress),
       );
-      headerRef.current?.toggleAttribute(
-        'data-compact-controls',
-        progress >= 0.8,
-      );
     };
     const schedule = () => {
       if (!frame) frame = window.requestAnimationFrame(update);

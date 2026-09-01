@@ -26,25 +26,44 @@ export function AnchoredMenu({
 
   useLayoutEffect(() => {
     if (!open) return;
-    const update = () => {
+    let frame = 0;
+    let lastKey = '';
+
+    const measure = () => {
       const rect = anchorRef.current?.getBoundingClientRect();
-      if (!rect) return;
+      if (!rect) return null;
       const menuWidth = Math.min(270, window.innerWidth - 32);
-      setPosition({
+      return {
         top: rect.bottom + 9,
         left: Math.max(
           16,
           Math.min(rect.right - menuWidth, window.innerWidth - menuWidth - 16),
         ),
         width: menuWidth,
-      });
+      };
     };
+
+    const update = () => {
+      frame = 0;
+      const next = measure();
+      if (!next) return;
+      const key = `${next.top}:${next.left}:${next.width}`;
+      if (key === lastKey) return;
+      lastKey = key;
+      setPosition(next);
+    };
+
+    const schedule = () => {
+      if (!frame) frame = window.requestAnimationFrame(update);
+    };
+
     update();
-    window.addEventListener('resize', update);
-    window.addEventListener('scroll', update, true);
+    window.addEventListener('resize', schedule);
+    window.addEventListener('scroll', schedule, true);
     return () => {
-      window.removeEventListener('resize', update);
-      window.removeEventListener('scroll', update, true);
+      window.removeEventListener('resize', schedule);
+      window.removeEventListener('scroll', schedule, true);
+      if (frame) window.cancelAnimationFrame(frame);
     };
   }, [anchorRef, open]);
 
