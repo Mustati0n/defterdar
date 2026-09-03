@@ -93,28 +93,34 @@
   column-gap: clamp(1.2rem, 2.2vw, 2rem);
   row-gap: 0;
 }
-.workspace-grid > .ledger-card.workspace-card--compact {
+.workspace-grid > .workspace-grid__item--ledger.workspace-card--compact {
   height: 284px;
   grid-row-end: span 77;
   margin-bottom: var(--workspace-masonry-gap);
 }
-.workspace-grid > .plan-card.workspace-card--compact {
+.workspace-grid > .workspace-grid__item--plan.workspace-card--compact {
   height: 296px;
-  min-height: 0;
   grid-row-end: span 80;
   margin-bottom: var(--workspace-masonry-gap);
 }
-.workspace-grid > .plan-card.workspace-card--regular {
+.workspace-grid > .workspace-grid__item--plan.workspace-card--regular {
   height: 328px;
-  min-height: 0;
   grid-row-end: span 88;
   margin-bottom: var(--workspace-masonry-gap);
 }
-.workspace-grid > .plan-card.workspace-card--tall {
+.workspace-grid > .workspace-grid__item--plan.workspace-card--tall {
   height: 364px;
-  min-height: 0;
   grid-row-end: span 97;
   margin-bottom: var(--workspace-masonry-gap);
+}
+.workspace-grid__item > .ledger-card,
+.workspace-grid__item > .plan-card {
+  height: 100%;
+  min-height: 0;
+}
+.workspace-grid__item.is-exiting {
+  pointer-events: none;
+  animation: workspace-card-exit var(--motion-normal) var(--ease-exit) forwards;
 }
 .workspace-create {
   position: relative;
@@ -313,13 +319,15 @@
   .workspace-type-filter .segmented-control button {
     flex-basis: 4.5rem;
   }
-  .workspace-grid > .workspace-card--compact,
-  .workspace-grid > .workspace-card--regular,
-  .workspace-grid > .workspace-card--tall {
+  .workspace-grid > .workspace-grid__item {
     height: auto;
-    min-height: 240px;
     grid-row-end: auto;
     margin-bottom: 0;
+  }
+  .workspace-grid__item > .ledger-card,
+  .workspace-grid__item > .plan-card {
+    height: auto;
+    min-height: 240px;
   }
 }
 .ledger-card {
@@ -595,4 +603,17 @@
   color: var(--state-muted-fg);
   border-color: var(--state-muted-border);
   background: var(--state-muted-bg);
+}
+
+@keyframes workspace-card-exit {
+  to {
+    opacity: 0;
+    transform: translateY(8px) scale(0.985);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .workspace-grid__item.is-exiting {
+    animation: none;
+  }
 }

@@ -13,7 +13,14 @@ import {
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { useSearchParams } from 'next/navigation';
-import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  Suspense,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { LedgerCard } from '@/components/ledger-card';
 import { PageHeading } from '@/components/page-heading';
 import { PlanCard } from '@/components/plan-card';
@@ -104,6 +111,122 @@ export function workspaceCardSize(
   return 'compact';
 }
 
+const WORKSPACE_EXIT_MS = 220;
+
+function workspaceItemKey(item: WorkspaceItem) {
+  return `${item.kind}:${item.value.id}`;
+}
+
+function motionIsReduced() {
+  return (
+    document.documentElement.dataset.motion === 'reduced' ||
+    window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+  );
+}
+
+function WorkspaceBoard({
+  items,
+  ledgers,
+  exitingLinkedPlans,
+}: {
+  items: WorkspaceItem[];
+  ledgers: Ledger[];
+  exitingLinkedPlans: boolean;
+}) {
+  const boardRef = useRef<HTMLElement>(null);
+  const positionsRef = useRef(new Map<string, DOMRect>());
+  const initializedRef = useRef(false);
+
+  useLayoutEffect(() => {
+    const cards = Array.from(
+      boardRef.current?.querySelectorAll<HTMLElement>('[data-workspace-key]') ??
+        [],
+    );
+    const currentPositions = new Map(
+      cards.map((card) => [
+        card.dataset.workspaceKey ?? '',
+        card.getBoundingClientRect(),
+      ]),
+    );
+
+    if (initializedRef.current && !motionIsReduced()) {
+      for (const card of cards) {
+        if (typeof card.animate !== 'function') continue;
+        const previous = positionsRef.current.get(
+          card.dataset.workspaceKey ?? '',
+        );
+        if (!previous) {
+          card.animate(
+            [
+              { opacity: 0, transform: 'translateY(10px) scale(0.985)' },
+              { opacity: 1, transform: 'translateY(0) scale(1)' },
+            ],
+            {
+              duration: 220,
+              easing: 'cubic-bezier(0, 0, 0.2, 1)',
+            },
+          );
+          continue;
+        }
+
+        const current = currentPositions.get(card.dataset.workspaceKey ?? '');
+        if (!current) continue;
+        const deltaX = previous.left - current.left;
+        const deltaY = previous.top - current.top;
+        if (!deltaX && !deltaY) continue;
+        card.animate(
+          [
+            { transform: `translate(${deltaX}px, ${deltaY}px)` },
+            { transform: 'translate(0, 0)' },
+          ],
+          {
+            duration: 240,
+            easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)',
+          },
+        );
+      }
+    }
+
+    initializedRef.current = true;
+    positionsRef.current = currentPositions;
+  }, [exitingLinkedPlans, items]);
+
+  return (
+    <section
+      ref={boardRef}
+      className="workspace-grid"
+      aria-label="Defterler ve Planlar"
+      data-layout="controlled-masonry"
+    >
+      {items.map((item, index) => {
+        const size = workspaceCardSize(item);
+        const linkedPlan =
+          item.kind === 'plan' && item.value.scope === 'LEDGER';
+        return (
+          <div
+            key={workspaceItemKey(item)}
+            className={`workspace-grid__item workspace-grid__item--${item.kind} workspace-card--${size}${exitingLinkedPlans && linkedPlan ? ' is-exiting' : ''}`}
+            data-workspace-key={workspaceItemKey(item)}
+          >
+            {item.kind === 'ledger' ? (
+              <LedgerCard ledger={item.value} index={index} size={size} />
+            ) : (
+              <PlanCard
+                plan={item.value}
+                ledger={ledgers.find(
+                  (ledger) => ledger.id === item.value.ledgerId,
+                )}
+                index={index}
+                size={size}
+              />
+            )}
+          </div>
+        );
+      })}
+    </section>
+  );
+}
+
 function WorkspaceContent() {
   const searchParams = useSearchParams();
   const requestedType = searchParams.get('type');
@@ -115,6 +238,8 @@ function WorkspaceContent() {
       : 'all',
   );
   const [includeLinkedPlans, setIncludeLinkedPlans] = useState(false);
+  const [renderLinkedPlans, setRenderLinkedPlans] = useState(false);
+  const [exitingLinkedPlans, setExitingLinkedPlans] = useState(false);
   const [createMenuOpen, setCreateMenuOpen] = useState(false);
   const [creator, setCreator] = useState<'ledger' | 'plan' | null>(() => {
     const requestedCreate = searchParams.get('create');
@@ -124,6 +249,7 @@ function WorkspaceContent() {
   });
   const createMenuRef = useRef<HTMLDivElement>(null);
   const createTriggerRef = useRef<HTMLButtonElement>(null);
+  const exitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const ledgers = useLedgers(true);
   const plans = useAllPlans(true);
 
@@ -140,6 +266,37 @@ function WorkspaceContent() {
     return () => document.removeEventListener('mousedown', close);
   }, [createMenuOpen]);
 
+  useEffect(
+    () => () => {
+      if (exitTimerRef.current) clearTimeout(exitTimerRef.current);
+    },
+    [],
+  );
+
+  const setLinkedPlansVisibility = (visible: boolean) => {
+    if (exitTimerRef.current) clearTimeout(exitTimerRef.current);
+    exitTimerRef.current = null;
+    setIncludeLinkedPlans(visible);
+
+    if (visible) {
+      setExitingLinkedPlans(false);
+      setRenderLinkedPlans(true);
+      return;
+    }
+    if (motionIsReduced()) {
+      setExitingLinkedPlans(false);
+      setRenderLinkedPlans(false);
+      return;
+    }
+
+    setExitingLinkedPlans(true);
+    exitTimerRef.current = setTimeout(() => {
+      setRenderLinkedPlans(false);
+      setExitingLinkedPlans(false);
+      exitTimerRef.current = null;
+    }, WORKSPACE_EXIT_MS);
+  };
+
   const filtered = useMemo(
     () =>
       filterWorkspaceItems(
@@ -148,9 +305,9 @@ function WorkspaceContent() {
         filter,
         itemType,
         search,
-        includeLinkedPlans,
+        renderLinkedPlans,
       ),
-    [filter, includeLinkedPlans, itemType, ledgers.data, plans.data, search],
+    [filter, itemType, ledgers.data, plans.data, renderLinkedPlans, search],
   );
   const isLoading = ledgers.isLoading || plans.isLoading;
   const isError = ledgers.isError || plans.isError;
@@ -174,7 +331,7 @@ function WorkspaceContent() {
               aria-checked={includeLinkedPlans}
               aria-describedby="workspace-scope-help"
               disabled={itemType === 'ledger'}
-              onClick={() => setIncludeLinkedPlans((current) => !current)}
+              onClick={() => setLinkedPlansVisibility(!includeLinkedPlans)}
             >
               <span
                 className="workspace-scope-filter__track"
@@ -330,32 +487,11 @@ function WorkspaceContent() {
         />
       ) : null}
       {!isLoading && !isError && filtered.length ? (
-        <section
-          className="workspace-grid"
-          aria-label="Defterler ve Planlar"
-          data-layout="controlled-masonry"
-        >
-          {filtered.map((item, index) =>
-            item.kind === 'ledger' ? (
-              <LedgerCard
-                key={`ledger:${item.value.id}`}
-                ledger={item.value}
-                index={index}
-                size={workspaceCardSize(item)}
-              />
-            ) : (
-              <PlanCard
-                key={`plan:${item.value.id}`}
-                plan={item.value}
-                ledger={(ledgers.data ?? []).find(
-                  (ledger) => ledger.id === item.value.ledgerId,
-                )}
-                index={index}
-                size={workspaceCardSize(item)}
-              />
-            ),
-          )}
-        </section>
+        <WorkspaceBoard
+          items={filtered}
+          ledgers={ledgers.data ?? []}
+          exitingLinkedPlans={exitingLinkedPlans}
+        />
       ) : null}
       {!isLoading && !isError && !filtered.length ? (
         <EmptyState

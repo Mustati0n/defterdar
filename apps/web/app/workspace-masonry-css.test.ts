@@ -24,7 +24,16 @@ describe('controlled workspace masonry CSS', () => {
       /@media \(max-width: 680px\)[\s\S]*?\.workspace-grid\s*\{[^}]*grid-template-columns: minmax\(0, 1fr\);[^}]*grid-auto-rows: auto;/s,
     );
     expect(css).toMatch(
-      /\.workspace-grid > \.workspace-card--tall\s*\{[^}]*height: auto;[^}]*grid-row-end: auto;/s,
+      /\.workspace-grid > \.workspace-grid__item\s*\{[^}]*height: auto;[^}]*grid-row-end: auto;/s,
+    );
+  });
+
+  it('uses transform and opacity for exit while honoring reduced motion', () => {
+    expect(css).toMatch(
+      /@keyframes workspace-card-exit\s*\{[^}]*to\s*\{[^}]*opacity: 0;[^}]*transform:/s,
+    );
+    expect(css).toMatch(
+      /@media \(prefers-reduced-motion: reduce\)[\s\S]*?\.workspace-grid__item\.is-exiting\s*\{[^}]*animation: none;/s,
     );
   });
 });

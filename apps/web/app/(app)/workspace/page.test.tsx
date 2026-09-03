@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { useAllPlans, useLedgers } from '@/features/data/hooks';
 import type { Ledger, Plan } from '@/lib/types';
 import WorkspacePage, { filterWorkspaceItems, workspaceCardSize } from './page';
@@ -154,6 +154,32 @@ describe('Defterler & Planlar workspace', () => {
     expect(
       document.querySelector('a[href="/plans/plan-1"]'),
     ).toBeInTheDocument();
+  });
+
+  it('lets linked plans exit before compacting the remaining board', () => {
+    jest.useFakeTimers();
+    try {
+      render(<WorkspacePage />);
+      const scope = screen.getByRole('switch', {
+        name: /Defterlere bağlı planları göster/,
+      });
+      fireEvent.click(scope);
+      fireEvent.click(scope);
+
+      const linkedCard = document.querySelector('a[href="/plans/plan-1"]');
+      expect(scope).toHaveAttribute('aria-checked', 'false');
+      expect(linkedCard?.closest('[data-workspace-key]')).toHaveClass(
+        'is-exiting',
+      );
+
+      act(() => jest.advanceTimersByTime(220));
+
+      expect(
+        document.querySelector('a[href="/plans/plan-1"]'),
+      ).not.toBeInTheDocument();
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   it('keeps the scope switch visible but disabled for the ledger type', () => {
