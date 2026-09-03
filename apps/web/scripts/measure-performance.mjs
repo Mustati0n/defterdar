@@ -11,6 +11,13 @@ const routes = {
   expense: 'server/app/expenses/new.html',
   income: 'server/app/incomes/new.html',
 };
+const performanceBudgets = {
+  firstLoadGzip: 280_000,
+  routeOnlyGzip: 35_000,
+  loginRouteOnlyGzip: 85_000,
+  globalCss: 140_000,
+};
+const shouldCheckBudgets = process.argv.includes('--check');
 
 function routeChunks(file) {
   const html = readFileSync(join(nextRoot, file), 'utf8');
@@ -77,15 +84,49 @@ const common = chunkSets.login.filter((chunk) =>
   Object.values(chunkSets).every((chunks) => chunks.includes(chunk)),
 );
 
+const routeMeasurements = {};
 for (const [route, chunks] of Object.entries(chunkSets)) {
   const total = size(chunks);
   const routeOnly = size(chunks.filter((chunk) => !common.includes(chunk)));
+  routeMeasurements[route] = { total, routeOnly };
   console.log(
     `${route}: first-load=${total.gzip} gzip bytes; route-only=${routeOnly.gzip} gzip bytes`,
   );
 }
 
 const cssPath = join(process.cwd(), 'app/globals.css');
-console.log(`global-css=${cssSourceSize(cssPath)} bytes`);
+const globalCssBytes = cssSourceSize(cssPath);
+console.log(`global-css=${globalCssBytes} bytes`);
 const components = sourceMetrics(process.cwd());
 console.log(`client-tsx=${components.client}/${components.total}`);
+
+if (shouldCheckBudgets) {
+  const failures = [];
+  for (const [route, measurement] of Object.entries(routeMeasurements)) {
+    if (measurement.total.gzip > performanceBudgets.firstLoadGzip) {
+      failures.push(
+        `${route} first-load bütçeyi aşıyor: ${measurement.total.gzip} > ${performanceBudgets.firstLoadGzip}`,
+      );
+    }
+    const routeBudget =
+      route === 'login'
+        ? performanceBudgets.loginRouteOnlyGzip
+        : performanceBudgets.routeOnlyGzip;
+    if (measurement.routeOnly.gzip > routeBudget) {
+      failures.push(
+        `${route} route-only bütçeyi aşıyor: ${measurement.routeOnly.gzip} > ${routeBudget}`,
+      );
+    }
+  }
+  if (globalCssBytes > performanceBudgets.globalCss) {
+    failures.push(
+      `global CSS bütçeyi aşıyor: ${globalCssBytes} > ${performanceBudgets.globalCss}`,
+    );
+  }
+  if (failures.length) {
+    for (const failure of failures) console.error(`BÜTÇE HATASI: ${failure}`);
+    process.exitCode = 1;
+  } else {
+    console.log('performance-budgets=passed');
+  }
+}

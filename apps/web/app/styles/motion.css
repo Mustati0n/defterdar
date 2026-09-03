@@ -60,7 +60,9 @@
   transform: translateX(2px) scale(1.03);
 }
 .ledger-card:hover .ledger-card__rings i,
-.plan-card:hover .plan-card__pin {
+.ledger-card:focus-visible .ledger-card__rings i,
+.plan-card:hover .plan-card__pin,
+.plan-card:focus-visible .plan-card__pin {
   transform: translateY(-1px);
 }
 .ledger-card__rings i,

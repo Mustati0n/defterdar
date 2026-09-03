@@ -1,52 +1,4 @@
-/* Smart priorities and quick creation */
-.attention-strip {
-  display: grid;
-  grid-template-columns: 0.65fr 1.35fr;
-  align-items: center;
-  gap: 1rem;
-  margin-bottom: 1.2rem;
-  padding: 1rem;
-  color: white;
-  border-radius: 6px 20px 8px 14px;
-  background: var(--color-wine);
-  box-shadow: var(--shadow-paper);
-}
-.attention-strip > div:first-child {
-  display: flex;
-  align-items: center;
-  gap: 0.7rem;
-}
-.attention-strip > div:first-child > svg {
-  color: var(--color-gold-soft);
-  font-size: 1.6rem;
-}
-.attention-strip > div:first-child span {
-  display: grid;
-}
-.attention-strip small {
-  color: #e1cdd0;
-}
-.attention-strip__items {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 0.6rem;
-}
-.attention-strip__items > a {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  gap: 0.6rem;
-  padding: 0.7rem;
-  border: 1px solid rgba(255, 255, 255, 0.17);
-  border-radius: var(--radius-md);
-  background: rgba(255, 255, 255, 0.08);
-}
-.attention-strip__items span {
-  display: grid;
-}
-.attention-strip__items strong {
-  font-size: 0.75rem;
-}
+/* Smart empty states and quick creation */
 .smart-empty {
   display: grid;
   grid-template-columns: auto 1fr auto;
@@ -77,9 +29,6 @@
 }
 .smart-empty--collection {
   margin-top: 1.4rem;
-}
-.smart-empty--analytics {
-  margin-bottom: 1.5rem;
 }
 .expense-section {
   margin-top: 1.5rem;

@@ -400,9 +400,6 @@
   .money-concepts {
     grid-template-columns: 1fr;
   }
-  .attention-strip {
-    grid-template-columns: 1fr;
-  }
 }
 
 @media (max-width: 580px) {
@@ -474,9 +471,6 @@
   }
   .offset-note > p {
     grid-column: 1;
-  }
-  .attention-strip__items {
-    grid-template-columns: 1fr;
   }
   .smart-empty {
     grid-template-columns: 1fr;

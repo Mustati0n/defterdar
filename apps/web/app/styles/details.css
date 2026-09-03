@@ -306,7 +306,8 @@
     transform var(--motion-fast) var(--ease-standard),
     box-shadow var(--motion-fast) var(--ease-standard);
 }
-.ledger-plan-row:hover {
+.ledger-plan-row:hover,
+.ledger-plan-row:focus-visible {
   transform: translateY(-2px);
   box-shadow: var(--elevation-1);
 }
@@ -414,68 +415,10 @@
   justify-items: end;
   text-align: right;
 }
-.balance-list {
-  display: grid;
-  gap: 0.3rem;
-  margin-top: 1.3rem;
-}
-.balance-list > div {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  gap: 0.8rem;
-  padding: 0.7rem;
-  border-bottom: 1px dashed var(--color-line);
-}
 .avatar--paper {
   color: white;
   background: var(--color-navy);
 }
-.money-positive {
-  color: var(--color-success);
-  font-weight: 800;
-}
-.money-negative {
-  color: var(--color-danger);
-  font-weight: 800;
-}
-.people-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.8rem;
-  margin-top: 1.2rem;
-}
-.people-grid article {
-  display: flex;
-  align-items: center;
-  gap: 0.7rem;
-  padding: 1rem;
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-md);
-  background: #faf4e6;
-}
-.people-grid article > div {
-  display: grid;
-}
-.people-grid small,
 .muted-copy {
   color: var(--color-muted);
-}
-.placeholder-checklist {
-  display: grid;
-  gap: 1rem;
-  margin-top: 1.5rem;
-  padding: 0;
-  list-style: none;
-}
-.placeholder-checklist li {
-  display: flex;
-  gap: 0.6rem;
-}
-.placeholder-checklist span {
-  width: 17px;
-  height: 17px;
-  flex: 0 0 auto;
-  border: 2px solid var(--color-wine);
-  border-radius: 3px;
 }

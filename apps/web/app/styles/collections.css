@@ -85,12 +85,6 @@
   background: var(--surface-strong);
   box-shadow: var(--elevation-highlight), var(--elevation-control-pressed);
 }
-.ledger-grid,
-.plan-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: clamp(1.2rem, 2.2vw, 2rem);
-}
 .workspace-grid {
   --workspace-masonry-gap: 1.5rem;
   display: grid;
@@ -364,7 +358,8 @@
     transform var(--motion-normal) var(--ease-standard),
     box-shadow var(--motion-normal) var(--ease-standard);
 }
-.ledger-card:hover {
+.ledger-card:hover,
+.ledger-card:focus-visible {
   transform: translateY(-4px);
   box-shadow:
     4px 5px 0 rgba(215, 205, 183, 0.52),
@@ -482,7 +477,8 @@
     transform var(--motion-normal) var(--ease-standard),
     box-shadow var(--motion-normal) var(--ease-standard);
 }
-.plan-card:hover {
+.plan-card:hover,
+.plan-card:focus-visible {
   transform: translateY(-4px);
   box-shadow: var(--elevation-highlight), var(--elevation-2);
 }

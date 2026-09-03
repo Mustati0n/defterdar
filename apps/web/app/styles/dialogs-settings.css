@@ -214,18 +214,6 @@
   color: var(--color-success);
   font-weight: 750;
 }
-.ledger-picker {
-  min-width: 220px;
-}
-.chart-empty {
-  display: flex;
-  height: 100%;
-  align-items: center;
-  justify-content: center;
-  gap: 0.6rem;
-  color: var(--color-muted);
-}
-
 .spin {
   animation: spin 1s linear infinite;
 }
@@ -244,24 +232,8 @@
 }
 
 @media (max-width: 1120px) {
-  .ledger-grid,
-  .plan-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .stat-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .overview-columns {
-    grid-template-columns: 1fr;
-  }
   .activity-paper {
     transform: none;
-  }
-  .overview-hero {
-    grid-template-columns: 1fr 0.7fr;
-  }
-  .overview-hero__notebook {
-    width: 100%;
   }
 }
 
@@ -377,20 +349,8 @@
   .page-heading__action {
     width: 100%;
   }
-  .page-heading__action .button,
-  .page-heading__action .ledger-picker {
+  .page-heading__action .button {
     width: 100%;
-  }
-  .overview-hero {
-    grid-template-columns: 1fr;
-    gap: 3rem;
-  }
-  .overview-hero__notebook {
-    justify-self: center;
-    max-width: 340px;
-  }
-  .overview-columns {
-    gap: 2.5rem;
   }
   .detail-grid {
     grid-template-columns: 1fr;
@@ -399,12 +359,8 @@
     align-items: flex-start;
     flex-direction: column;
   }
-  .detail-cover__stamp,
   .detail-cover__date {
     align-self: flex-end;
-  }
-  .people-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .collection-toolbar {
     align-items: stretch;
@@ -417,9 +373,6 @@
     flex: 1;
     justify-content: center;
   }
-  .collection-count {
-    display: none;
-  }
 }
 
 @media (max-width: 580px) {
@@ -428,18 +381,6 @@
   }
   .page-container {
     padding-bottom: 3rem;
-  }
-  .ledger-grid,
-  .plan-grid,
-  .mini-card-grid,
-  .stat-grid {
-    grid-template-columns: 1fr;
-  }
-  .overview-hero {
-    padding: 1.6rem;
-  }
-  .overview-hero__notebook {
-    width: 90%;
   }
   .ledger-card,
   .plan-card {
@@ -483,9 +424,6 @@
   }
   .detail-cover__bookmark {
     right: 4%;
-  }
-  .people-grid {
-    grid-template-columns: 1fr;
   }
   .settings-list article {
     grid-template-columns: auto 1fr;
