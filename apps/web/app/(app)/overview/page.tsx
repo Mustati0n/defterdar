@@ -27,6 +27,7 @@ export default function OverviewPage() {
   const overview = useOverview();
   const { preferences } = useInterfacePreferences(user?.id);
   const [referenceTime] = useState(Date.now);
+  const [showAllPriorities, setShowAllPriorities] = useState(false);
   const activeLedgers = overview.data?.ledgers.filter(
     (ledger) => !ledger.archivedAt,
   );
@@ -84,16 +85,14 @@ export default function OverviewPage() {
     if (rightUpcoming < 0) return -1;
     return leftUpcoming - rightUpcoming;
   });
-  const incomingPayments = pendingPayments.filter(
-    (payment) => payment.toUserId === user?.id,
-  );
   const priorityItems = [
-    ...pendingPayments.slice(0, 2).map((payment) => ({
+    ...pendingPayments.map((payment) => ({
       id: `payment-${payment.id}`,
       href: payment.ledgerId
         ? `/ledgers/${payment.ledgerId}?view=balances`
         : `/plans/${payment.planId}?view=balances`,
       tone: payment.toUserId === user?.id ? 'critical' : 'attention',
+      priority: payment.toUserId === user?.id ? 1 : 2,
       icon: payment.toUserId === user?.id ? AlertCircle : Clock3,
       label:
         payment.toUserId === user?.id ? 'Onayın gerekiyor' : 'Onay bekleniyor',
@@ -102,35 +101,44 @@ export default function OverviewPage() {
           ? `${payment.fromUser.displayName} ödeme yaptığını bildirdi`
           : `${payment.toUser.displayName} ödemeyi onaylayacak`,
       detail: formatMoneyFromMinor(payment.amountMinor, payment.currency),
+      action: payment.toUserId === user?.id ? 'Kontrol et' : 'Hesabı aç',
     })),
-    ...owedBalances.slice(0, 2).map(({ ledger, balance, position }) => ({
+    ...owedBalances.map(({ ledger, balance, position }) => ({
       id: `ledger-balance-${ledger.id}`,
       href: `/ledgers/${ledger.id}?view=balances`,
       tone: 'attention',
+      priority: 2,
       icon: WalletCards,
       label: 'Açık hesap',
       title: `${ledger.name} Defterinde ödemen var`,
       detail: `${formatMoneyFromMinor(Math.abs(position.netMinor), balance.currency)} · Bakiyeyi incele`,
+      action: 'Bakiyeyi aç',
     })),
-    ...openPlanAccounts.slice(0, 2).map(({ plan, balance, position }) => ({
+    ...openPlanAccounts.map(({ plan, balance, position }) => ({
       id: `plan-balance-${plan.id}`,
       href: `/plans/${plan.id}?view=balances`,
       tone: 'info',
+      priority: position.netMinor < 0 ? 2 : 4,
       icon: NotebookTabs,
       label: 'Plan hesabı açık',
       title: `${plan.name} Planında ${position.netMinor < 0 ? 'ödemen' : 'alacağın'} var`,
       detail: `${formatMoneyFromMinor(Math.abs(position.netMinor), balance.currency)} · Hesabı kontrol et`,
+      action: 'Hesabı aç',
     })),
-    ...upcomingPlans.slice(0, 2).map((plan) => ({
+    ...upcomingPlans.map((plan) => ({
       id: `upcoming-plan-${plan.id}`,
       href: `/plans/${plan.id}`,
       tone: 'positive',
+      priority: 3,
       icon: CalendarDays,
       label: 'Yaklaşan Plan',
       title: plan.name,
       detail: `${formatDate(plan.startsAt)} tarihinde başlıyor`,
+      action: 'Planı aç',
     })),
-  ].slice(0, 6);
+  ]
+    .sort((left, right) => left.priority - right.priority)
+    .slice(0, 3);
   const activityTarget = activeLedgers?.[0]
     ? `/ledgers/${activeLedgers[0].id}?view=activity`
     : activePlans[0]
@@ -150,14 +158,12 @@ export default function OverviewPage() {
       >
         <div className="overview-focus__heading">
           <div>
-            <span className="eyebrow">Günün özeti</span>
-            <h2 id="overview-focus-title">Bugün neye dikkat etmelisin?</h2>
+            <span className="eyebrow">Dikkatini isteyenler</span>
+            <h2 id="overview-focus-title">Bugünün durumu</h2>
             <p>
-              {incomingPayments.length
-                ? `${incomingPayments.length} ödeme onayı senden aksiyon bekliyor.`
-                : priorityItems.length
-                  ? 'Açık hesapların ve yaklaşan Planların önem sırasına göre burada.'
-                  : 'Acil bir konu yok; Defterlerin ve Planların güncel görünüyor.'}
+              {priorityItems.length
+                ? `${priorityItems.length} konu dikkatini bekliyor.`
+                : 'Defterlerin ve Planların güncel görünüyor.'}
             </p>
           </div>
           {priorityItems.length ? (
@@ -172,7 +178,10 @@ export default function OverviewPage() {
         </div>
 
         {priorityItems.length ? (
-          <div className="overview-focus__grid">
+          <div
+            className={`overview-focus__grid${showAllPriorities ? ' is-expanded' : ''}`}
+            id="overview-priority-list"
+          >
             {priorityItems.map((item) => {
               const Icon = item.icon;
               return (
@@ -189,21 +198,31 @@ export default function OverviewPage() {
                     <strong>{item.title}</strong>
                     <span>{item.detail}</span>
                   </span>
-                  <ArrowRight className="overview-priority__arrow" />
+                  <span className="overview-priority__action">
+                    {item.action} <ArrowRight />
+                  </span>
                 </Link>
               );
             })}
+            {priorityItems.length > 2 ? (
+              <button
+                className="overview-focus__more"
+                type="button"
+                aria-controls="overview-priority-list"
+                aria-expanded={showAllPriorities}
+                onClick={() => setShowAllPriorities((current) => !current)}
+              >
+                {showAllPriorities ? 'Daha az göster' : 'Tümünü gör'}
+              </button>
+            ) : null}
           </div>
         ) : (
           <div className="overview-focus__clear">
             <CheckCircle2 />
             <div>
-              <strong>Bugün için açık bir konu görünmüyor.</strong>
-              <p>Yeni bir hareket olduğunda önceliklerin burada belirecek.</p>
+              <strong>Her şey yolunda.</strong>
+              <p>Şu an dikkatini isteyen bir kayıt yok.</p>
             </div>
-            <Link href="/workspace">
-              Çalışma alanına git <ArrowRight />
-            </Link>
           </div>
         )}
       </section>

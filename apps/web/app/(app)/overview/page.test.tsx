@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { useOverview } from '@/features/data/hooks';
 import { accessibilityViolations } from '@/test/accessibility';
 import OverviewPage from './page';
@@ -94,8 +94,9 @@ describe('Overview hierarchy', () => {
     expect(
       screen.queryByRole('heading', { name: 'Planların' }),
     ).not.toBeInTheDocument();
+    expect(screen.getByText('Her şey yolunda.')).toBeInTheDocument();
     expect(
-      screen.getByText('Bugün için açık bir konu görünmüyor.'),
+      screen.getByText('Şu an dikkatini isteyen bir kayıt yok.'),
     ).toBeInTheDocument();
     expect(screen.getByText('Henüz Defterin yok.')).toBeInTheDocument();
     expect(
@@ -138,7 +139,7 @@ describe('Overview hierarchy', () => {
     expect(screen.getAllByTestId('plan-card')).toHaveLength(1);
   });
 
-  it('separates action, attention, open account and upcoming Plan states', () => {
+  it('prioritizes action, obligation and an approaching Plan', () => {
     jest.mocked(useOverview).mockReturnValue({
       data: {
         ledgers: [ledger],
@@ -201,20 +202,28 @@ describe('Overview hierarchy', () => {
     render(<OverviewPage />);
 
     expect(
-      screen.getByText('1 ödeme onayı senden aksiyon bekliyor.'),
+      screen.getByRole('heading', { name: 'Bugünün durumu' }),
     ).toBeInTheDocument();
+    expect(screen.getByText('3 konu dikkatini bekliyor.')).toBeInTheDocument();
     expect(screen.getByText('Onayın gerekiyor').closest('a')).toHaveClass(
       'overview-priority--critical',
     );
     expect(screen.getByText('Açık hesap').closest('a')).toHaveClass(
       'overview-priority--attention',
     );
-    expect(screen.getByText('Plan hesabı açık').closest('a')).toHaveClass(
-      'overview-priority--info',
-    );
     expect(screen.getByText('Yaklaşan Plan').closest('a')).toHaveClass(
       'overview-priority--positive',
     );
+    expect(screen.queryByText('Plan hesabı açık')).not.toBeInTheDocument();
+    expect(
+      screen.getAllByRole('link', { name: /aç|Kontrol et/i }),
+    ).toHaveLength(3);
+
+    const moreButton = screen.getByRole('button', { name: 'Tümünü gör' });
+    expect(moreButton).toHaveAttribute('aria-expanded', 'false');
+    fireEvent.click(moreButton);
+    expect(moreButton).toHaveAttribute('aria-expanded', 'true');
+    expect(moreButton).toHaveTextContent('Daha az göster');
   });
 
   it('has no detectable structural accessibility violations', async () => {
