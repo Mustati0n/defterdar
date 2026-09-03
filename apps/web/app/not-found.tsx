@@ -9,7 +9,7 @@ export default function NotFound() {
       <h1>Aradığın sayfa bu Defterde yok.</h1>
       <p>Bağlantı değişmiş veya kayıt artık erişilebilir olmayabilir.</p>
       <Link className="button button--primary" href="/overview">
-        <ArrowLeft /> Özete dön
+        <ArrowLeft /> Genel Bakış&apos;a dön
       </Link>
     </main>
   );

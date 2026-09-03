@@ -10,7 +10,7 @@ export function PageHeading({
   tools,
   variant = 'adaptive',
 }: {
-  eyebrow: string;
+  eyebrow?: string;
   title: string;
   description: string;
   action?: ReactNode;
@@ -56,7 +56,7 @@ export function PageHeading({
     >
       <div className="page-heading__copy">
         <div className="page-heading__intro">
-          <span className="eyebrow">{eyebrow}</span>
+          {eyebrow ? <span className="eyebrow">{eyebrow}</span> : null}
           <p>{description}</p>
         </div>
         <h1>{title}</h1>

@@ -22,7 +22,7 @@ jest.mock('@/components/plan-card', () => ({
 
 const ledger = {
   id: 'ledger-1',
-  name: 'Kişisel Defterim',
+  name: 'Günlük Defterim',
   description: null,
   currency: 'TRY',
   ownerId: 'me',
@@ -54,13 +54,19 @@ describe('Overview hierarchy', () => {
     render(<OverviewPage />);
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
-      'Bugün',
+      'Genel Bakış',
     );
+    expect(
+      screen.getByText(
+        'Defterlerindeki ve Planlarındaki önemli gelişmeleri tek bakışta gör.',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/Merhaba Mustafa/i)).not.toBeInTheDocument();
     expect(
       screen.getByRole('heading', { name: 'Defterlerin' }),
     ).toBeInTheDocument();
     expect(
-      screen.queryByText('Kişisel Defterim harcaması'),
+      screen.queryByText('Günlük Defterim harcaması'),
     ).not.toBeInTheDocument();
     expect(
       screen.queryByText('Ortak hesabın hafızası burada.'),

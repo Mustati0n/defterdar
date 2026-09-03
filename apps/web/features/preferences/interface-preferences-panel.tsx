@@ -70,7 +70,7 @@ export function InterfacePreferencesPanel() {
       </label>
 
       <fieldset>
-        <legend>Özet bölümleri</legend>
+        <legend>Genel Bakış bölümleri</legend>
         <div className="preference-checks">
           {(
             [

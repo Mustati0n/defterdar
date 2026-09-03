@@ -34,7 +34,7 @@ log "Candidate commit: $("${git_command[@]}" rev-parse --short=12 HEAD)"
 "$SCRIPT_DIR/bootstrap.sh"
 
 log 'Installing the exact lockfile dependency graph.'
-pnpm install --frozen-lockfile
+CI=true pnpm install --frozen-lockfile
 
 log 'Starting localhost-bound PostgreSQL and MinIO.'
 compose_environment up -d --wait postgres minio

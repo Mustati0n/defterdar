@@ -50,7 +50,7 @@ const QuickActionDialog = dynamic(
 );
 
 const navigation = [
-  { href: '/overview', label: 'Özet', icon: LayoutDashboard },
+  { href: '/overview', label: 'Genel Bakış', icon: LayoutDashboard },
   { href: '/workspace', label: 'Defterler & Planlar', icon: NotebookTabs },
   { href: '/statistics', label: 'İstatistikler', icon: BarChart3 },
 ];
@@ -324,7 +324,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       </aside>
 
       <main
-        className="app-main"
+        className={`app-main${pathname === '/overview' ? ' app-main--overview' : ''}`}
         inert={mobileOpen ? true : undefined}
         aria-hidden={mobileOpen || undefined}
       >
@@ -336,7 +336,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 ?.label ??
                 (matchesPath(pathname, settingsItem.href)
                   ? settingsItem.label
-                  : 'Özet')}
+                  : 'Genel Bakış')}
             </b>
           </span>
           <Link className="profile-link" href="/settings">

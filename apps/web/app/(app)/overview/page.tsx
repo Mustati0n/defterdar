@@ -34,7 +34,8 @@ export default function OverviewPage() {
     (plan) => plan.status === 'ACTIVE',
   );
 
-  if (overview.isLoading) return <LoadingState label="Özet hazırlanıyor…" />;
+  if (overview.isLoading)
+    return <LoadingState label="Genel Bakış hazırlanıyor…" />;
   if (overview.isError)
     return <ErrorState onRetry={() => void overview.refetch()} />;
 
@@ -70,11 +71,14 @@ export default function OverviewPage() {
     )
     .sort(
       (left, right) =>
-        new Date(left.startsAt!).getTime() - new Date(right.startsAt!).getTime(),
+        new Date(left.startsAt!).getTime() -
+        new Date(right.startsAt!).getTime(),
     );
   const orderedPlans = [...activePlans].sort((left, right) => {
     const leftUpcoming = upcomingPlans.findIndex((plan) => plan.id === left.id);
-    const rightUpcoming = upcomingPlans.findIndex((plan) => plan.id === right.id);
+    const rightUpcoming = upcomingPlans.findIndex(
+      (plan) => plan.id === right.id,
+    );
     if (leftUpcoming < 0 && rightUpcoming < 0) return 0;
     if (leftUpcoming < 0) return 1;
     if (rightUpcoming < 0) return -1;
@@ -135,13 +139,15 @@ export default function OverviewPage() {
   return (
     <>
       <PageHeading
-        eyebrow="Özet"
-        title="Bugün"
-        description={`${user?.displayName ? `Merhaba ${user.displayName}. ` : ''}Öncelikli hesaplarını ve yaklaşan Planlarını tek bakışta gör.`}
+        title="Genel Bakış"
+        description="Defterlerindeki ve Planlarındaki önemli gelişmeleri tek bakışta gör."
         variant="compact"
       />
 
-      <section className="overview-focus" aria-labelledby="overview-focus-title">
+      <section
+        className="overview-focus"
+        aria-labelledby="overview-focus-title"
+      >
         <div className="overview-focus__heading">
           <div>
             <span className="eyebrow">Günün özeti</span>
@@ -155,7 +161,9 @@ export default function OverviewPage() {
             </p>
           </div>
           {priorityItems.length ? (
-            <span className="overview-focus__count">{priorityItems.length} konu</span>
+            <span className="overview-focus__count">
+              {priorityItems.length} konu
+            </span>
           ) : (
             <span className="overview-focus__count overview-focus__count--clear">
               Güncel

@@ -56,7 +56,7 @@ describe('AppShell sidebar V2', () => {
     render(<AppShell>İçerik</AppShell>);
 
     const primary = screen.getByRole('navigation', { name: 'Ana menü' });
-    expect(primary).toHaveTextContent('Özet');
+    expect(primary).toHaveTextContent('Genel Bakış');
     expect(primary).toHaveTextContent('Defterler & Planlar');
     expect(primary).toHaveTextContent('İstatistikler');
     expect(primary).not.toHaveTextContent('Ayarlar');
@@ -68,6 +68,9 @@ describe('AppShell sidebar V2', () => {
       screen.getByRole('navigation', { name: 'Hesap ayarları' }),
     ).toHaveTextContent('Ayarlar');
     expect(screen.queryByText('Hızlı ekle')).not.toBeInTheDocument();
+    expect(document.querySelector('.app-main')).toHaveClass(
+      'app-main--overview',
+    );
   });
 
   it('offers a keyboard skip link to the focusable route content', () => {

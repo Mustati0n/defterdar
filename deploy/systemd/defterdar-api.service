@@ -11,7 +11,7 @@ WorkingDirectory=/srv/defterdar
 EnvironmentFile=/srv/defterdar/.env
 Environment=NODE_ENV=production
 Environment=PATH=/usr/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/sbin:/bin
-ExecStart=/usr/bin/pnpm start:api
+ExecStart=/usr/bin/node /srv/defterdar/apps/api/dist/main.js
 Restart=on-failure
 RestartSec=5
 TimeoutStopSec=30

@@ -119,4 +119,16 @@ describe('PageHeading', () => {
       'data-scroll-linked',
     );
   });
+
+  it('does not reserve an empty eyebrow row when none is provided', () => {
+    const { container } = render(
+      <PageHeading
+        title="Genel Bakış"
+        description="Önemli gelişmeleri tek bakışta gör."
+        variant="compact"
+      />,
+    );
+
+    expect(container.querySelector('.eyebrow')).toBeNull();
+  });
 });

@@ -103,7 +103,9 @@ export function OnboardingStepContent({
             <NotebookTabs />
             <small>GEÇİCİ</small>
             <h2>Plan</h2>
-            <p>İster tek başına, ister bir Deftere ekleyerek etkinlik planla.</p>
+            <p>
+              İster tek başına, ister bir Deftere ekleyerek etkinlik planla.
+            </p>
             <ul>
               <li>Kapadokya Gezisi</li>
               <li>Cumartesi Pikniği</li>
@@ -158,7 +160,7 @@ export function OnboardingStepContent({
           </span>
           <div>
             <strong>Kendim keşfedeceğim</strong>
-            <small>Özete geç</small>
+            <small>Genel Bakış&apos;a geç</small>
           </div>
           <ArrowRight />
         </button>
