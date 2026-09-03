@@ -15,8 +15,8 @@ describe('controlled workspace masonry CSS', () => {
       /\.workspace-grid\s*\{[^}]*grid-auto-flow: dense;/s,
     );
     expect(css).not.toMatch(/(?:^|[;{])\s*(?:columns|column-count)\s*:/m);
-    expect(css).toContain('grid-row-end: span 77');
-    expect(css).toContain('grid-row-end: span 97');
+    expect(css).toContain('grid-row-end: span 71');
+    expect(css).toContain('grid-row-end: span 96');
   });
 
   it('returns to natural single-column flow on mobile', () => {

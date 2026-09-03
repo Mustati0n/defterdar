@@ -1,8 +1,9 @@
 import {
+  Archive,
+  BookOpenText,
   CalendarDays,
   CheckCircle2,
   Clock3,
-  MapPin,
   UsersRound,
 } from 'lucide-react';
 import Link from 'next/link';
@@ -12,51 +13,59 @@ import type { Ledger, Plan } from '@/lib/types';
 export function PlanCard({
   plan,
   ledger,
-  index = 0,
   size,
 }: {
   plan: Plan;
   ledger?: Ledger;
-  index?: number;
   size?: 'compact' | 'regular' | 'tall';
 }) {
-  const variant = index % 2 === 0 ? 'checklist' : 'ticket';
+  const StatusIcon =
+    plan.status === 'ACTIVE'
+      ? Clock3
+      : plan.status === 'COMPLETED'
+        ? CheckCircle2
+        : Archive;
+
   return (
     <Link
-      className={`plan-card plan-card--${variant}${size ? ` workspace-card--${size}` : ''}`}
+      className={`plan-card${size ? ` workspace-card--${size}` : ''}`}
       href={`/plans/${plan.id}`}
     >
-      <span className="plan-card__pin" aria-hidden="true" />
-      <div className="plan-card__top">
+      <div className="plan-card__heading">
+        <span className="plan-card__label">Plan</span>
+        <h3>{plan.name}</h3>
         <span
           className={`status-chip status-chip--${plan.status.toLowerCase()}`}
         >
-          {plan.status === 'ACTIVE' ? <Clock3 /> : <CheckCircle2 />}
+          <StatusIcon />
           {planStatusLabel(plan.status)}
         </span>
-        <span className="plan-card__number">
-          #{String(index + 1).padStart(2, '0')}
-        </span>
       </div>
-      <h3>{plan.name}</h3>
-      {plan.description ? <p>{plan.description}</p> : null}
-      <ul className="plan-card__list">
-        <li>
-          <CalendarDays /> {formatDate(plan.startsAt, 'Başlangıç serbest')}
-        </li>
-        <li>
-          <UsersRound /> {plan.participantCount} katılımcı
-        </li>
-        {ledger ? (
-          <li>
-            <MapPin /> {ledger.name}
-          </li>
-        ) : (
-          <li>
-            <MapPin /> Deftere ekli değil · {plan.currency}
-          </li>
-        )}
-      </ul>
+      <dl className="plan-card__facts">
+        <div>
+          <dt>
+            <CalendarDays /> Tarih
+          </dt>
+          <dd>{formatDate(plan.startsAt, 'Başlangıç serbest')}</dd>
+        </div>
+        <div>
+          <dt>
+            <UsersRound /> Katılımcı
+          </dt>
+          <dd>{plan.participantCount} kişi</dd>
+        </div>
+      </dl>
+      {plan.description ? (
+        <p className="plan-card__description">{plan.description}</p>
+      ) : null}
+      <div className="plan-card__context">
+        <BookOpenText />
+        <span>
+          <small>{ledger ? 'Bağlı Defter' : 'Kapsam'}</small>
+          <strong>{ledger ? `${ledger.name} içinde` : 'Bağımsız Plan'}</strong>
+        </span>
+        {!ledger ? <b>{plan.currency}</b> : null}
+      </div>
     </Link>
   );
 }

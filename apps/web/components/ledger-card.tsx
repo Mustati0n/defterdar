@@ -11,7 +11,6 @@ import { ledgerRoleLabel } from '@/lib/format';
 
 interface LedgerCardProps {
   ledger: Ledger;
-  index?: number;
   size?: 'compact' | 'regular' | 'tall';
 }
 
@@ -31,7 +30,7 @@ export function LedgerNotebookCard({ ledger, size }: LedgerCardProps) {
       href={`/ledgers/${ledger.id}`}
     >
       <span className="ledger-card__rings" aria-hidden="true">
-        {Array.from({ length: 7 }, (_, ring) => (
+        {Array.from({ length: 5 }, (_, ring) => (
           <i key={ring} />
         ))}
       </span>
@@ -49,17 +48,14 @@ export function LedgerNotebookCard({ ledger, size }: LedgerCardProps) {
       </div>
       <h3>{ledger.name}</h3>
       {ledger.description ? <p>{ledger.description}</p> : null}
-      <div className="ledger-card__rule" />
       <div className="ledger-card__meta">
         <span>
           <RoleIcon /> {ledgerRoleLabel(ledger.role)}
         </span>
-        <span>
-          {collaborative ? `${memberCount} kişi · ` : ''}
-          {ledger.activePlanCount ?? '—'} aktif Plan
-        </span>
-        <strong>{ledger.currency}</strong>
+        <span>{collaborative ? `${memberCount} kişi` : 'Kişisel'}</span>
+        <span>{ledger.activePlanCount ?? '—'} aktif Plan</span>
       </div>
+      <strong className="ledger-card__currency">{ledger.currency}</strong>
     </Link>
   );
 }

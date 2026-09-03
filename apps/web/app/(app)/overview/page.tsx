@@ -169,8 +169,8 @@ export default function OverviewPage() {
             </Link>
           </div>
           <div className="overview-card-grid overview-card-grid--ledgers">
-            {activeLedgers.slice(0, 3).map((ledger, index) => (
-              <LedgerCard ledger={ledger} index={index} key={ledger.id} />
+            {activeLedgers.slice(0, 3).map((ledger) => (
+              <LedgerCard ledger={ledger} key={ledger.id} />
             ))}
           </div>
         </section>
@@ -180,7 +180,8 @@ export default function OverviewPage() {
           <div>
             <strong>Henüz Defterin yok.</strong>
             <p>
-              İlk Defterini açabilir veya bir Deftere eklemeden Plan yapabilirsin.
+              İlk Defterini açabilir veya bir Deftere eklemeden Plan
+              yapabilirsin.
             </p>
           </div>
           <Link
@@ -210,14 +211,13 @@ export default function OverviewPage() {
             </Link>
           </div>
           <div className="overview-card-grid overview-card-grid--plans">
-            {activePlans.slice(0, 3).map((plan, index) => (
+            {activePlans.slice(0, 3).map((plan) => (
               <PlanCard
                 key={plan.id}
                 plan={plan}
                 ledger={activeLedgers?.find(
                   (ledger) => ledger.id === plan.ledgerId,
                 )}
-                index={index}
               />
             ))}
           </div>

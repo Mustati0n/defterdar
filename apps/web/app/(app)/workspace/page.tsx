@@ -198,7 +198,7 @@ function WorkspaceBoard({
       aria-label="Defterler ve Planlar"
       data-layout="controlled-masonry"
     >
-      {items.map((item, index) => {
+      {items.map((item) => {
         const size = workspaceCardSize(item);
         const linkedPlan =
           item.kind === 'plan' && item.value.scope === 'LEDGER';
@@ -209,14 +209,13 @@ function WorkspaceBoard({
             data-workspace-key={workspaceItemKey(item)}
           >
             {item.kind === 'ledger' ? (
-              <LedgerCard ledger={item.value} index={index} size={size} />
+              <LedgerCard ledger={item.value} size={size} />
             ) : (
               <PlanCard
                 plan={item.value}
                 ledger={ledgers.find(
                   (ledger) => ledger.id === item.value.ledgerId,
                 )}
-                index={index}
                 size={size}
               />
             )}

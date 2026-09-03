@@ -22,7 +22,7 @@ describe('LedgerNotebookCard', () => {
     const { rerender } = render(<LedgerNotebookCard ledger={base} />);
     const shared = screen.getByRole('link', { name: /Ev hesabı/ });
     expect(shared).toHaveClass('ledger-card', 'ledger-card--collaborative');
-    expect(shared.querySelector('.ledger-card__rings')).toBeInTheDocument();
+    expect(shared.querySelectorAll('.ledger-card__rings i')).toHaveLength(5);
 
     rerender(
       <LedgerNotebookCard
@@ -40,5 +40,14 @@ describe('LedgerNotebookCard', () => {
     expect(personal).not.toHaveClass('ledger-card--collaborative');
     expect(personal.querySelector('.ledger-card__rings')).toBeInTheDocument();
     expect(screen.getByText('Defter')).toBeInTheDocument();
+  });
+
+  it('separates role, ownership, active Plans and currency for scanning', () => {
+    render(<LedgerNotebookCard ledger={base} />);
+
+    expect(screen.getByText('Sahip')).toBeInTheDocument();
+    expect(screen.getByText('3 kişi')).toBeInTheDocument();
+    expect(screen.getByText('1 aktif Plan')).toBeInTheDocument();
+    expect(screen.getByText('TRY')).toHaveClass('ledger-card__currency');
   });
 });
