@@ -8,7 +8,7 @@
   padding: max(2rem, env(safe-area-inset-top))
     max(2rem, env(safe-area-inset-right)) max(2rem, env(safe-area-inset-bottom))
     max(2rem, env(safe-area-inset-left));
-  background: rgba(14, 30, 41, 0.68);
+  background: var(--surface-overlay);
   backdrop-filter: blur(5px);
   place-items: center;
 }
@@ -16,15 +16,15 @@
   position: relative;
   width: min(560px, 100%);
   padding: clamp(1.6rem, 4vw, 2.6rem);
-  border: 1px solid var(--color-line);
-  border-radius: 4px 22px 7px 18px;
-  background-color: var(--color-cream);
+  border: var(--border-width) solid var(--border-color);
+  border-radius: var(--radius-dialog);
+  background-color: var(--surface-subtle);
   background-image: repeating-linear-gradient(
     to bottom,
     transparent 0 34px,
     rgba(54, 91, 111, 0.05) 35px 36px
   );
-  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--elevation-highlight), var(--elevation-3);
 }
 .dialog-card h2 {
   margin-bottom: 0.6rem;
@@ -39,11 +39,11 @@
   display: grid;
   width: 44px;
   height: 44px;
-  border: 1px solid var(--color-line);
+  border: var(--border-width) solid var(--border-color);
   border-radius: 50%;
   place-items: center;
   cursor: pointer;
-  background: var(--color-paper);
+  background: var(--surface-raised);
 }
 .dialog-card__actions {
   display: flex;
@@ -296,19 +296,33 @@
   }
   .sidebar {
     width: min(290px, 85vw);
+    overflow-y: auto;
+    visibility: hidden;
+    overscroll-behavior: contain;
     transform: translateX(-105%);
     box-shadow: var(--shadow-raised);
+    transition:
+      transform 0.22s ease,
+      visibility 0s linear 0.22s;
   }
   .sidebar--open {
+    visibility: visible;
     transform: translateX(0);
+    transition-delay: 0s;
   }
   .sidebar--open .brand__copy,
   .sidebar--open .nav-item span,
   .sidebar--open .sidebar__section-label,
   .sidebar--open .sidebar__hint,
+  .sidebar--open .sidebar__recent-item span,
+  .sidebar--open .sidebar__recents-empty,
   .sidebar--open .sidebar__account > div,
+  .sidebar--open .sidebar__account > a,
   .sidebar--open .sidebar__collapse span {
     display: initial;
+  }
+  .sidebar--open .sidebar__account > a {
+    display: grid;
   }
   .sidebar--open .nav-item {
     justify-content: flex-start;

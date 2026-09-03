@@ -24,8 +24,8 @@ const actions: Array<{
 }> = [
   { kind: 'expense', label: 'Harcama ekle', icon: ReceiptText },
   { kind: 'income', label: 'Gelir ekle', icon: CircleDollarSign },
-  { kind: 'plan', label: 'Plan oluştur', icon: NotebookTabs },
   { kind: 'ledger', label: 'Defter oluştur', icon: BookPlus },
+  { kind: 'plan', label: 'Plan oluştur', icon: NotebookTabs },
 ];
 
 export function availableFloatingActions({
@@ -42,7 +42,7 @@ export function availableFloatingActions({
   if (planId) return planActive ? ['expense', 'income'] : [];
   if (ledgerId)
     return ledgerArchived ? ['ledger'] : ['expense', 'income', 'plan'];
-  return ['expense', 'income', 'plan', 'ledger'];
+  return ['expense', 'income', 'ledger', 'plan'];
 }
 
 export function FloatingQuickAdd({
@@ -57,6 +57,7 @@ export function FloatingQuickAdd({
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const suppressFocusOpenRef = useRef(false);
   const planId = pathname.match(/^\/plans\/([^/]+)/)?.[1] ?? '';
   const plan = usePlan(planId);
@@ -108,6 +109,36 @@ export function FloatingQuickAdd({
 
   if (!visibleActions.length) return null;
 
+  function focusMenuItem(position: 'first' | 'last') {
+    window.requestAnimationFrame(() => {
+      const items =
+        menuRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]');
+      if (!items?.length) return;
+      items[position === 'first' ? 0 : items.length - 1]?.focus();
+    });
+  }
+
+  function handleMenuKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
+    if (!open || !['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key))
+      return;
+    const items = Array.from(
+      menuRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? [],
+    );
+    if (!items.length) return;
+    event.preventDefault();
+    const currentIndex = items.indexOf(document.activeElement as HTMLElement);
+    if (event.key === 'Home') return items[0]?.focus();
+    if (event.key === 'End') return items.at(-1)?.focus();
+    const direction = event.key === 'ArrowDown' ? 1 : -1;
+    const nextIndex =
+      currentIndex < 0
+        ? direction > 0
+          ? 0
+          : items.length - 1
+        : (currentIndex + direction + items.length) % items.length;
+    items[nextIndex]?.focus();
+  }
+
   return (
     <div
       className={`floating-quick-add${open ? ' is-open' : ''}`}
@@ -120,9 +151,16 @@ export function FloatingQuickAdd({
       onBlurCapture={(event) => {
         if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false);
       }}
+      onKeyDown={handleMenuKeyDown}
     >
       {open ? (
-        <div className="floating-quick-add__menu" id="floating-quick-add-menu">
+        <div
+          className="floating-quick-add__menu"
+          id="floating-quick-add-menu"
+          ref={menuRef}
+          role="menu"
+          aria-label="Yeni oluştur"
+        >
           {visibleActions.map((action) => {
             const Icon = action.icon;
             return (
@@ -136,6 +174,7 @@ export function FloatingQuickAdd({
                 }}
                 key={action.kind}
                 title={action.label}
+                role="menuitem"
               >
                 <span>{action.label}</span>
                 <i aria-hidden="true">
@@ -150,12 +189,18 @@ export function FloatingQuickAdd({
         className="floating-quick-add__trigger"
         type="button"
         ref={triggerRef}
-        aria-label={
-          open ? 'Hızlı ekle menüsünü kapat' : 'Hızlı ekle menüsünü aç'
-        }
+        aria-label={open ? 'Oluştur menüsünü kapat' : 'Oluştur menüsünü aç'}
         aria-expanded={open}
+        aria-haspopup="menu"
         aria-controls="floating-quick-add-menu"
+        title="Oluştur"
         onClick={() => setOpen((current) => !current)}
+        onKeyDown={(event) => {
+          if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
+          event.preventDefault();
+          setOpen(true);
+          focusMenuItem(event.key === 'ArrowDown' ? 'first' : 'last');
+        }}
       >
         <Plus />
       </button>

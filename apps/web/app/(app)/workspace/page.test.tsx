@@ -1,7 +1,7 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { useAllPlans, useLedgers } from '@/features/data/hooks';
 import type { Ledger, Plan } from '@/lib/types';
-import WorkspacePage, { filterWorkspaceItems } from './page';
+import WorkspacePage, { filterWorkspaceItems, workspaceCardSize } from './page';
 
 jest.mock('next/navigation', () => ({
   useSearchParams: () => ({ get: () => null }),
@@ -43,7 +43,7 @@ const ledger: Ledger = {
   activePlanCount: 1,
   isCollaborative: true,
 };
-const plan: Plan = {
+const linkedPlan: Plan = {
   id: 'plan-1',
   ledgerId: 'ledger-1',
   scope: 'LEDGER',
@@ -59,6 +59,15 @@ const plan: Plan = {
   archivedAt: null,
   participantCount: 4,
 };
+const standalonePlan: Plan = {
+  ...linkedPlan,
+  id: 'plan-2',
+  ledgerId: null,
+  scope: 'STANDALONE',
+  name: 'Kişisel hedef',
+  description: 'Bağımsız plan',
+  updatedAt: '2026-08-27T00:00:00Z',
+};
 
 describe('Defterler & Planlar workspace', () => {
   beforeEach(() => {
@@ -69,14 +78,14 @@ describe('Defterler & Planlar workspace', () => {
       refetch: jest.fn(),
     } as unknown as ReturnType<typeof useLedgers>);
     jest.mocked(useAllPlans).mockReturnValue({
-      data: [plan],
+      data: [linkedPlan, standalonePlan],
       isLoading: false,
       isError: false,
       refetch: jest.fn(),
     } as unknown as ReturnType<typeof useAllPlans>);
   });
 
-  it('loads each collection once and renders both kinds in one ordered grid', () => {
+  it('loads each collection once and hides linked plans by default', () => {
     render(<WorkspacePage />);
     expect(useLedgers).toHaveBeenCalledWith(true);
     expect(useAllPlans).toHaveBeenCalledWith(true);
@@ -84,20 +93,31 @@ describe('Defterler & Planlar workspace', () => {
       document.querySelector('a[href="/ledgers/ledger-1"]'),
     ).toBeInTheDocument();
     expect(
-      document.querySelector('a[href="/plans/plan-1"]'),
+      document.querySelector('a[href="/plans/plan-2"]'),
     ).toBeInTheDocument();
+    expect(
+      document.querySelector('a[href="/plans/plan-1"]'),
+    ).not.toBeInTheDocument();
+
+    const board = screen.getByRole('region', { name: 'Defterler ve Planlar' });
+    expect(board).toHaveAttribute('data-layout', 'controlled-masonry');
+    expect(
+      within(board)
+        .getAllByRole('link')
+        .map((link) => link.getAttribute('href')),
+    ).toEqual(['/plans/plan-2', '/ledgers/ledger-1']);
   });
 
   it('searches names and descriptions across both kinds', () => {
     render(<WorkspacePage />);
     fireEvent.change(screen.getByLabelText('Defter ve planlarda ara'), {
-      target: { value: 'sahil' },
+      target: { value: 'bağımsız' },
     });
     expect(
       document.querySelector('a[href="/ledgers/ledger-1"]'),
     ).not.toBeInTheDocument();
     expect(
-      screen.getByRole('link', { name: /Yaz tatili/ }),
+      screen.getByRole('link', { name: /Kişisel hedef/ }),
     ).toBeInTheDocument();
   });
 
@@ -108,6 +128,11 @@ describe('Defterler & Planlar workspace', () => {
     ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Son/ })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Tümü/ })).toBeInTheDocument();
+    expect(
+      screen.getByRole('switch', {
+        name: /Defterlere bağlı planları göster/,
+      }),
+    ).toHaveAttribute('aria-checked', 'false');
     fireEvent.click(screen.getByRole('button', { name: /Yeni/ }));
     expect(
       screen.getByRole('menuitem', { name: /Yeni Defter/ }),
@@ -117,11 +142,36 @@ describe('Defterler & Planlar workspace', () => {
     ).toBeInTheDocument();
   });
 
+  it('includes linked plans only when the scope switch is enabled', () => {
+    render(<WorkspacePage />);
+    const scope = screen.getByRole('switch', {
+      name: /Defterlere bağlı planları göster/,
+    });
+
+    fireEvent.click(scope);
+
+    expect(scope).toHaveAttribute('aria-checked', 'true');
+    expect(
+      document.querySelector('a[href="/plans/plan-1"]'),
+    ).toBeInTheDocument();
+  });
+
+  it('keeps the scope switch visible but disabled for the ledger type', () => {
+    render(<WorkspacePage />);
+    fireEvent.click(screen.getByRole('button', { name: 'Defter' }));
+
+    expect(
+      screen.getByRole('switch', {
+        name: /Defterlere bağlı planları göster/,
+      }),
+    ).toBeDisabled();
+  });
+
   it('uses truthful active and archived filters', () => {
     expect(
       filterWorkspaceItems(
         [ledger],
-        [{ ...plan, status: 'COMPLETED' }],
+        [{ ...standalonePlan, status: 'COMPLETED' }],
         'active',
         'all',
         '',
@@ -130,11 +180,53 @@ describe('Defterler & Planlar workspace', () => {
     expect(
       filterWorkspaceItems(
         [{ ...ledger, archivedAt: '2026-08-26T00:00:00Z' }],
-        [{ ...plan, status: 'ARCHIVED' }],
+        [{ ...standalonePlan, status: 'ARCHIVED' }],
         'archived',
         'all',
         '',
       ),
     ).toHaveLength(2);
+  });
+
+  it('applies linked-plan scope independently from the type filter', () => {
+    const plans = [linkedPlan, standalonePlan];
+
+    expect(filterWorkspaceItems([], plans, 'recent', 'all', '', false)).toEqual(
+      [expect.objectContaining({ value: standalonePlan })],
+    );
+    expect(
+      filterWorkspaceItems([], plans, 'recent', 'plan', '', true),
+    ).toHaveLength(2);
+    expect(
+      filterWorkspaceItems([ledger], plans, 'recent', 'ledger', '', true),
+    ).toEqual([expect.objectContaining({ kind: 'ledger' })]);
+  });
+
+  it('keeps Ledgers stable and sizes Plans by content density', () => {
+    expect(
+      workspaceCardSize({
+        kind: 'ledger',
+        value: { ...ledger, description: 'x'.repeat(180) },
+      }),
+    ).toBe('compact');
+    expect(
+      workspaceCardSize({
+        kind: 'plan',
+        value: { ...standalonePlan, description: null, participantCount: 1 },
+      }),
+    ).toBe('compact');
+    expect(workspaceCardSize({ kind: 'plan', value: standalonePlan })).toBe(
+      'regular',
+    );
+    expect(
+      workspaceCardSize({
+        kind: 'plan',
+        value: {
+          ...standalonePlan,
+          description: 'x'.repeat(130),
+          participantCount: 8,
+        },
+      }),
+    ).toBe('tall');
   });
 });

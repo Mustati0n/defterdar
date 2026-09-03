@@ -403,17 +403,6 @@
   .attention-strip {
     grid-template-columns: 1fr;
   }
-  .quick-add__menu {
-    position: fixed;
-    right: 1rem;
-    bottom: calc(1rem + env(safe-area-inset-bottom));
-    left: 1rem;
-    width: auto;
-  }
-  .sidebar--open .quick-add__trigger > span:nth-child(2),
-  .sidebar--open .quick-add__trigger > svg {
-    display: grid;
-  }
 }
 
 @media (max-width: 580px) {

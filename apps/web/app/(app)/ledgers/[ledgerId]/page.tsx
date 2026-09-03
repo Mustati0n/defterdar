@@ -152,14 +152,6 @@ export default function LedgerDetailPage() {
                 <span className="eyebrow">Defter hareketleri</span>
                 <h2>Son harcamalar</h2>
               </div>
-              {expenses.data?.length && !data.archivedAt ? (
-                <Link
-                  className="button button--primary button--small"
-                  href={`/expenses/new?ledgerId=${ledgerId}`}
-                >
-                  <Plus /> Harcama ekle
-                </Link>
-              ) : null}
             </div>
             {expenses.data?.length ? (
               <div className="expense-list">
@@ -226,14 +218,6 @@ export default function LedgerDetailPage() {
                   <span className="eyebrow">Planlar</span>
                   <h2>Planlar</h2>
                 </div>
-                {!data.archivedAt ? (
-                  <Link
-                    className="button button--quiet button--small"
-                    href={`/workspace?create=plan&ledgerId=${ledgerId}`}
-                  >
-                    <Plus /> Plan ekle
-                  </Link>
-                ) : null}
               </div>
               <div className="simple-list">
                 {(plans.data ?? []).slice(0, 5).map((plan) => (
@@ -256,14 +240,6 @@ export default function LedgerDetailPage() {
                   <span className="eyebrow">Gelen para</span>
                   <h2>Son gelirler</h2>
                 </div>
-                {!data.archivedAt ? (
-                  <Link
-                    className="button button--quiet button--small"
-                    href={`/incomes/new?ledgerId=${ledgerId}`}
-                  >
-                    <Plus /> Gelir ekle
-                  </Link>
-                ) : null}
               </div>
               <div className="simple-list">
                 {(incomes.data ?? []).slice(0, 5).map((income) => (

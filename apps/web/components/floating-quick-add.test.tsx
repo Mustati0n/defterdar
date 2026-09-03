@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { useLedger, usePlan } from '@/features/data/hooks';
 import {
   availableFloatingActions,
@@ -44,16 +44,15 @@ describe('FloatingQuickAdd', () => {
   it('opens on desktop hover and returns focus after Escape', () => {
     render(<FloatingQuickAdd />);
     const trigger = screen.getByRole('button', {
-      name: /Hızlı ekle menüsünü aç/,
+      name: /Oluştur menüsünü aç/,
     });
     fireEvent.mouseEnter(trigger);
     expect(trigger).toHaveAttribute('aria-expanded', 'true');
-    expect(screen.getByRole('link', { name: /Harcama ekle/ })).toHaveAttribute(
-      'href',
-      '/expenses/new',
-    );
+    expect(
+      screen.getByRole('menuitem', { name: /Harcama ekle/ }),
+    ).toHaveAttribute('href', '/expenses/new');
     fireEvent.keyDown(document, { key: 'Escape' });
-    expect(screen.queryByRole('link', { name: /Harcama ekle/ })).toBeNull();
+    expect(screen.queryByRole('menuitem', { name: /Harcama ekle/ })).toBeNull();
     expect(trigger).toHaveFocus();
   });
 
@@ -61,10 +60,10 @@ describe('FloatingQuickAdd', () => {
     const onAction = jest.fn();
     render(<FloatingQuickAdd onAction={onAction} />);
     const trigger = screen.getByRole('button', {
-      name: /Hızlı ekle menüsünü aç/,
+      name: /Oluştur menüsünü aç/,
     });
     fireEvent.mouseEnter(trigger);
-    fireEvent.click(screen.getByRole('link', { name: /Harcama ekle/ }));
+    fireEvent.click(screen.getByRole('menuitem', { name: /Harcama ekle/ }));
     expect(onAction).toHaveBeenCalledWith('expense', {});
   });
 
@@ -75,12 +74,35 @@ describe('FloatingQuickAdd', () => {
     } as unknown as ReturnType<typeof usePlan>);
     render(<FloatingQuickAdd />);
     fireEvent.click(
-      screen.getByRole('button', { name: /Hızlı ekle menüsünü aç/ }),
+      screen.getByRole('button', { name: /Oluştur menüsünü aç/ }),
     );
-    expect(screen.getByRole('link', { name: /Harcama ekle/ })).toHaveAttribute(
-      'href',
-      '/expenses/new?planId=plan-1',
+    expect(
+      screen.getByRole('menuitem', { name: /Harcama ekle/ }),
+    ).toHaveAttribute('href', '/expenses/new?planId=plan-1');
+    expect(screen.queryByRole('menuitem', { name: /Plan oluştur/ })).toBeNull();
+  });
+
+  it('exposes the global actions in their product order', () => {
+    render(<FloatingQuickAdd />);
+    fireEvent.click(
+      screen.getByRole('button', { name: /Oluştur menüsünü aç/ }),
     );
-    expect(screen.queryByRole('link', { name: /Plan oluştur/ })).toBeNull();
+    expect(
+      screen.getAllByRole('menuitem').map((item) => item.textContent?.trim()),
+    ).toEqual(['Harcama ekle', 'Gelir ekle', 'Defter oluştur', 'Plan oluştur']);
+  });
+
+  it('supports arrow navigation inside the create menu', async () => {
+    render(<FloatingQuickAdd />);
+    const trigger = screen.getByRole('button', {
+      name: /Oluştur menüsünü aç/,
+    });
+    fireEvent.keyDown(trigger, { key: 'ArrowDown' });
+    const items = screen.getAllByRole('menuitem');
+    await waitFor(() => expect(items[0]).toHaveFocus());
+    fireEvent.keyDown(items[0]!, { key: 'ArrowDown' });
+    expect(items[1]).toHaveFocus();
+    fireEvent.keyDown(items[1]!, { key: 'ArrowUp' });
+    expect(items[0]).toHaveFocus();
   });
 });

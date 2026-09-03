@@ -15,12 +15,12 @@ export function PageHeading({
   description: string;
   action?: ReactNode;
   tools?: ReactNode;
-  variant?: 'adaptive' | 'static';
+  variant?: 'adaptive' | 'compact' | 'static';
 }) {
   const headerRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
-    if (variant === 'static') return;
+    if (variant !== 'adaptive') return;
     let frame = 0;
     const update = () => {
       frame = 0;

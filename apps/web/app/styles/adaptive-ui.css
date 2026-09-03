@@ -1,6 +1,6 @@
 /* Adaptive headers, scroll signature and global creation affordance */
-.sidebar__account {
-  margin-top: auto;
+.sidebar .sidebar__account {
+  margin-top: 0;
 }
 
 .floating-quick-add {
@@ -16,13 +16,13 @@
   display: grid;
   width: 58px;
   height: 58px;
-  color: white;
-  border: 1px solid rgba(255, 255, 255, 0.34);
+  color: var(--text-on-strong);
+  border: var(--border-width) solid rgba(255, 255, 255, 0.34);
   border-radius: 50%;
   place-items: center;
   cursor: pointer;
-  background: var(--color-wine);
-  box-shadow: 0 14px 30px rgba(72, 24, 36, 0.3);
+  background: var(--color-accent);
+  box-shadow: var(--elevation-highlight), var(--elevation-2);
   transition:
     border-radius var(--motion-normal) var(--ease-emphasized),
     transform var(--motion-fast) var(--ease-standard),
@@ -32,7 +32,7 @@
 .floating-quick-add__trigger:focus-visible,
 .floating-quick-add.is-open .floating-quick-add__trigger {
   border-radius: 16px;
-  background: #6f2d3a;
+  background: var(--color-accent-strong);
 }
 .floating-quick-add.is-open .floating-quick-add__trigger svg {
   transform: rotate(45deg);
@@ -51,15 +51,15 @@
   align-items: center;
   justify-content: flex-end;
   gap: 0.55rem;
-  color: var(--color-ink);
+  color: var(--text-primary);
 }
 .floating-quick-add__menu a > span {
   padding: 0.55rem 0.8rem;
-  border: 1px solid var(--color-line);
+  border: var(--border-width) solid var(--border-color);
   border-radius: var(--radius-pill);
   opacity: 0;
-  background: var(--color-paper);
-  box-shadow: var(--shadow-paper);
+  background: var(--surface-raised);
+  box-shadow: var(--elevation-highlight), var(--elevation-1);
   font-size: 0.78rem;
   font-weight: 800;
   transform: translateX(10px);
@@ -69,11 +69,11 @@
   display: grid;
   width: 46px;
   height: 46px;
-  color: white;
+  color: var(--text-on-strong);
   border-radius: 15px;
   place-items: center;
-  background: var(--color-wine);
-  box-shadow: var(--shadow-paper);
+  background: var(--color-accent);
+  box-shadow: var(--elevation-highlight), var(--elevation-1);
 }
 
 .signature-line .signature-line__track {
@@ -154,6 +154,40 @@
   grid-area: tools;
   margin-top: 0.85rem;
 }
+.page-heading--compact {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    'copy action'
+    'tools tools';
+  align-items: end;
+  gap: 1rem 1.5rem;
+  margin-bottom: 1.6rem;
+}
+.page-heading--compact .page-heading__copy {
+  align-content: start;
+}
+.page-heading--compact .page-heading__intro {
+  display: grid;
+  gap: 0.2rem;
+}
+.page-heading--compact .page-heading__intro .eyebrow {
+  margin-bottom: 0;
+}
+.page-heading--compact h1 {
+  margin: 0.3rem 0 0;
+  font-size: clamp(1.9rem, 3vw, 2.8rem);
+  line-height: 1;
+}
+.page-heading--compact .page-heading__action {
+  grid-area: action;
+  align-self: end;
+  padding-bottom: 0;
+}
+.page-heading--compact .page-heading__tools {
+  width: 100%;
+  margin-top: 0;
+}
 .page-heading--adaptive .page-heading__tools {
   min-width: 0;
   width: 100%;
@@ -194,6 +228,20 @@
   }
 }
 
+@media (max-width: 1100px) {
+  .page-heading--compact {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      'copy'
+      'action'
+      'tools';
+  }
+  .page-heading--compact .workspace-heading-actions {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+}
+
 @media (max-width: 760px) {
   .floating-quick-add {
     right: max(1rem, env(safe-area-inset-right));
@@ -214,6 +262,34 @@
     backdrop-filter: none;
     margin-bottom: 2.2rem;
     overflow: visible;
+  }
+  .page-heading--compact {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      'copy'
+      'action'
+      'tools';
+    gap: 0.85rem;
+  }
+  .page-heading--compact .page-heading__action,
+  .page-heading--compact .workspace-heading-actions {
+    width: 100%;
+  }
+  .page-heading--compact .workspace-heading-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .page-heading--compact .workspace-heading-count {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+  .page-heading--compact .workspace-scope-filter--header {
+    width: 100%;
+    white-space: normal;
+  }
+  .page-heading--compact .workspace-create .button {
+    width: auto;
   }
   .page-heading--adaptive::before {
     display: none;

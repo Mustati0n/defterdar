@@ -103,4 +103,20 @@ describe('PageHeading', () => {
       'data-scroll-linked',
     );
   });
+
+  it('renders a compact non-scroll-linked workspace header', () => {
+    render(
+      <PageHeading
+        eyebrow="Çalışma alanı"
+        title="Defterler & Planlar"
+        description="Açıklama"
+        variant="compact"
+      />,
+    );
+
+    expect(screen.getByRole('banner')).toHaveClass('page-heading--compact');
+    expect(screen.getByRole('banner')).not.toHaveAttribute(
+      'data-scroll-linked',
+    );
+  });
 });

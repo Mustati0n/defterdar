@@ -24,7 +24,7 @@ import type { Ledger, Plan } from '@/lib/types';
 
 type WorkspaceFilter = 'recent' | 'active' | 'archived';
 type ItemType = 'all' | 'ledger' | 'plan';
-type WorkspaceItem =
+export type WorkspaceItem =
   { kind: 'ledger'; value: Ledger } | { kind: 'plan'; value: Plan };
 
 const CreateLedgerDialog = dynamic(
@@ -48,6 +48,7 @@ export function filterWorkspaceItems(
   filter: WorkspaceFilter,
   itemType: ItemType,
   search: string,
+  includeLinkedPlans = false,
 ) {
   const query = search.trim().toLocaleLowerCase('tr-TR');
   const items: WorkspaceItem[] = [
@@ -56,6 +57,12 @@ export function filterWorkspaceItems(
   ];
   return items
     .filter((item) => itemType === 'all' || item.kind === itemType)
+    .filter(
+      (item) =>
+        item.kind === 'ledger' ||
+        includeLinkedPlans ||
+        item.value.scope === 'STANDALONE',
+    )
     .filter((item) => {
       if (item.kind === 'ledger')
         return filter === 'archived'
@@ -79,14 +86,21 @@ export function filterWorkspaceItems(
     );
 }
 
-function cardSize(item: WorkspaceItem): 'compact' | 'regular' | 'tall' {
+export function workspaceCardSize(
+  item: WorkspaceItem,
+): 'compact' | 'regular' | 'tall' {
+  if (item.kind === 'ledger') return 'compact';
+
   const descriptionLength = item.value.description?.length ?? 0;
-  const people =
-    item.kind === 'ledger'
-      ? (item.value.activeMemberCount ?? 1)
-      : item.value.participantCount;
-  if (descriptionLength > 110 || people >= 6) return 'tall';
-  if (descriptionLength > 0 || people >= 3) return 'regular';
+  let density = 0;
+  if (descriptionLength > 120) density += 2;
+  else if (descriptionLength > 0) density += 1;
+  if (item.value.name.length > 42) density += 1;
+  if (item.value.participantCount >= 6) density += 1;
+  if (item.value.startsAt && item.value.endsAt) density += 1;
+
+  if (density >= 3) return 'tall';
+  if (density >= 1) return 'regular';
   return 'compact';
 }
 
@@ -100,6 +114,7 @@ function WorkspaceContent() {
       ? requestedType
       : 'all',
   );
+  const [includeLinkedPlans, setIncludeLinkedPlans] = useState(false);
   const [createMenuOpen, setCreateMenuOpen] = useState(false);
   const [creator, setCreator] = useState<'ledger' | 'plan' | null>(() => {
     const requestedCreate = searchParams.get('create');
@@ -133,8 +148,9 @@ function WorkspaceContent() {
         filter,
         itemType,
         search,
+        includeLinkedPlans,
       ),
-    [filter, itemType, ledgers.data, plans.data, search],
+    [filter, includeLinkedPlans, itemType, ledgers.data, plans.data, search],
   );
   const isLoading = ledgers.isLoading || plans.isLoading;
   const isError = ledgers.isError || plans.isError;
@@ -144,56 +160,89 @@ function WorkspaceContent() {
       <PageHeading
         eyebrow="Çalışma alanı"
         title="Defterler & Planlar"
-        description="Uzun süreli hesaplarını ve etkinlik planlarını aynı rafta yönet."
+        description="Defterlerini ve bağımsız planlarını tek yerden yönet."
+        variant="compact"
         action={
-          <div className="workspace-create" ref={createMenuRef}>
+          <div className="workspace-heading-actions">
+            <output className="workspace-heading-count" aria-live="polite">
+              {filtered.length} kayıt
+            </output>
             <button
-              ref={createTriggerRef}
-              className="button button--primary"
+              className="workspace-scope-filter workspace-scope-filter--header"
               type="button"
-              aria-expanded={createMenuOpen}
-              aria-haspopup="menu"
-              onClick={() => setCreateMenuOpen((current) => !current)}
+              role="switch"
+              aria-checked={includeLinkedPlans}
+              aria-describedby="workspace-scope-help"
+              disabled={itemType === 'ledger'}
+              onClick={() => setIncludeLinkedPlans((current) => !current)}
             >
-              <Plus /> Yeni <ChevronDown />
+              <span
+                className="workspace-scope-filter__track"
+                aria-hidden="true"
+              >
+                <span />
+              </span>
+              <span className="workspace-scope-filter__copy">
+                <strong>Defterlere bağlı planları göster</strong>
+              </span>
+              <span
+                id="workspace-scope-help"
+                className="workspace-visually-hidden"
+              >
+                {itemType === 'ledger'
+                  ? 'Defter filtresinde uygulanmaz.'
+                  : 'Kapalıyken yalnızca bağımsız planlar gösterilir.'}
+              </span>
             </button>
-            <AnchoredMenu
-              anchorRef={createTriggerRef}
-              open={createMenuOpen}
-              onDismiss={() => setCreateMenuOpen(false)}
-              className="workspace-create__menu"
-            >
-              <div role="menu">
-                <button
-                  type="button"
-                  role="menuitem"
-                  onClick={() => {
-                    setCreator('ledger');
-                    setCreateMenuOpen(false);
-                  }}
-                >
-                  <BookOpenText />
-                  <span>
-                    <strong>Yeni Defter</strong>
-                    <small>Düzenli bir hesap aç</small>
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  role="menuitem"
-                  onClick={() => {
-                    setCreator('plan');
-                    setCreateMenuOpen(false);
-                  }}
-                >
-                  <CalendarPlus />
-                  <span>
-                    <strong>Yeni Plan</strong>
-                    <small>Bir etkinlik planla</small>
-                  </span>
-                </button>
-              </div>
-            </AnchoredMenu>
+            <div className="workspace-create" ref={createMenuRef}>
+              <button
+                ref={createTriggerRef}
+                className="button button--primary"
+                type="button"
+                aria-expanded={createMenuOpen}
+                aria-haspopup="menu"
+                onClick={() => setCreateMenuOpen((current) => !current)}
+              >
+                <Plus /> Yeni <ChevronDown />
+              </button>
+              <AnchoredMenu
+                anchorRef={createTriggerRef}
+                open={createMenuOpen}
+                onDismiss={() => setCreateMenuOpen(false)}
+                className="workspace-create__menu"
+              >
+                <div role="menu">
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      setCreator('ledger');
+                      setCreateMenuOpen(false);
+                    }}
+                  >
+                    <BookOpenText />
+                    <span>
+                      <strong>Yeni Defter</strong>
+                      <small>Düzenli bir hesap aç</small>
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      setCreator('plan');
+                      setCreateMenuOpen(false);
+                    }}
+                  >
+                    <CalendarPlus />
+                    <span>
+                      <strong>Yeni Plan</strong>
+                      <small>Bir etkinlik planla</small>
+                    </span>
+                  </button>
+                </div>
+              </AnchoredMenu>
+            </div>
           </div>
         }
         tools={
@@ -210,56 +259,64 @@ function WorkspaceContent() {
                 aria-label="Defter ve planlarda ara"
               />
             </label>
-            <div className="segmented-control" aria-label="Durum">
-              <button
-                className={filter === 'recent' ? 'is-active' : ''}
-                type="button"
-                onClick={() => setFilter('recent')}
-              >
-                <Sparkles /> Son
-              </button>
-              <button
-                className={filter === 'active' ? 'is-active' : ''}
-                type="button"
-                onClick={() => setFilter('active')}
-              >
-                <Clock3 /> Aktif
-              </button>
-              <button
-                className={filter === 'archived' ? 'is-active' : ''}
-                type="button"
-                onClick={() => setFilter('archived')}
-              >
-                <Archive /> Arşiv
-              </button>
-            </div>
-            <div
-              className="segmented-control workspace-type-filter"
-              aria-label="Tür"
-            >
-              <button
-                className={itemType === 'all' ? 'is-active' : ''}
-                type="button"
-                onClick={() => setItemType('all')}
-              >
-                <Layers3 /> Tümü
-              </button>
-              <button
-                className={itemType === 'ledger' ? 'is-active' : ''}
-                type="button"
-                onClick={() => setItemType('ledger')}
-              >
-                Defter
-              </button>
-              <button
-                className={itemType === 'plan' ? 'is-active' : ''}
-                type="button"
-                onClick={() => setItemType('plan')}
-              >
-                Plan
-              </button>
-            </div>
-            <span className="collection-count">{filtered.length} kayıt</span>
+            <fieldset className="workspace-filter-group workspace-status-filter">
+              <legend>Durum</legend>
+              <div className="segmented-control">
+                <button
+                  className={filter === 'recent' ? 'is-active' : ''}
+                  type="button"
+                  aria-pressed={filter === 'recent'}
+                  onClick={() => setFilter('recent')}
+                >
+                  <Sparkles /> Son
+                </button>
+                <button
+                  className={filter === 'active' ? 'is-active' : ''}
+                  type="button"
+                  aria-pressed={filter === 'active'}
+                  onClick={() => setFilter('active')}
+                >
+                  <Clock3 /> Aktif
+                </button>
+                <button
+                  className={filter === 'archived' ? 'is-active' : ''}
+                  type="button"
+                  aria-pressed={filter === 'archived'}
+                  onClick={() => setFilter('archived')}
+                >
+                  <Archive /> Arşiv
+                </button>
+              </div>
+            </fieldset>
+            <fieldset className="workspace-filter-group workspace-type-filter">
+              <legend>Tür</legend>
+              <div className="segmented-control">
+                <button
+                  className={itemType === 'all' ? 'is-active' : ''}
+                  type="button"
+                  aria-pressed={itemType === 'all'}
+                  onClick={() => setItemType('all')}
+                >
+                  <Layers3 /> Tümü
+                </button>
+                <button
+                  className={itemType === 'ledger' ? 'is-active' : ''}
+                  type="button"
+                  aria-pressed={itemType === 'ledger'}
+                  onClick={() => setItemType('ledger')}
+                >
+                  Defter
+                </button>
+                <button
+                  className={itemType === 'plan' ? 'is-active' : ''}
+                  type="button"
+                  aria-pressed={itemType === 'plan'}
+                  onClick={() => setItemType('plan')}
+                >
+                  Plan
+                </button>
+              </div>
+            </fieldset>
           </section>
         }
       />
@@ -273,14 +330,18 @@ function WorkspaceContent() {
         />
       ) : null}
       {!isLoading && !isError && filtered.length ? (
-        <section className="workspace-grid" aria-label="Defterler ve Planlar">
+        <section
+          className="workspace-grid"
+          aria-label="Defterler ve Planlar"
+          data-layout="controlled-masonry"
+        >
           {filtered.map((item, index) =>
             item.kind === 'ledger' ? (
               <LedgerCard
                 key={`ledger:${item.value.id}`}
                 ledger={item.value}
                 index={index}
-                size={cardSize(item)}
+                size={workspaceCardSize(item)}
               />
             ) : (
               <PlanCard
@@ -290,7 +351,7 @@ function WorkspaceContent() {
                   (ledger) => ledger.id === item.value.ledgerId,
                 )}
                 index={index}
-                size={cardSize(item)}
+                size={workspaceCardSize(item)}
               />
             ),
           )}

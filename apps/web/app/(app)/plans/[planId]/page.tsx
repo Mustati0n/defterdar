@@ -4,7 +4,6 @@ import {
   ArrowLeft,
   BarChart3,
   CalendarDays,
-  CircleDollarSign,
   CheckSquare2,
   Clock3,
   Settings,
@@ -150,14 +149,6 @@ export default function PlanDetailPage() {
       {activeView === 'general' ? (
         <>
           <div className="page-actions">
-            {data.status === 'ACTIVE' ? (
-              <Link
-                className="button button--quiet"
-                href={`/incomes/new?${data.ledgerId ? `ledgerId=${data.ledgerId}&` : ''}planId=${planId}`}
-              >
-                <CircleDollarSign /> Gelir ekle
-              </Link>
-            ) : null}
             <PlanLifecycleAction plan={data} canEdit={Boolean(canEdit)} />
           </div>
           <div className="detail-grid">
@@ -206,14 +197,6 @@ export default function PlanDetailPage() {
                 <span className="eyebrow">Plan harcamaları</span>
                 <h2>Birlikte ödenenler</h2>
               </div>
-              {expenses.data?.length && data.status === 'ACTIVE' ? (
-                <Link
-                  className="button button--primary button--small"
-                  href={`/expenses/new?${data.ledgerId ? `ledgerId=${data.ledgerId}&` : ''}planId=${planId}`}
-                >
-                  <Plus /> Harcama ekle
-                </Link>
-              ) : null}
             </div>
             {expenses.data?.length ? (
               <div className="expense-list">
