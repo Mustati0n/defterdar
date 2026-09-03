@@ -41,7 +41,11 @@ const summary: AnalyticsSummary = {
 describe('analytics product experience', () => {
   it('answers ledger totals, categories, monthly values and member questions', () => {
     render(<AnalyticsView data={summary} />);
-    expect(screen.getByText('Harcama')).toBeInTheDocument();
+    expect(screen.getByText('Toplam harcama')).toBeInTheDocument();
+    expect(screen.getByText('Dönem dengesi').closest('article')).toHaveClass(
+      'analytics-summary__primary',
+      'is-negative',
+    );
     expect(screen.getByText(/en çok/)).toHaveTextContent('Market');
     expect(
       screen.getByRole('img', { name: /Aylara göre harcama ve gelir/ }),
@@ -59,7 +63,7 @@ describe('analytics product experience', () => {
 
   it('keeps Personal analytics focused on cashflow', () => {
     render(<AnalyticsView data={summary} personal />);
-    expect(screen.getByText('Net')).toBeInTheDocument();
+    expect(screen.getByText('Dönem dengesi')).toBeInTheDocument();
     expect(screen.queryByText('Kim ne kadar ödedi?')).not.toBeInTheDocument();
     expect(screen.queryByText('Güncel bakiyeler')).not.toBeInTheDocument();
   });
@@ -79,12 +83,26 @@ describe('analytics product experience', () => {
   });
 
   it('renders an honest empty period', () => {
+    const onShowAll = jest.fn();
     render(
-      <AnalyticsView data={{ ...summary, expenseCount: 0, incomeCount: 0 }} />,
+      <AnalyticsView
+        data={{ ...summary, expenseCount: 0, incomeCount: 0 }}
+        emptyState={{
+          preset: 'month',
+          onShowAll,
+          addHref: '/expenses/new?ledgerId=ledger-1',
+        }}
+      />,
     );
     expect(
       screen.getByText('Bu dönemde kayıtlı hareket yok.'),
     ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Tüm zamanları göster/ }));
+    expect(onShowAll).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('link', { name: /Hareket ekle/ })).toHaveAttribute(
+      'href',
+      '/expenses/new?ledgerId=ledger-1',
+    );
   });
 
   it('provides all required date presets and deterministic ranges', () => {

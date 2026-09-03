@@ -1,10 +1,10 @@
 'use client';
 
-import { Plus } from 'lucide-react';
+import { BarChart3, BookOpenText, NotebookTabs, Plus } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
 import { PageHeading } from '@/components/page-heading';
-import { EmptyState, ErrorState, LoadingState } from '@/components/ui/states';
+import { ErrorState, LoadingState } from '@/components/ui/states';
 import {
   AnalyticsDateControls,
   AnalyticsExperience,
@@ -59,33 +59,66 @@ export default function StatisticsPage() {
   if (!target) {
     return (
       <>
-        <PageIntro
-          pageKey="analytics"
-          title="Kayıtlarını dönemlere göre karşılaştır."
-          steps={[
-            'Bir Defter veya Plan oluşturduğunda gerçek kayıtlarını dönemlere göre burada inceleyebilirsin.',
-          ]}
+        <PageHeading
+          eyebrow="Finansal görünüm"
+          title="İstatistikler"
+          description="Hareketlerin oluştuğunda dönem dengesini, kategorileri ve kişi dağılımlarını burada inceleyebilirsin."
+          variant="compact"
         />
-        <EmptyState
-          title="Henüz analiz edilecek bir Defter veya Plan yok."
-          description="Sahte bir kişisel alan oluşturulmaz; ilk gerçek çalışma alanın burada görünür."
-          action={
-            <div className="empty-state__actions">
-              <Link
-                className="button button--primary"
-                href="/workspace?type=ledger&create=ledger"
-              >
-                <Plus /> Defter oluştur
-              </Link>
-              <Link
-                className="button button--quiet"
-                href="/workspace?type=plan&create=plan&standalone=1"
-              >
-                Yeni Plan oluştur
-              </Link>
-            </div>
-          }
-        />
+        <section
+          className="analytics-start-empty"
+          aria-labelledby="analytics-start-title"
+        >
+          <span className="analytics-start-empty__icon">
+            <BarChart3 />
+          </span>
+          <div className="analytics-start-empty__copy">
+            <span className="eyebrow">Başlangıç</span>
+            <h2 id="analytics-start-title">
+              Önce analiz edilecek bir alan oluştur.
+            </h2>
+            <p>
+              İstatistikler yalnızca gerçek Defter ve Plan hareketlerinden
+              hesaplanır. Bir çalışma alanı açıp ilk hareketini eklediğinde bu
+              ekran otomatik olarak dolacak.
+            </p>
+          </div>
+          <ol
+            className="analytics-start-empty__steps"
+            aria-label="İstatistikleri kullanmaya başlama adımları"
+          >
+            <li>
+              <BookOpenText />
+              <span>
+                <strong>1. Çalışma alanını seç</strong>
+                <small>Sürekli hesaplar için Defter oluştur.</small>
+              </span>
+            </li>
+            <li>
+              <NotebookTabs />
+              <span>
+                <strong>2. Hareketlerini kaydet</strong>
+                <small>
+                  Geçici bir amaç için bağımsız Plan da açabilirsin.
+                </small>
+              </span>
+            </li>
+          </ol>
+          <div className="analytics-start-empty__actions">
+            <Link
+              className="button button--primary"
+              href="/workspace?type=ledger&create=ledger"
+            >
+              <Plus /> Defter oluştur
+            </Link>
+            <Link
+              className="button button--quiet"
+              href="/workspace?type=plan&create=plan&standalone=1"
+            >
+              Yeni Plan oluştur
+            </Link>
+          </div>
+        </section>
       </>
     );
   }
@@ -108,6 +141,7 @@ export default function StatisticsPage() {
         eyebrow="Rakamların kenar notu"
         title="İstatistikler"
         description="Harcama, gelir ve hesap dağılımını seçtiğin gerçek çalışma alanında incele."
+        variant="compact"
         tools={
           <div className="analytics-header-tools">
             <label className="field analytics-target-field">

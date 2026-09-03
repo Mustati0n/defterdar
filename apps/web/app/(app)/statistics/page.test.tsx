@@ -128,7 +128,13 @@ describe('flexible analytics scopes', () => {
       );
     render(<StatisticsPage />);
     expect(
-      screen.getByText('Henüz analiz edilecek bir Defter veya Plan yok.'),
+      screen.getByRole('heading', {
+        name: 'Önce analiz edilecek bir alan oluştur.',
+      }),
     ).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Defter oluştur/ })).toHaveAttribute(
+      'href',
+      '/workspace?type=ledger&create=ledger',
+    );
   });
 });

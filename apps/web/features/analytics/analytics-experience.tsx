@@ -5,11 +5,14 @@ import {
   ArrowDownRight,
   ArrowUpRight,
   BarChart3,
+  CalendarRange,
   CircleDollarSign,
   PieChart,
+  Plus,
   UsersRound,
   WalletCards,
 } from 'lucide-react';
+import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { ErrorState, LoadingState } from '@/components/ui/states';
 import { queryKeys } from '@/features/data/hooks';
@@ -35,13 +38,20 @@ export function AnalyticsView({
   personal = false,
   planStatus,
   participantCount,
+  emptyState,
 }: {
   data: AnalyticsSummary;
   personal?: boolean;
   planStatus?: PlanStatus;
   participantCount?: number;
+  emptyState?: {
+    preset: AnalyticsPreset;
+    onShowAll: () => void;
+    addHref?: string;
+  };
 }) {
   const activityCount = data.expenseCount + data.incomeCount;
+  const netAmount = Number(data.netCashflowMinor);
   const categoryRows = [...data.byCategory].sort(
     (a, b) => Number(b.expenseMinor) - Number(a.expenseMinor),
   );
@@ -56,15 +66,48 @@ export function AnalyticsView({
 
   if (activityCount === 0) {
     return (
-      <div className="analytics-empty" role="status">
-        <PieChart />
-        <div>
-          <h3>Bu dönemde kayıtlı hareket yok.</h3>
+      <section
+        className="analytics-empty"
+        aria-labelledby="analytics-empty-title"
+      >
+        <span className="analytics-empty__icon">
+          <PieChart />
+        </span>
+        <div className="analytics-empty__copy">
+          <span className="eyebrow">Seçili dönem</span>
+          <h2 id="analytics-empty-title">
+            {emptyState?.preset === 'all'
+              ? 'Henüz analiz edilecek hareket yok.'
+              : 'Bu dönemde kayıtlı hareket yok.'}
+          </h2>
           <p>
-            Tarih aralığını genişletebilir veya ilk hareketini ekleyebilirsin.
+            {emptyState?.preset === 'all'
+              ? 'İlk harcamanı eklediğinde dağılımlar ve dönem karşılaştırmaları burada oluşacak.'
+              : 'Başka bir dönemi inceleyebilir veya yeni bir hareket ekleyebilirsin.'}
           </p>
         </div>
-      </div>
+        {emptyState ? (
+          <div className="analytics-empty__actions">
+            {emptyState.preset !== 'all' ? (
+              <button
+                className="button button--quiet"
+                type="button"
+                onClick={emptyState.onShowAll}
+              >
+                <CalendarRange /> Tüm zamanları göster
+              </button>
+            ) : null}
+            {emptyState.addHref ? (
+              <Link
+                className="button button--primary"
+                href={emptyState.addHref}
+              >
+                <Plus /> Hareket ekle
+              </Link>
+            ) : null}
+          </div>
+        ) : null}
+      </section>
     );
   }
 
@@ -92,37 +135,47 @@ export function AnalyticsView({
         </section>
       ) : null}
 
-      <section className="analytics-summary-grid" aria-label="Finansal özet">
-        <article>
-          <span>
-            <ArrowDownRight />
-          </span>
-          <small>Harcama</small>
-          <strong>
-            {formatMoneyFromMinor(data.totalExpenseMinor, data.currency)}
-          </strong>
-          <p>{data.expenseCount} kayıt</p>
-        </article>
-        <article>
-          <span>
-            <ArrowUpRight />
-          </span>
-          <small>Gelir</small>
-          <strong>
-            {formatMoneyFromMinor(data.totalIncomeMinor, data.currency)}
-          </strong>
-          <p>{data.incomeCount} kayıt</p>
-        </article>
-        <article>
+      <section className="analytics-summary" aria-label="Finansal özet">
+        <article
+          className={`analytics-summary__primary ${
+            netAmount > 0
+              ? 'is-positive'
+              : netAmount < 0
+                ? 'is-negative'
+                : 'is-neutral'
+          }`}
+        >
           <span>
             <CircleDollarSign />
           </span>
-          <small>Net</small>
+          <small>Dönem dengesi</small>
           <strong>
             {formatMoneyFromMinor(data.netCashflowMinor, data.currency)}
           </strong>
-          <p>gelir − harcama</p>
+          <p>Toplam gelir − toplam harcama</p>
         </article>
+        <div className="analytics-summary__secondary">
+          <article className="analytics-summary__expense">
+            <span>
+              <ArrowDownRight />
+            </span>
+            <small>Toplam harcama</small>
+            <strong>
+              {formatMoneyFromMinor(data.totalExpenseMinor, data.currency)}
+            </strong>
+            <p>{data.expenseCount} kayıt</p>
+          </article>
+          <article className="analytics-summary__income">
+            <span>
+              <ArrowUpRight />
+            </span>
+            <small>Toplam gelir</small>
+            <strong>
+              {formatMoneyFromMinor(data.totalIncomeMinor, data.currency)}
+            </strong>
+            <p>{data.incomeCount} kayıt</p>
+          </article>
+        </div>
       </section>
 
       {largestCategory?.category && Number(largestCategory.expenseMinor) > 0 ? (
@@ -137,7 +190,9 @@ export function AnalyticsView({
         </p>
       ) : null}
 
-      <div className="analytics-grid">
+      <div
+        className={`analytics-grid${categoryRows.length ? '' : ' analytics-grid--single'}`}
+      >
         <section className="paper-section analytics-chart-card">
           <div className="section-heading">
             <div>
@@ -199,40 +254,42 @@ export function AnalyticsView({
           </ul>
         </section>
 
-        <section className="paper-section analytics-category-card">
-          <span className="eyebrow">Nereye gitti?</span>
-          <h2>Kategoriler</h2>
-          <div className="analytics-category-list">
-            {categoryRows.map((row) => {
-              const amount = Math.abs(Number(row.expenseMinor));
-              const max = Math.max(
-                ...categoryRows.map((item) =>
-                  Math.abs(Number(item.expenseMinor)),
-                ),
-                1,
-              );
-              return (
-                <div key={row.category?.id ?? 'uncategorized'}>
-                  <span>
-                    <strong>{row.category?.name ?? 'Kategorisiz'}</strong>
-                    <small>
-                      {formatMoneyFromMinor(row.expenseMinor, data.currency)}
-                    </small>
-                  </span>
-                  <i aria-hidden="true">
-                    <b
-                      style={
-                        {
-                          '--category-size': amount / max,
-                        } as React.CSSProperties
-                      }
-                    />
-                  </i>
-                </div>
-              );
-            })}
-          </div>
-        </section>
+        {categoryRows.length ? (
+          <section className="paper-section analytics-category-card">
+            <span className="eyebrow">Nereye gitti?</span>
+            <h2>Kategoriler</h2>
+            <div className="analytics-category-list">
+              {categoryRows.map((row) => {
+                const amount = Math.abs(Number(row.expenseMinor));
+                const max = Math.max(
+                  ...categoryRows.map((item) =>
+                    Math.abs(Number(item.expenseMinor)),
+                  ),
+                  1,
+                );
+                return (
+                  <div key={row.category?.id ?? 'uncategorized'}>
+                    <span>
+                      <strong>{row.category?.name ?? 'Kategorisiz'}</strong>
+                      <small>
+                        {formatMoneyFromMinor(row.expenseMinor, data.currency)}
+                      </small>
+                    </span>
+                    <i aria-hidden="true">
+                      <b
+                        style={
+                          {
+                            '--category-size': amount / max,
+                          } as React.CSSProperties
+                        }
+                      />
+                    </i>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        ) : null}
       </div>
 
       {!personal ? (
@@ -381,6 +438,16 @@ export function AnalyticsExperience({
           personal={personal}
           planStatus={planStatus}
           participantCount={participantCount}
+          emptyState={{
+            preset,
+            onShowAll: () => setPreset('all'),
+            addHref:
+              scope === 'ledger'
+                ? `/expenses/new?ledgerId=${resourceId}`
+                : planStatus === 'ACTIVE'
+                  ? `/expenses/new?planId=${resourceId}`
+                  : undefined,
+          }}
         />
       ) : null}
     </section>
