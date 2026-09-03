@@ -6,6 +6,7 @@ import {
   BookOpenText,
   CircleDollarSign,
   Clock3,
+  NotebookTabs,
   Plus,
   ReceiptText,
   Settings,
@@ -41,16 +42,22 @@ import { PageIntro } from '@/features/page-intro/page-intro';
 
 const primaryViews = [
   { id: 'general', label: 'Genel', icon: BookOpenText },
-  { id: 'balances', label: 'Bakiyeler', icon: WalletCards },
+  { id: 'activity', label: 'Hareketler', icon: Clock3 },
+  { id: 'plans', label: 'Planlar', icon: NotebookTabs },
   { id: 'analytics', label: 'İstatistikler', icon: BarChart3 },
 ] as const;
-const secondaryViews = [
-  { id: 'activity', label: 'Hareket geçmişi', icon: Clock3 },
+const managementViews = [
   { id: 'members', label: 'Üyeler', icon: UsersRound },
   { id: 'settings', label: 'Ayarlar', icon: Settings },
 ] as const;
 type LedgerView =
-  'general' | 'activity' | 'balances' | 'analytics' | 'members' | 'settings';
+  | 'general'
+  | 'activity'
+  | 'plans'
+  | 'balances'
+  | 'analytics'
+  | 'members'
+  | 'settings';
 
 export default function LedgerDetailPage() {
   const { ledgerId } = useParams<{ ledgerId: string }>();
@@ -58,7 +65,15 @@ export default function LedgerDetailPage() {
   const { user } = useAuth();
   const requestedView = resolveDetailView(
     searchParams.get('view'),
-    ['general', 'activity', 'balances', 'analytics', 'members', 'settings'],
+    [
+      'general',
+      'activity',
+      'plans',
+      'balances',
+      'analytics',
+      'members',
+      'settings',
+    ],
     'general',
   ) as LedgerDetailView;
   const { ledger, plans, members, balance, expenses, incomes } =
@@ -75,10 +90,13 @@ export default function LedgerDetailPage() {
 
   const data = ledger.data;
   const collaborative = Boolean(data.isCollaborative);
-  const visiblePrimaryViews = collaborative
-    ? primaryViews
-    : primaryViews.filter((view) => view.id !== 'balances');
-  const allowedViews = [...visiblePrimaryViews, ...secondaryViews].map(
+  const secondaryViews = collaborative
+    ? [
+        { id: 'balances', label: 'Bakiyeler', icon: WalletCards } as const,
+        ...managementViews,
+      ]
+    : managementViews;
+  const allowedViews = [...primaryViews, ...secondaryViews].map(
     (view) => view.id,
   ) as LedgerView[];
   const activeView = resolveDetailView(
@@ -90,6 +108,9 @@ export default function LedgerDetailPage() {
     (position) => position.user.id === user?.id,
   );
   const myBalanceState = positionState(myPosition?.netMinor ?? 0);
+  const linkedPlans = (plans.data ?? []).filter(
+    (plan) => plan.scope === 'LEDGER' && plan.ledgerId === ledgerId,
+  );
 
   return (
     <>
@@ -140,8 +161,9 @@ export default function LedgerDetailPage() {
         label="Defter bölümleri"
         basePath={`/ledgers/${ledgerId}`}
         activeView={activeView}
-        primary={visiblePrimaryViews}
+        primary={primaryViews}
         secondary={secondaryViews}
+        secondaryLabel="Hesap & yönetim"
       />
 
       {activeView === 'general' ? (
@@ -220,7 +242,7 @@ export default function LedgerDetailPage() {
                 </div>
               </div>
               <div className="simple-list">
-                {(plans.data ?? []).slice(0, 5).map((plan) => (
+                {linkedPlans.slice(0, 5).map((plan) => (
                   <Link href={`/plans/${plan.id}`} key={plan.id}>
                     <strong>{plan.name}</strong>
                     <small>
@@ -229,7 +251,7 @@ export default function LedgerDetailPage() {
                     </small>
                   </Link>
                 ))}
-                {!plans.data?.length ? (
+                {!linkedPlans.length ? (
                   <p className="muted-copy">Bu Deftere bağlı Plan yok.</p>
                 ) : null}
               </div>
@@ -264,6 +286,62 @@ export default function LedgerDetailPage() {
         </>
       ) : null}
       {activeView === 'activity' ? <ActivityFeed ledgerId={ledgerId} /> : null}
+      {activeView === 'plans' ? (
+        <section className="ledger-plans-workspace">
+          <div className="section-heading">
+            <div>
+              <span className="eyebrow">Deftere bağlı</span>
+              <h2>{data.name} Planları</h2>
+            </div>
+            <span className="ledger-plans-workspace__count">
+              {linkedPlans.length} Plan
+            </span>
+          </div>
+          {plans.isLoading ? (
+            <LoadingState label="Defter Planları hazırlanıyor…" />
+          ) : null}
+          {plans.isError ? (
+            <ErrorState
+              message="Bu Deftere bağlı Planlar yüklenemedi."
+              onRetry={() => void plans.refetch()}
+            />
+          ) : null}
+          {!plans.isLoading && !plans.isError && linkedPlans.length ? (
+            <div className="ledger-plans-grid">
+              {linkedPlans.map((plan) => (
+                <Link
+                  className="ledger-plan-row"
+                  href={`/plans/${plan.id}`}
+                  key={plan.id}
+                >
+                  <span>
+                    <strong>{plan.name}</strong>
+                    <small>
+                      {planStatusLabel(plan.status)} · {plan.participantCount}{' '}
+                      katılımcı
+                    </small>
+                  </span>
+                  <span>{data.name} içinde</span>
+                </Link>
+              ))}
+            </div>
+          ) : null}
+          {!plans.isLoading && !plans.isError && !linkedPlans.length ? (
+            <div className="smart-empty">
+              <span>
+                <NotebookTabs />
+              </span>
+              <div>
+                <h3>Bu Deftere bağlı Plan yok.</h3>
+                <p>
+                  Sağ alttaki oluştur menüsünden bu Defter için yeni bir Plan
+                  ekleyebilirsin.
+                </p>
+              </div>
+            </div>
+          ) : null}
+        </section>
+      ) : null}
       {activeView === 'balances' && collaborative ? (
         <>
           <PageIntro

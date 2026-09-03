@@ -28,12 +28,14 @@ export function DetailNavigation<T extends string>({
   activeView,
   primary,
   secondary,
+  secondaryLabel = 'Daha fazla',
 }: {
   label: string;
   basePath: string;
   activeView: T;
   primary: readonly DetailDestination<T>[];
   secondary: readonly DetailDestination<T>[];
+  secondaryLabel?: string;
 }) {
   const secondaryActive = secondary.some((item) => item.id === activeView);
 
@@ -58,7 +60,7 @@ export function DetailNavigation<T extends string>({
           className={`detail-tabs__more${secondaryActive ? ' is-active' : ''}`}
         >
           <summary>
-            <MoreHorizontal /> Daha fazla
+            <MoreHorizontal /> {secondaryLabel}
           </summary>
           <div>
             {secondary.map((destination) => {

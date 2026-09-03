@@ -36,7 +36,13 @@ export function useCreateLedger() {
 }
 
 export type LedgerDetailView =
-  'general' | 'activity' | 'balances' | 'analytics' | 'members' | 'settings';
+  | 'general'
+  | 'activity'
+  | 'plans'
+  | 'balances'
+  | 'analytics'
+  | 'members'
+  | 'settings';
 
 export function useLedgerDetailData(
   ledgerId: string,
@@ -44,8 +50,9 @@ export function useLedgerDetailData(
 ) {
   const ledger = useLedger(ledgerId);
   const isCollaborative = Boolean(ledger.data?.isCollaborative);
-  const isGeneral = view === 'general';
-  const plans = usePlans(ledgerId, false, isGeneral);
+  const isGeneral =
+    view === 'general' || (view === 'balances' && !isCollaborative);
+  const plans = usePlans(ledgerId, false, isGeneral || view === 'plans');
   const members = useQuery({
     queryKey: queryKeys.members(ledgerId),
     queryFn: ({ signal }) => api.ledgers.members(ledgerId, signal),

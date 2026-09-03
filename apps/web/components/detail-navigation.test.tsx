@@ -26,8 +26,13 @@ describe('detail URL navigation', () => {
         activeView="settings"
         primary={[{ id: 'general', label: 'Genel', icon: BookOpenText }]}
         secondary={[{ id: 'settings', label: 'Ayarlar', icon: Settings }]}
+        secondaryLabel="Hesap & yönetim"
       />,
     );
+    expect(
+      screen.getByText('Hesap & yönetim', { exact: false }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Daha fazla')).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Ayarlar/ })).toHaveAttribute(
       'href',
       '/ledgers/l1?view=settings',

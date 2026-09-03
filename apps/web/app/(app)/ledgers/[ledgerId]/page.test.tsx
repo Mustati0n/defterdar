@@ -46,7 +46,10 @@ const ledger = {
   isCollaborative: false,
 };
 
-function detailData(collaborative: boolean) {
+function detailData(
+  collaborative: boolean,
+  plans: Array<Record<string, unknown>> = [],
+) {
   return {
     ledger: {
       data: {
@@ -57,7 +60,12 @@ function detailData(collaborative: boolean) {
       isLoading: false,
       isError: false,
     },
-    plans: { data: [] },
+    plans: {
+      data: plans,
+      isLoading: false,
+      isError: false,
+      refetch: jest.fn(),
+    },
     members: {
       data: [{ user: { id: 'me', displayName: 'Ece' }, role: 'OWNER' }],
     },
@@ -100,6 +108,64 @@ describe('Ledger detail information architecture', () => {
     );
     expect(screen.getByLabelText('Defter özeti')).toHaveTextContent('2 kişi');
     expect(screen.getAllByText('Sahip')).toHaveLength(1);
+    expect(screen.queryByText('Daha fazla')).not.toBeInTheDocument();
+    expect(
+      screen.getByText('Hesap & yönetim', { exact: false }),
+    ).toBeInTheDocument();
+  });
+
+  it('uses the four task-oriented primary destinations', () => {
+    render(<LedgerDetailPage />);
+
+    for (const [name, href] of [
+      ['Genel', '/ledgers/ledger-1'],
+      ['Hareketler', '/ledgers/ledger-1?view=activity'],
+      ['Planlar', '/ledgers/ledger-1?view=plans'],
+      ['İstatistikler', '/ledgers/ledger-1?view=analytics'],
+    ]) {
+      expect(screen.getByRole('link', { name })).toHaveAttribute('href', href);
+    }
+  });
+
+  it('shows only Plans belonging to the active Ledger in its Plans view', () => {
+    view = 'plans';
+    jest.mocked(useLedgerDetailData).mockReturnValue(
+      detailData(false, [
+        {
+          id: 'linked',
+          ledgerId: 'ledger-1',
+          scope: 'LEDGER',
+          name: 'Günlük hedef',
+          status: 'ACTIVE',
+          participantCount: 2,
+        },
+        {
+          id: 'other-ledger',
+          ledgerId: 'ledger-2',
+          scope: 'LEDGER',
+          name: 'Başka Defter Planı',
+          status: 'ACTIVE',
+          participantCount: 1,
+        },
+        {
+          id: 'standalone',
+          ledgerId: null,
+          scope: 'STANDALONE',
+          name: 'Bağımsız Plan',
+          status: 'ACTIVE',
+          participantCount: 1,
+        },
+      ]),
+    );
+
+    render(<LedgerDetailPage />);
+
+    expect(
+      screen.getByRole('heading', { name: 'Günlük Planları' }),
+    ).toBeVisible();
+    expect(screen.getByRole('link', { name: /Günlük hedef/ })).toBeVisible();
+    expect(screen.queryByText('Başka Defter Planı')).not.toBeInTheDocument();
+    expect(screen.queryByText('Bağımsız Plan')).not.toBeInTheDocument();
   });
 
   it('derives its rendered view from URL state on rerender and defaults invalid state', () => {
