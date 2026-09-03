@@ -4,17 +4,21 @@ import {
   ArrowRight,
   AlertCircle,
   BookOpenText,
+  CalendarDays,
+  CheckCircle2,
+  Clock3,
   NotebookTabs,
   WalletCards,
 } from 'lucide-react';
 import Link from 'next/link';
+import { useState } from 'react';
 import { LedgerCard } from '@/components/ledger-card';
 import { PageHeading } from '@/components/page-heading';
 import { PlanCard } from '@/components/plan-card';
 import { ErrorState, LoadingState } from '@/components/ui/states';
 import { useOverview } from '@/features/data/hooks';
 import { useAuth } from '@/features/auth/auth-provider';
-import { formatMoneyFromMinor } from '@/lib/format';
+import { formatDate, formatMoneyFromMinor } from '@/lib/format';
 import { activitySentence } from '@/lib/activity';
 import { useInterfacePreferences } from '@/features/preferences/use-interface-preferences';
 
@@ -22,6 +26,7 @@ export default function OverviewPage() {
   const { user } = useAuth();
   const overview = useOverview();
   const { preferences } = useInterfacePreferences(user?.id);
+  const [referenceTime] = useState(Date.now);
   const activeLedgers = overview.data?.ledgers.filter(
     (ledger) => !ledger.archivedAt,
   );
@@ -58,6 +63,70 @@ export default function OverviewPage() {
     },
   );
   const pendingPayments = overview.data?.pendingPayments ?? [];
+  const upcomingPlans = activePlans
+    .filter(
+      (plan) =>
+        plan.startsAt && new Date(plan.startsAt).getTime() > referenceTime,
+    )
+    .sort(
+      (left, right) =>
+        new Date(left.startsAt!).getTime() - new Date(right.startsAt!).getTime(),
+    );
+  const orderedPlans = [...activePlans].sort((left, right) => {
+    const leftUpcoming = upcomingPlans.findIndex((plan) => plan.id === left.id);
+    const rightUpcoming = upcomingPlans.findIndex((plan) => plan.id === right.id);
+    if (leftUpcoming < 0 && rightUpcoming < 0) return 0;
+    if (leftUpcoming < 0) return 1;
+    if (rightUpcoming < 0) return -1;
+    return leftUpcoming - rightUpcoming;
+  });
+  const incomingPayments = pendingPayments.filter(
+    (payment) => payment.toUserId === user?.id,
+  );
+  const priorityItems = [
+    ...pendingPayments.slice(0, 2).map((payment) => ({
+      id: `payment-${payment.id}`,
+      href: payment.ledgerId
+        ? `/ledgers/${payment.ledgerId}?view=balances`
+        : `/plans/${payment.planId}?view=balances`,
+      tone: payment.toUserId === user?.id ? 'critical' : 'attention',
+      icon: payment.toUserId === user?.id ? AlertCircle : Clock3,
+      label:
+        payment.toUserId === user?.id ? 'Onayın gerekiyor' : 'Onay bekleniyor',
+      title:
+        payment.toUserId === user?.id
+          ? `${payment.fromUser.displayName} ödeme yaptığını bildirdi`
+          : `${payment.toUser.displayName} ödemeyi onaylayacak`,
+      detail: formatMoneyFromMinor(payment.amountMinor, payment.currency),
+    })),
+    ...owedBalances.slice(0, 2).map(({ ledger, balance, position }) => ({
+      id: `ledger-balance-${ledger.id}`,
+      href: `/ledgers/${ledger.id}?view=balances`,
+      tone: 'attention',
+      icon: WalletCards,
+      label: 'Açık hesap',
+      title: `${ledger.name} Defterinde ödemen var`,
+      detail: `${formatMoneyFromMinor(Math.abs(position.netMinor), balance.currency)} · Bakiyeyi incele`,
+    })),
+    ...openPlanAccounts.slice(0, 2).map(({ plan, balance, position }) => ({
+      id: `plan-balance-${plan.id}`,
+      href: `/plans/${plan.id}?view=balances`,
+      tone: 'info',
+      icon: NotebookTabs,
+      label: 'Plan hesabı açık',
+      title: `${plan.name} Planında ${position.netMinor < 0 ? 'ödemen' : 'alacağın'} var`,
+      detail: `${formatMoneyFromMinor(Math.abs(position.netMinor), balance.currency)} · Hesabı kontrol et`,
+    })),
+    ...upcomingPlans.slice(0, 2).map((plan) => ({
+      id: `upcoming-plan-${plan.id}`,
+      href: `/plans/${plan.id}`,
+      tone: 'positive',
+      icon: CalendarDays,
+      label: 'Yaklaşan Plan',
+      title: plan.name,
+      detail: `${formatDate(plan.startsAt)} tarihinde başlıyor`,
+    })),
+  ].slice(0, 6);
   const activityTarget = activeLedgers?.[0]
     ? `/ledgers/${activeLedgers[0].id}?view=activity`
     : activePlans[0]
@@ -67,102 +136,76 @@ export default function OverviewPage() {
     <>
       <PageHeading
         eyebrow="Özet"
-        title={`Merhaba${user?.displayName ? `, ${user.displayName}` : ''}.`}
-        description="İlgilenmen gereken hesaplara ve son kayıtlarına buradan ulaşabilirsin."
+        title="Bugün"
+        description={`${user?.displayName ? `Merhaba ${user.displayName}. ` : ''}Öncelikli hesaplarını ve yaklaşan Planlarını tek bakışta gör.`}
+        variant="compact"
       />
 
-      {pendingPayments.length ||
-      owedBalances.length ||
-      openPlanAccounts.length ? (
-        <section className="attention-strip" aria-label="İlgilenmen gerekenler">
+      <section className="overview-focus" aria-labelledby="overview-focus-title">
+        <div className="overview-focus__heading">
           <div>
-            <AlertCircle />
-            <span>
-              <small>Bugün neye bakmalısın?</small>
-              <strong>
-                {pendingPayments.some(
-                  (payment) => payment.toUserId === user?.id,
-                )
-                  ? `${pendingPayments.filter((payment) => payment.toUserId === user?.id).length} ödeme onayını bekliyor.`
-                  : 'Açık kalan hesapların var.'}
-              </strong>
+            <span className="eyebrow">Günün özeti</span>
+            <h2 id="overview-focus-title">Bugün neye dikkat etmelisin?</h2>
+            <p>
+              {incomingPayments.length
+                ? `${incomingPayments.length} ödeme onayı senden aksiyon bekliyor.`
+                : priorityItems.length
+                  ? 'Açık hesapların ve yaklaşan Planların önem sırasına göre burada.'
+                  : 'Acil bir konu yok; Defterlerin ve Planların güncel görünüyor.'}
+            </p>
+          </div>
+          {priorityItems.length ? (
+            <span className="overview-focus__count">{priorityItems.length} konu</span>
+          ) : (
+            <span className="overview-focus__count overview-focus__count--clear">
+              Güncel
             </span>
+          )}
+        </div>
+
+        {priorityItems.length ? (
+          <div className="overview-focus__grid">
+            {priorityItems.map((item) => {
+              const Icon = item.icon;
+              return (
+                <Link
+                  className={`overview-priority overview-priority--${item.tone}`}
+                  href={item.href}
+                  key={item.id}
+                >
+                  <span className="overview-priority__icon">
+                    <Icon />
+                  </span>
+                  <span className="overview-priority__copy">
+                    <small>{item.label}</small>
+                    <strong>{item.title}</strong>
+                    <span>{item.detail}</span>
+                  </span>
+                  <ArrowRight className="overview-priority__arrow" />
+                </Link>
+              );
+            })}
           </div>
-          <div className="attention-strip__items">
-            {pendingPayments.slice(0, 2).map((payment) => (
-              <Link
-                href={
-                  payment.ledgerId
-                    ? `/ledgers/${payment.ledgerId}?view=balances`
-                    : `/plans/${payment.planId}?view=balances`
-                }
-                key={payment.id}
-              >
-                <AlertCircle />
-                <span>
-                  <strong>
-                    {payment.toUserId === user?.id
-                      ? `${payment.fromUser.displayName} ödeme yaptığını bildirdi`
-                      : `${payment.toUser.displayName} onayı bekleniyor`}
-                  </strong>
-                  <small>
-                    {formatMoneyFromMinor(
-                      payment.amountMinor,
-                      payment.currency,
-                    )}{' '}
-                    · Onay bekliyor
-                  </small>
-                </span>
-                <ArrowRight />
-              </Link>
-            ))}
-            {owedBalances.slice(0, 2).map(({ ledger, balance, position }) => (
-              <Link
-                href={`/ledgers/${ledger.id}?view=balances`}
-                key={ledger.id}
-              >
-                <WalletCards />
-                <span>
-                  <strong>
-                    {ledger.name}:{' '}
-                    {formatMoneyFromMinor(
-                      Math.abs(position.netMinor),
-                      balance.currency,
-                    )}{' '}
-                    ödemen var
-                  </strong>
-                  <small>Bakiyeyi gör ve ödendi olarak kaydet</small>
-                </span>
-                <ArrowRight />
-              </Link>
-            ))}
-            {openPlanAccounts.slice(0, 2).map(({ plan, balance, position }) => (
-              <Link href={`/plans/${plan.id}?view=balances`} key={plan.id}>
-                <NotebookTabs />
-                <span>
-                  <strong>
-                    {plan.name} Planında{' '}
-                    {formatMoneyFromMinor(
-                      Math.abs(position.netMinor),
-                      balance.currency,
-                    )}{' '}
-                    {position.netMinor < 0 ? 'ödemen' : 'alacağın'} var
-                  </strong>
-                  <small>Planın açık hesabını kontrol et</small>
-                </span>
-                <ArrowRight />
-              </Link>
-            ))}
+        ) : (
+          <div className="overview-focus__clear">
+            <CheckCircle2 />
+            <div>
+              <strong>Bugün için açık bir konu görünmüyor.</strong>
+              <p>Yeni bir hareket olduğunda önceliklerin burada belirecek.</p>
+            </div>
+            <Link href="/workspace">
+              Çalışma alanına git <ArrowRight />
+            </Link>
           </div>
-        </section>
-      ) : null}
+        )}
+      </section>
 
       {preferences.overview.ledgers && activeLedgers?.length ? (
         <section className="overview-section">
           <div className="section-heading">
             <div>
-              <span className="eyebrow">Aktif alanlar</span>
-              <h2>Defterler</h2>
+              <span className="eyebrow">İlgili çalışma alanları</span>
+              <h2>Defterlerin</h2>
             </div>
             <Link href="/workspace?type=ledger">
               Tümünü gör <ArrowRight />
@@ -203,15 +246,15 @@ export default function OverviewPage() {
         <section className="overview-section overview-plans">
           <div className="section-heading">
             <div>
-              <span className="eyebrow">Aktif alanlar</span>
-              <h2>Planlar</h2>
+              <span className="eyebrow">Yaklaşan ve aktif</span>
+              <h2>Planların</h2>
             </div>
             <Link href="/workspace?type=plan">
               Tüm planlar <ArrowRight />
             </Link>
           </div>
           <div className="overview-card-grid overview-card-grid--plans">
-            {activePlans.slice(0, 3).map((plan) => (
+            {orderedPlans.slice(0, 3).map((plan) => (
               <PlanCard
                 key={plan.id}
                 plan={plan}

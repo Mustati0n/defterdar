@@ -52,8 +52,11 @@ describe('Overview hierarchy', () => {
   it('keeps one primary heading and does not present first-Ledger metrics as a summary', () => {
     render(<OverviewPage />);
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
+      'Bugün',
+    );
     expect(
-      screen.getByRole('heading', { name: 'Defterler' }),
+      screen.getByRole('heading', { name: 'Defterlerin' }),
     ).toBeInTheDocument();
     expect(
       screen.queryByText('Kişisel Defterim harcaması'),
@@ -79,11 +82,14 @@ describe('Overview hierarchy', () => {
     } as unknown as ReturnType<typeof useOverview>);
     render(<OverviewPage />);
     expect(
-      screen.queryByRole('heading', { name: 'Defterler' }),
+      screen.queryByRole('heading', { name: 'Defterlerin' }),
     ).not.toBeInTheDocument();
     expect(
-      screen.queryByRole('heading', { name: 'Planlar' }),
+      screen.queryByRole('heading', { name: 'Planların' }),
     ).not.toBeInTheDocument();
+    expect(
+      screen.getByText('Bugün için açık bir konu görünmüyor.'),
+    ).toBeInTheDocument();
     expect(screen.getByText('Henüz Defterin yok.')).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: 'Deftere ekli olmayan Plan' }),
@@ -126,5 +132,79 @@ describe('Overview hierarchy', () => {
     render(<OverviewPage />);
     expect(screen.getAllByTestId('ledger-card')).toHaveLength(3);
     expect(screen.getAllByTestId('plan-card')).toHaveLength(1);
+  });
+
+  it('separates action, attention, open account and upcoming Plan states', () => {
+    jest.mocked(useOverview).mockReturnValue({
+      data: {
+        ledgers: [ledger],
+        plans: [
+          {
+            id: 'plan-1',
+            name: 'Sonbahar gezisi',
+            ledgerId: null,
+            status: 'ACTIVE',
+            startsAt: '2099-10-12T10:00:00Z',
+          },
+        ],
+        ledgerBalances: [
+          {
+            ledgerId: ledger.id,
+            balance: {
+              currency: 'TRY',
+              positions: [
+                { user: { id: 'me', displayName: 'Mustafa' }, netMinor: -25000 },
+              ],
+              suggestions: [],
+            },
+          },
+        ],
+        planBalances: [
+          {
+            planId: 'plan-1',
+            balance: {
+              currency: 'TRY',
+              positions: [
+                { user: { id: 'me', displayName: 'Mustafa' }, netMinor: 10000 },
+              ],
+              suggestions: [],
+            },
+          },
+        ],
+        activity: { items: [], nextCursor: null },
+        pendingPayments: [
+          {
+            id: 'payment-1',
+            ledgerId: ledger.id,
+            planId: null,
+            fromUserId: 'friend',
+            toUserId: 'me',
+            fromUser: { id: 'friend', displayName: 'Deniz' },
+            toUser: { id: 'me', displayName: 'Mustafa' },
+            amountMinor: '5000',
+            currency: 'TRY',
+          },
+        ],
+      },
+      isLoading: false,
+      isError: false,
+      refetch: jest.fn(),
+    } as unknown as ReturnType<typeof useOverview>);
+
+    render(<OverviewPage />);
+
+    expect(screen.getByText('1 ödeme onayı senden aksiyon bekliyor.')).toBeInTheDocument();
+    expect(screen.getByText('Onayın gerekiyor').closest('a')).toHaveClass(
+      'overview-priority--critical',
+    );
+    expect(screen.getByText('Açık hesap').closest('a')).toHaveClass(
+      'overview-priority--attention',
+    );
+    expect(screen.getByText('Plan hesabı açık').closest('a')).toHaveClass(
+      'overview-priority--info',
+    );
+    expect(screen.getByText('Yaklaşan Plan').closest('a')).toHaveClass(
+      'overview-priority--positive',
+    );
   });
 });
