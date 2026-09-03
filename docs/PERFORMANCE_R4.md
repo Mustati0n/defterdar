@@ -105,3 +105,25 @@ saklanmamış ve pazarlama skoruna çevrilmemiştir.
 Expense response artık erişim rolü ile Ledger/Plan lifecycle snapshot'larını
 taşıdığı için detail route ayrı Ledger veya Plan isteği yapmaz. Availability
 yalnız kullanıcı ilgili Borçtan düş aksiyonunu açtığında istenir.
+
+## Confirmed Payments + Unified Workspace re-measure
+
+Node `24.19.0` üzerinde production build sonrasında aynı gzip-union aracıyla
+ölçüldü. Eski iki koleksiyon rotasının yerini alan `/workspace`, bir toplu
+Ledger ve bir toplu Plan sorgusu yapar; üye, üst Defter veya kart başına ek
+istek üretmez.
+
+| Metric | V2 final | Evolution final | Change |
+| --- | ---: | ---: | ---: |
+| Ledger/Plan list request formula | `2` | `2` | flat, `L` ve `P`'den bağımsız |
+| Overview request formula | `1` | `1` | flat |
+| Collection first-load JS | 216,427 B (`/ledgers`) | 216,364 B (`/workspace`) | -63 B |
+| Global CSS | 108,568 B | 115,559 B | +6,991 B |
+| Client TSX | 41 / 94 | 40 / 98 | -1 boundary / +4 files |
+
+CSS artışı ödeme onay yüzeyi, birleşik responsive grid ve fiziksel Defter kapağı
+kurallarından gelir. Workspace kart sıralaması normal CSS Grid ve DOM akışını
+korur; masonry/column yeniden sıralaması yoktur. Header tek pasif scroll
+listener'ını `requestAnimationFrame` ile sınırlar ve yalnız bir CSS custom
+property yazar; React state/render döngüsü oluşturmaz. Reduced-motion ve kapalı
+adaptive-header tercihleri progress değerini sıfırlar.

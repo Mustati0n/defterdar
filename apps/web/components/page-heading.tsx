@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 
 export function PageHeading({
   eyebrow,
@@ -15,27 +15,25 @@ export function PageHeading({
   description: string;
   action?: ReactNode;
   tools?: ReactNode;
-  variant?: 'adaptive' | 'static';
+  variant?: 'adaptive' | 'compact' | 'static';
 }) {
   const headerRef = useRef<HTMLElement>(null);
-  const compactRef = useRef(false);
-  const [compact, setCompact] = useState(false);
 
   useEffect(() => {
-    if (variant === 'static') return;
+    if (variant !== 'adaptive') return;
     let frame = 0;
     const update = () => {
       frame = 0;
-      const longPage =
-        document.documentElement.scrollHeight > window.innerHeight + 180;
-      const next = !longPage
-        ? false
-        : compactRef.current
-          ? window.scrollY > 64
-          : window.scrollY > 160;
-      if (next === compactRef.current) return;
-      compactRef.current = next;
-      setCompact(next);
+      const reducedMotion =
+        typeof window.matchMedia === 'function' &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const progress = reducedMotion
+        ? 0
+        : Math.min(1, Math.max(0, window.scrollY / 240));
+      headerRef.current?.style.setProperty(
+        '--header-progress',
+        String(progress),
+      );
     };
     const schedule = () => {
       if (!frame) frame = window.requestAnimationFrame(update);
@@ -52,14 +50,16 @@ export function PageHeading({
 
   return (
     <header
-      className={`page-heading page-heading--${variant}${compact ? ' is-compact' : ''}`}
-      data-compact={compact || undefined}
+      className={`page-heading page-heading--${variant}${action ? ' page-heading--with-action' : ''}${tools ? ' page-heading--with-tools' : ''}`}
+      data-scroll-linked={variant === 'adaptive' || undefined}
       ref={headerRef}
     >
       <div className="page-heading__copy">
-        <span className="eyebrow">{eyebrow}</span>
+        <div className="page-heading__intro">
+          <span className="eyebrow">{eyebrow}</span>
+          <p>{description}</p>
+        </div>
         <h1>{title}</h1>
-        <p>{description}</p>
       </div>
       {tools ? <div className="page-heading__tools">{tools}</div> : null}
       {action ? <div className="page-heading__action">{action}</div> : null}

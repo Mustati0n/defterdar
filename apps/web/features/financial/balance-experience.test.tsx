@@ -35,6 +35,14 @@ const settlement: Settlement = {
   settledAt: '2026-08-23T12:00:00Z',
   createdById: 'me',
   createdAt: '2026-08-23T12:00:00Z',
+  status: 'CONFIRMED',
+  confirmedById: 'ada',
+  confirmedBy: { id: 'ada', displayName: 'Ada' },
+  confirmedAt: '2026-08-23T12:01:00Z',
+  rejectedById: null,
+  rejectedBy: null,
+  rejectedAt: null,
+  cancelledAt: null,
   voidedAt: null,
 };
 
@@ -76,9 +84,18 @@ describe('BalanceExperience', () => {
     jest
       .spyOn(api.settlements, 'createForPlan')
       .mockResolvedValue({ ...settlement, ledgerId: null, planId: 'plan-1' });
+    jest.spyOn(api.settlements, 'void').mockResolvedValue({
+      ...settlement,
+      status: 'VOID',
+      voidedAt: '2026-08-24T12:00:00Z',
+    });
+    jest.spyOn(api.settlements, 'confirm').mockResolvedValue(settlement);
     jest
-      .spyOn(api.settlements, 'void')
-      .mockResolvedValue({ ...settlement, voidedAt: '2026-08-24T12:00:00Z' });
+      .spyOn(api.settlements, 'reject')
+      .mockResolvedValue({ ...settlement, status: 'REJECTED' });
+    jest
+      .spyOn(api.settlements, 'cancel')
+      .mockResolvedValue({ ...settlement, status: 'CANCELLED' });
   });
   afterEach(() => jest.restoreAllMocks());
 
@@ -166,7 +183,7 @@ describe('BalanceExperience', () => {
     fireEvent.click(screen.getByRole('button', { name: /ödeme kaydet/i }));
     fireEvent.click(
       within(screen.getByRole('dialog')).getByRole('button', {
-        name: 'Ödendi',
+        name: 'Ödedim',
       }),
     );
     await waitFor(() =>
@@ -200,7 +217,7 @@ describe('BalanceExperience', () => {
     fireEvent.click(screen.getByRole('button', { name: /ödeme kaydet/i }));
     fireEvent.click(
       within(screen.getByRole('dialog')).getByRole('button', {
-        name: 'Ödendi',
+        name: 'Ödedim',
       }),
     );
     await waitFor(() =>
@@ -220,7 +237,7 @@ describe('BalanceExperience', () => {
       target: { value: '100' },
     });
     expect(within(dialog).getByText(/200,00/)).toBeInTheDocument();
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Ödendi' }));
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Ödedim' }));
     await waitFor(() =>
       expect(api.settlements.create).toHaveBeenCalledWith(
         'ledger-1',
@@ -254,7 +271,7 @@ describe('BalanceExperience', () => {
     fireEvent.change(within(dialog).getByLabelText('Tutar'), {
       target: { value: '301' },
     });
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Ödendi' }));
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Ödedim' }));
     expect(within(dialog).getByRole('alert')).toHaveTextContent(/En fazla/);
     expect(api.settlements.create).not.toHaveBeenCalled();
   });
@@ -272,7 +289,7 @@ describe('BalanceExperience', () => {
     fireEvent.click(screen.getByRole('button', { name: /ödeme kaydet/i }));
     fireEvent.click(
       within(screen.getByRole('dialog')).getByRole('button', {
-        name: 'Ödendi',
+        name: 'Ödedim',
       }),
     );
     await waitFor(() =>
@@ -309,5 +326,60 @@ describe('BalanceExperience', () => {
     expect(invalidate).toHaveBeenCalledWith({
       queryKey: ['ledger-analytics', 'ledger-1'],
     });
+  });
+
+  it('lets the receiver confirm or reject a pending payment', async () => {
+    const pendingIncoming: Settlement = {
+      ...settlement,
+      fromUserId: 'ada',
+      toUserId: 'me',
+      fromUser: { id: 'ada', displayName: 'Ada' },
+      toUser: { id: 'me', displayName: 'Mustafa' },
+      createdById: 'ada',
+      status: 'PENDING',
+      confirmedById: null,
+      confirmedBy: null,
+      confirmedAt: null,
+    };
+    jest.mocked(api.settlements.list).mockResolvedValueOnce([pendingIncoming]);
+    const { invalidate } = setup();
+
+    const confirm = await screen.findByRole('button', {
+      name: /Ödemeyi aldım/i,
+    });
+    expect(screen.getAllByText('Onay bekliyor').length).toBeGreaterThan(0);
+    expect(
+      screen.getByRole('button', { name: /Gelmedi/i }),
+    ).toBeInTheDocument();
+    fireEvent.click(confirm);
+
+    await waitFor(() =>
+      expect(api.settlements.confirm).toHaveBeenCalledWith('settlement-1'),
+    );
+    expect(invalidate).toHaveBeenCalledWith({
+      queryKey: ['ledger-balance', 'ledger-1'],
+    });
+  });
+
+  it('lets the payer cancel a pending notification without offering void', async () => {
+    const pendingOutgoing: Settlement = {
+      ...settlement,
+      status: 'PENDING',
+      confirmedById: null,
+      confirmedBy: null,
+      confirmedAt: null,
+    };
+    jest.mocked(api.settlements.list).mockResolvedValueOnce([pendingOutgoing]);
+    setup();
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: /Bildirimi iptal et/i }),
+    );
+    await waitFor(() =>
+      expect(api.settlements.cancel).toHaveBeenCalledWith('settlement-1'),
+    );
+    expect(
+      screen.queryByRole('button', { name: 'Ödeme kaydını geri al' }),
+    ).not.toBeInTheDocument();
   });
 });

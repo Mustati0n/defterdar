@@ -55,7 +55,7 @@ describe('guided domain tour', () => {
     forward();
     expect(
       screen.getByRole('heading', {
-        name: 'Defter kalır, Plan bağımsız da başlayabilir.',
+        name: 'Defter kalır, Plan bir Deftere eklenmeden de başlayabilir.',
       }),
     ).toBeInTheDocument();
     expect(
@@ -72,11 +72,9 @@ describe('guided domain tour', () => {
     render(<OnboardingExperience />);
     forward();
     forward();
-    fireEvent.click(
-      screen.getByRole('button', { name: /Kişisel Defter oluştur/ }),
-    );
+    fireEvent.click(screen.getByRole('button', { name: /Defter oluştur/ }));
     expect(complete).toHaveBeenCalled();
-    expect(push).toHaveBeenCalledWith('/ledgers?create=personal');
+    expect(push).toHaveBeenCalledWith('/ledgers?create=1');
   });
 
   it('uses opposite direction states and updates completed progress', () => {
@@ -122,7 +120,7 @@ describe('guided domain tour', () => {
     fireEvent.click(screen.getByRole('button', { name: /İleri/ }));
     expect(
       screen.getByRole('heading', {
-        name: /Defter kalır, Plan bağımsız da başlayabilir/,
+        name: /Defter kalır, Plan bir Deftere eklenmeden de başlayabilir/,
       }),
     ).toBeInTheDocument();
     expect(container.querySelector('.onboarding-step')).toHaveClass(

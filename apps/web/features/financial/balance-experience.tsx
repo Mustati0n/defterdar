@@ -5,10 +5,12 @@ import {
   ArrowDownLeft,
   ArrowRight,
   ArrowUpRight,
+  BellRing,
   CheckCircle2,
   CircleHelp,
   History,
   RotateCcw,
+  XCircle,
   WalletCards,
 } from 'lucide-react';
 import { useState } from 'react';
@@ -99,11 +101,15 @@ export function BalanceExperience({
           settledAt: draft.settledAt,
         },
       ),
-    onSuccess: async () => {
+    onSuccess: async (created) => {
       setPayment(null);
       setPaymentError(null);
       await refreshFinancialTruth();
-      toast('Ödeme kaydedildi.');
+      toast(
+        created.status === 'CONFIRMED'
+          ? 'Ödeme alındı ve bakiye güncellendi.'
+          : 'Ödeme bildirildi; alıcının onayı bekleniyor.',
+      );
     },
     onError: async (error) => {
       if (error instanceof ApiError && error.status === 409) {
@@ -133,6 +139,36 @@ export function BalanceExperience({
         'error',
       ),
   });
+  const transitionPayment = useMutation({
+    mutationFn: ({
+      settlementId,
+      action,
+    }: {
+      settlementId: string;
+      action: 'confirm' | 'reject' | 'cancel';
+    }) => api.settlements[action](settlementId),
+    onSuccess: async (updated) => {
+      await refreshFinancialTruth();
+      toast(
+        updated.status === 'CONFIRMED'
+          ? 'Ödeme onaylandı; bakiye güncellendi.'
+          : updated.status === 'REJECTED'
+            ? 'Ödeme bildirimi reddedildi.'
+            : 'Ödeme bildirimi iptal edildi.',
+      );
+    },
+    onError: async (error) => {
+      if (error instanceof ApiError && error.status === 409) {
+        await refreshFinancialTruth();
+      }
+      toast(
+        error instanceof ApiError
+          ? error.message
+          : 'Ödeme durumu güncellenemedi.',
+        'error',
+      );
+    },
+  });
 
   if (isLoading) return <LoadingState label="Hesaplar çıkarılıyor…" />;
   if (isError || !balance)
@@ -153,6 +189,14 @@ export function BalanceExperience({
     balance.positions.map((item) => [item.user.id, item.user.displayName]),
   );
   const canMutate = !mutationsDisabled && planStatus !== 'ARCHIVED';
+  const pendingIncoming =
+    settlements.data?.filter(
+      (item) => item.status === 'PENDING' && item.toUserId === currentUserId,
+    ) ?? [];
+  const pendingOutgoing =
+    settlements.data?.filter(
+      (item) => item.status === 'PENDING' && item.createdById === currentUserId,
+    ) ?? [];
 
   const openPayment = (suggestion: Suggestion) => {
     setPaymentError(null);
@@ -214,6 +258,84 @@ export function BalanceExperience({
           </p>
         </div>
       </div>
+
+      {pendingIncoming.length || pendingOutgoing.length ? (
+        <section
+          className="payment-attention"
+          aria-labelledby="payment-attention-title"
+        >
+          <div className="payment-attention__heading">
+            <BellRing aria-hidden="true" />
+            <div>
+              <span className="eyebrow">Ödeme onayları</span>
+              <h2 id="payment-attention-title">
+                {pendingIncoming.length
+                  ? `${pendingIncoming.length} ödeme onayını bekliyor`
+                  : 'Bildirimin onay bekliyor'}
+              </h2>
+            </div>
+          </div>
+          {[...pendingIncoming, ...pendingOutgoing].map((item) => (
+            <article className="payment-attention__item" key={item.id}>
+              <div>
+                <strong>
+                  {item.fromUserId === currentUserId
+                    ? `${item.toUser.displayName} kişisine ödediğini bildirdin`
+                    : `${item.fromUser.displayName} ödeme yaptığını bildirdi`}
+                </strong>
+                <small>
+                  {formatMoneyFromMinor(item.amountMinor, item.currency)} ·{' '}
+                  {formatDate(item.settledAt)}
+                </small>
+              </div>
+              {item.toUserId === currentUserId && canMutate ? (
+                <div className="payment-attention__actions">
+                  <button
+                    className="button button--primary button--small"
+                    type="button"
+                    disabled={transitionPayment.isPending}
+                    onClick={() =>
+                      transitionPayment.mutate({
+                        settlementId: item.id,
+                        action: 'confirm',
+                      })
+                    }
+                  >
+                    <CheckCircle2 /> Ödemeyi aldım
+                  </button>
+                  <button
+                    className="button button--quiet button--small"
+                    type="button"
+                    disabled={transitionPayment.isPending}
+                    onClick={() =>
+                      transitionPayment.mutate({
+                        settlementId: item.id,
+                        action: 'reject',
+                      })
+                    }
+                  >
+                    <XCircle /> Gelmedi
+                  </button>
+                </div>
+              ) : item.createdById === currentUserId && canMutate ? (
+                <button
+                  className="button button--quiet button--small"
+                  type="button"
+                  disabled={transitionPayment.isPending}
+                  onClick={() =>
+                    transitionPayment.mutate({
+                      settlementId: item.id,
+                      action: 'cancel',
+                    })
+                  }
+                >
+                  Bildirimi iptal et
+                </button>
+              ) : null}
+            </article>
+          ))}
+        </section>
+      ) : null}
 
       {balance.suggestions.length ? (
         <section className="paper-section settlement-suggestions">
@@ -349,11 +471,11 @@ export function BalanceExperience({
           <div className="history-list">
             {settlements.data?.map((item) => (
               <article
-                className={item.voidedAt ? 'is-voided' : ''}
+                className={item.status === 'VOID' ? 'is-voided' : ''}
                 key={item.id}
               >
                 <span className="history-list__stamp">
-                  {item.voidedAt ? <RotateCcw /> : <WalletCards />}
+                  {item.status === 'VOID' ? <RotateCcw /> : <WalletCards />}
                 </span>
                 <div>
                   <strong>
@@ -365,16 +487,16 @@ export function BalanceExperience({
                     {formatDate(item.settledAt)}
                     {item.note ? ` · ${item.note}` : ''}
                   </small>
-                  {item.voidedAt ? (
-                    <span className="status-chip status-chip--muted">
-                      İptal edildi
-                    </span>
-                  ) : null}
+                  <span
+                    className={`status-chip status-chip--payment-${item.status.toLowerCase()}`}
+                  >
+                    {paymentStatusLabel(item.status)}
+                  </span>
                 </div>
                 <strong>
                   {formatMoneyFromMinor(item.amountMinor, item.currency)}
                 </strong>
-                {!item.voidedAt &&
+                {item.status === 'CONFIRMED' &&
                 canMutate &&
                 (role === 'OWNER' ||
                   role === 'ADMIN' ||
@@ -487,7 +609,9 @@ function SuggestionGroup({
                   aria-label={`${from} kişisinden ${to} kişisine ödeme kaydet`}
                   onClick={() => onPay(suggestion)}
                 >
-                  Ödendi
+                  {suggestion.fromUserId === currentUserId
+                    ? 'Ödedim'
+                    : 'Ödeme aldım'}
                 </button>
               ) : null}
             </article>
@@ -496,4 +620,19 @@ function SuggestionGroup({
       </div>
     </div>
   );
+}
+
+function paymentStatusLabel(status: Settlement['status']) {
+  switch (status) {
+    case 'PENDING':
+      return 'Onay bekliyor';
+    case 'CONFIRMED':
+      return 'Onaylandı';
+    case 'REJECTED':
+      return 'Reddedildi';
+    case 'CANCELLED':
+      return 'İptal edildi';
+    case 'VOID':
+      return 'Geri alındı';
+  }
 }

@@ -4,7 +4,6 @@ import {
   ArrowLeft,
   BarChart3,
   CalendarDays,
-  CircleDollarSign,
   CheckSquare2,
   Clock3,
   Settings,
@@ -45,10 +44,10 @@ import { PageIntro } from '@/features/page-intro/page-intro';
 
 const primaryViews = [
   { id: 'general', label: 'Genel', icon: CheckSquare2 },
-  { id: 'activity', label: 'Hareketler', icon: Clock3 },
   { id: 'balances', label: 'Hesap', icon: WalletCards },
 ] as const;
 const secondaryViews = [
+  { id: 'activity', label: 'Hareket geçmişi', icon: Clock3 },
   { id: 'analytics', label: 'İstatistikler', icon: BarChart3 },
   { id: 'participants', label: 'Katılımcılar', icon: UsersRound },
   { id: 'settings', label: 'Ayarlar', icon: Settings },
@@ -116,7 +115,7 @@ export default function PlanDetailPage() {
 
   return (
     <>
-      <Link className="back-link" href="/plans">
+      <Link className="back-link" href="/workspace?type=plan">
         <ArrowLeft /> Planlara dön
       </Link>
       <section className="detail-cover detail-cover--plan">
@@ -124,7 +123,7 @@ export default function PlanDetailPage() {
         <div>
           <span className="eyebrow">
             {data.scope === 'STANDALONE'
-              ? 'Bağımsız Plan'
+              ? 'Deftere ekli olmayan Plan'
               : 'Deftere bağlı Plan'}{' '}
             · {planStatusLabel(data.status)}
           </span>
@@ -150,14 +149,6 @@ export default function PlanDetailPage() {
       {activeView === 'general' ? (
         <>
           <div className="page-actions">
-            {data.status === 'ACTIVE' ? (
-              <Link
-                className="button button--quiet"
-                href={`/incomes/new?${data.ledgerId ? `ledgerId=${data.ledgerId}&` : ''}planId=${planId}`}
-              >
-                <CircleDollarSign /> Gelir ekle
-              </Link>
-            ) : null}
             <PlanLifecycleAction plan={data} canEdit={Boolean(canEdit)} />
           </div>
           <div className="detail-grid">
@@ -206,14 +197,6 @@ export default function PlanDetailPage() {
                 <span className="eyebrow">Plan harcamaları</span>
                 <h2>Birlikte ödenenler</h2>
               </div>
-              {expenses.data?.length && data.status === 'ACTIVE' ? (
-                <Link
-                  className="button button--primary button--small"
-                  href={`/expenses/new?${data.ledgerId ? `ledgerId=${data.ledgerId}&` : ''}planId=${planId}`}
-                >
-                  <Plus /> Harcama ekle
-                </Link>
-              ) : null}
             </div>
             {expenses.data?.length ? (
               <div className="expense-list">

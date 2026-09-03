@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   ConflictException,
   ForbiddenException,
   GoneException,
@@ -42,13 +41,10 @@ export class LedgerInvitationsService {
     actorId: string,
     input: CreateInvitationDto,
   ): Promise<CreatedInvitationResponseDto> {
-    const context = await this.authorization.requireRole(ledgerId, actorId, [
+    await this.authorization.requireRole(ledgerId, actorId, [
       'OWNER',
       'ADMIN',
     ]);
-    if (context.ledger.type !== 'SHARED') {
-      throw new BadRequestException('PERSONAL ledger cannot have invitations');
-    }
 
     const token = this.tokenService.createOpaqueToken();
     const ttlDays = this.configService.get('INVITATION_TTL_DAYS', {
@@ -92,13 +88,10 @@ export class LedgerInvitationsService {
     invitationId: string,
     actorId: string,
   ): Promise<void> {
-    const context = await this.authorization.requireRole(ledgerId, actorId, [
+    await this.authorization.requireRole(ledgerId, actorId, [
       'OWNER',
       'ADMIN',
     ]);
-    if (context.ledger.type !== 'SHARED') {
-      throw new BadRequestException('PERSONAL ledger cannot have invitations');
-    }
     const invitation = await this.prisma.ledgerInvitation.findFirst({
       where: { id: invitationId, ledgerId },
       select: { acceptedAt: true, id: true },
@@ -159,7 +152,6 @@ export class LedgerInvitationsService {
             where: {
               archivedAt: null,
               id: invitation.ledgerId,
-              type: 'SHARED',
             },
             select: { id: true },
           });

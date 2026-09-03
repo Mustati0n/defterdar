@@ -163,7 +163,7 @@ describe('product-flow API contracts', () => {
     ]);
   });
 
-  it('uses real payment and Borçtan düş create/reversal endpoints', async () => {
+  it('uses confirmed-payment transitions and Borçtan düş endpoints', async () => {
     fetchMock.mockImplementation(() => json({ id: 'financial-record' }, 201));
     await api.settlements.create('ledger-1', {
       fromUserId: 'u1',
@@ -171,6 +171,9 @@ describe('product-flow API contracts', () => {
       amountMinor: 10000,
       settledAt: '2026-08-24T12:00:00Z',
     });
+    await api.settlements.confirm('settlement-1');
+    await api.settlements.reject('settlement-2');
+    await api.settlements.cancel('settlement-3');
     await api.settlements.void('settlement-1');
     await api.offsets.availability('split-1');
     await api.offsets.create('split-1', 7000);
@@ -180,6 +183,9 @@ describe('product-flow API contracts', () => {
       fetchMock.mock.calls.map((call) => new URL(String(call[0])).pathname),
     ).toEqual([
       '/ledgers/ledger-1/settlements',
+      '/settlements/settlement-1/confirm',
+      '/settlements/settlement-2/reject',
+      '/settlements/settlement-3/cancel',
       '/settlements/settlement-1/void',
       '/expense-splits/split-1/offset-availability',
       '/expense-splits/split-1/offsets',
@@ -187,10 +193,10 @@ describe('product-flow API contracts', () => {
       '/expense-split-offsets/offset-1/void',
     ]);
     expect(
-      JSON.parse((fetchMock.mock.calls[3][1] as RequestInit).body as string),
+      JSON.parse((fetchMock.mock.calls[6][1] as RequestInit).body as string),
     ).toEqual({ amountMinor: 7000 });
     expect(
-      JSON.parse((fetchMock.mock.calls[4][1] as RequestInit).body as string),
+      JSON.parse((fetchMock.mock.calls[7][1] as RequestInit).body as string),
     ).toEqual({});
   });
 

@@ -42,6 +42,59 @@
   gap: 0.38rem;
   margin-top: 2.6rem;
 }
+.sidebar__recents {
+  display: grid;
+  min-height: 0;
+  gap: 0.22rem;
+  margin-top: 1.5rem;
+}
+.sidebar__recent-item {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.55rem 0.8rem;
+  color: #aebcbb;
+  border-radius: var(--radius-sm);
+  font-size: 0.76rem;
+  font-weight: 650;
+  transition:
+    color var(--motion-fast),
+    background var(--motion-fast),
+    transform var(--motion-fast) var(--ease-standard);
+}
+.sidebar__recent-item:hover,
+.sidebar__recent-item:focus-visible,
+.sidebar__recent-item.is-active {
+  color: #fff8e9;
+  background: rgba(255, 255, 255, 0.07);
+}
+.sidebar__recent-item:hover {
+  transform: translateX(2px);
+}
+.sidebar__recent-item svg {
+  flex: 0 0 auto;
+  color: var(--color-gold-soft);
+}
+.sidebar__recent-item span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sidebar__recents-empty {
+  margin: 0;
+  padding: 0.15rem 0.8rem;
+  color: #87989e;
+  font-size: 0.68rem;
+  line-height: 1.45;
+}
+.sidebar__utility {
+  display: grid;
+  gap: 0.38rem;
+  margin-top: auto;
+  padding-top: 0.85rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
 .sidebar__section-label {
   margin: 0 0.8rem 0.45rem;
   color: #87989e;
@@ -125,6 +178,11 @@
   display: grid;
   min-width: 0;
 }
+.sidebar__account > a {
+  display: grid;
+  min-width: 0;
+  border-radius: var(--radius-sm);
+}
 .sidebar__account strong,
 .sidebar__account small {
   overflow: hidden;
@@ -192,7 +250,10 @@
 .app-frame--collapsed .nav-item span,
 .app-frame--collapsed .sidebar__section-label,
 .app-frame--collapsed .sidebar__hint,
+.app-frame--collapsed .sidebar__recent-item span,
+.app-frame--collapsed .sidebar__recents-empty,
 .app-frame--collapsed .sidebar__account > div,
+.app-frame--collapsed .sidebar__account > a,
 .app-frame--collapsed .sidebar__collapse span {
   display: none;
 }
@@ -203,6 +264,10 @@
   justify-content: center;
   padding-inline: 0.5rem;
   border-radius: var(--radius-md);
+}
+.app-frame--collapsed .sidebar__recent-item {
+  justify-content: center;
+  padding-inline: 0.5rem;
 }
 .app-frame--collapsed .nav-item--active::after {
   display: none;

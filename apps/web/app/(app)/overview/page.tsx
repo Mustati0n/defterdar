@@ -57,6 +57,7 @@ export default function OverviewPage() {
         : [];
     },
   );
+  const pendingPayments = overview.data?.pendingPayments ?? [];
   const activityTarget = activeLedgers?.[0]
     ? `/ledgers/${activeLedgers[0].id}?view=activity`
     : activePlans[0]
@@ -70,16 +71,51 @@ export default function OverviewPage() {
         description="İlgilenmen gereken hesaplara ve son kayıtlarına buradan ulaşabilirsin."
       />
 
-      {owedBalances.length || openPlanAccounts.length ? (
+      {pendingPayments.length ||
+      owedBalances.length ||
+      openPlanAccounts.length ? (
         <section className="attention-strip" aria-label="İlgilenmen gerekenler">
           <div>
             <AlertCircle />
             <span>
               <small>Bugün neye bakmalısın?</small>
-              <strong>Açık kalan hesapların var.</strong>
+              <strong>
+                {pendingPayments.some(
+                  (payment) => payment.toUserId === user?.id,
+                )
+                  ? `${pendingPayments.filter((payment) => payment.toUserId === user?.id).length} ödeme onayını bekliyor.`
+                  : 'Açık kalan hesapların var.'}
+              </strong>
             </span>
           </div>
           <div className="attention-strip__items">
+            {pendingPayments.slice(0, 2).map((payment) => (
+              <Link
+                href={
+                  payment.ledgerId
+                    ? `/ledgers/${payment.ledgerId}?view=balances`
+                    : `/plans/${payment.planId}?view=balances`
+                }
+                key={payment.id}
+              >
+                <AlertCircle />
+                <span>
+                  <strong>
+                    {payment.toUserId === user?.id
+                      ? `${payment.fromUser.displayName} ödeme yaptığını bildirdi`
+                      : `${payment.toUser.displayName} onayı bekleniyor`}
+                  </strong>
+                  <small>
+                    {formatMoneyFromMinor(
+                      payment.amountMinor,
+                      payment.currency,
+                    )}{' '}
+                    · Onay bekliyor
+                  </small>
+                </span>
+                <ArrowRight />
+              </Link>
+            ))}
             {owedBalances.slice(0, 2).map(({ ledger, balance, position }) => (
               <Link
                 href={`/ledgers/${ledger.id}?view=balances`}
@@ -128,7 +164,7 @@ export default function OverviewPage() {
               <span className="eyebrow">Aktif alanlar</span>
               <h2>Defterler</h2>
             </div>
-            <Link href="/ledgers">
+            <Link href="/workspace?type=ledger">
               Tümünü gör <ArrowRight />
             </Link>
           </div>
@@ -144,21 +180,20 @@ export default function OverviewPage() {
           <div>
             <strong>Henüz Defterin yok.</strong>
             <p>
-              Kişisel kayıt alanını isteğe bağlı açabilir veya doğrudan bağımsız
-              bir Planla başlayabilirsin.
+              İlk Defterini açabilir veya bir Deftere eklemeden Plan yapabilirsin.
             </p>
           </div>
           <Link
             className="button button--quiet button--small"
-            href="/ledgers?create=1"
+            href="/workspace?type=ledger&create=ledger"
           >
             Defter oluştur
           </Link>
           <Link
             className="button button--quiet button--small"
-            href="/plans?create=1&standalone=1"
+            href="/workspace?type=plan&create=plan&standalone=1"
           >
-            Bağımsız Plan
+            Deftere ekli olmayan Plan
           </Link>
         </section>
       ) : null}
@@ -170,7 +205,7 @@ export default function OverviewPage() {
               <span className="eyebrow">Aktif alanlar</span>
               <h2>Planlar</h2>
             </div>
-            <Link href="/plans">
+            <Link href="/workspace?type=plan">
               Tüm planlar <ArrowRight />
             </Link>
           </div>

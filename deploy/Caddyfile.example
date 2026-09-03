@@ -1,6 +1,6 @@
-# Replace <YOUR_DOMAIN> before enabling this file. Caddy obtains HTTPS
-# certificates only after a real public DNS name resolves to this server.
-<YOUR_DOMAIN> {
+# Keep the existing browser-trusted HTTPS hostname. Direct IP addresses do not
+# qualify for public ACME certificates and must not be replaced with HTTP.
+<PUBLIC_HOSTNAME> {
 	encode zstd gzip
 
 	handle_path /api/* {

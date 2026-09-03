@@ -5,6 +5,9 @@
   display: grid;
   gap: 1.4rem;
 }
+.page-heading--adaptive + .analytics-experience {
+  padding-top: 0;
+}
 .analytics-filters {
   display: flex;
   align-items: flex-end;
@@ -13,7 +16,7 @@
 }
 .analytics-header-tools {
   display: grid;
-  grid-template-columns: minmax(220px, 0.45fr) minmax(0, 1fr);
+  grid-template-columns: minmax(150px, 0.42fr) minmax(0, 1fr);
   align-items: end;
   gap: 1rem;
 }
@@ -27,18 +30,21 @@
   margin: 0;
 }
 .analytics-target-field .input {
-  min-width: 220px;
+  min-width: 0;
 }
-.page-heading--adaptive.is-compact .analytics-header-tools {
-  grid-template-columns: minmax(180px, 0.35fr) minmax(0, 1fr);
-  gap: 0.55rem;
+.page-heading--adaptive .analytics-header-tools {
+  min-width: 0;
 }
-.page-heading--adaptive.is-compact .analytics-header-tools .field > span {
-  position: absolute;
-  width: 1px;
-  height: 1px;
+.page-heading--adaptive .analytics-header-tools .field > span {
+  max-height: calc(1.5rem * (1 - var(--header-progress)));
   overflow: hidden;
-  clip-path: inset(50%);
+  opacity: calc(1 - var(--header-progress) * 1.15);
+}
+.analytics-preset-expanded {
+  min-width: 0;
+}
+.analytics-preset-compact {
+  display: none;
 }
 .analytics-filters .segmented-control {
   flex-wrap: wrap;
@@ -75,7 +81,7 @@
 }
 .analytics-summary-grid article {
   display: grid;
-  grid-template-columns: auto 1fr;
+  grid-template-columns: auto minmax(0, 1fr);
   gap: 0.15rem 0.75rem;
   padding: 1.3rem;
   border: 1px solid var(--color-line);
@@ -104,6 +110,8 @@
 .analytics-summary-grid strong {
   font: 800 clamp(1.4rem, 2.5vw, 2.15rem) var(--font-display);
   color: var(--color-navy);
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .analytics-summary-grid p {
   margin: 0;
@@ -295,6 +303,8 @@
 }
 .analytics-final-summary > div strong {
   font: 800 clamp(2rem, 5vw, 3.5rem) var(--font-display);
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .analytics-final-summary > div span {
   color: var(--color-gold-soft);
@@ -459,16 +469,17 @@
 }
 
 @media (max-width: 900px) {
-  .analytics-header-tools,
-  .page-heading--adaptive.is-compact .analytics-header-tools {
-    grid-template-columns: 1fr;
-  }
   .analytics-grid,
   .settings-profile {
     grid-template-columns: 1fr;
   }
   .analytics-summary-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 760px) {
+  .analytics-header-tools {
+    grid-template-columns: 1fr;
   }
 }
 @media (max-width: 700px) {

@@ -13,18 +13,18 @@ fail() {
 
 # shellcheck source=profile.sh
 source "$SCRIPT_DIR/profile.sh"
-select_profile "${1:-}"
-require_profile_environment
+select_environment "$@"
+require_environment
 
 BACKUP_ROOT="${DEFTERDAR_BACKUP_DIR:-$HOME/defterdar-backups}"
-BACKUP_DIR="$BACKUP_ROOT/$PROFILE/postgres"
-OUTPUT_FILE="$BACKUP_DIR/defterdar-$PROFILE-$TIMESTAMP.dump"
+BACKUP_DIR="$BACKUP_ROOT/postgres"
+OUTPUT_FILE="$BACKUP_DIR/defterdar-$TIMESTAMP.dump"
 
 umask 077
 mkdir -p "$BACKUP_DIR"
 trap 'rm -f -- "$OUTPUT_FILE"' ERR
 
-compose_profile exec -T postgres \
+compose_environment exec -T postgres \
   sh -c 'exec pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" --format=custom --no-owner --no-privileges' \
   >"$OUTPUT_FILE"
 

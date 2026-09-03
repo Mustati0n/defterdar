@@ -18,44 +18,33 @@ fail() {
 
 # shellcheck source=profile.sh
 source "$SCRIPT_DIR/profile.sh"
-select_profile "${1:-}"
-require_profile_environment
+select_environment "$@"
+require_environment
 
-git rev-parse --is-inside-work-tree >/dev/null 2>&1 || fail 'Project is not a Git working tree.'
-[[ -z "$(git status --porcelain)" ]] || fail 'Working tree is dirty. Commit or discard server changes explicitly; deploy will not auto-stash.'
-
-if [[ "$PROFILE" == 'staging' ]]; then
-  log 'Fetching the verified STAGING source branch.'
-  git fetch origin main
-  upstream="$(git rev-parse --abbrev-ref --symbolic-full-name '@{upstream}' 2>/dev/null || true)"
-  [[ "$upstream" == 'origin/main' ]] || fail 'STAGING worktree must track origin/main.'
+git_command=(git)
+if [[ "$EUID" -eq 0 ]]; then
+  git_command+=( -c "safe.directory=$PROJECT_DIR" )
 fi
 
-log "Pulling the $PROFILE tracked branch with fast-forward only."
-git pull --ff-only
+"${git_command[@]}" rev-parse --is-inside-work-tree >/dev/null 2>&1 || fail 'Project is not a Git working tree.'
+[[ -z "$("${git_command[@]}" status --porcelain)" ]] || fail 'Working tree is dirty. Commit or discard server changes explicitly; deploy will not auto-stash.'
 
-if [[ "$PROFILE" == 'staging' ]]; then
-  [[ "$(git rev-parse HEAD)" == "$(git rev-parse origin/main)" ]] || fail 'STAGING HEAD is not the current origin/main commit.'
-fi
+log "Candidate commit: $("${git_command[@]}" rev-parse --short=12 HEAD)"
 
-log "Candidate commit: $(git rev-parse --short=12 HEAD)"
-
-"$SCRIPT_DIR/bootstrap.sh" "$PROFILE"
+"$SCRIPT_DIR/bootstrap.sh"
 
 log 'Installing the exact lockfile dependency graph.'
 pnpm install --frozen-lockfile
 
 log 'Starting localhost-bound PostgreSQL and MinIO.'
-compose_profile up -d --wait postgres minio
-compose_profile run --rm minio-init
+compose_environment up -d --wait postgres minio
+compose_environment run --rm minio-init
 
 log 'Running lint before changing the deployed application.'
 pnpm lint
 
-if [[ "$PROFILE" == 'staging' ]]; then
-  log 'Running the full test suite before STAGING migration/restart.'
-  pnpm test
-fi
+log 'Running the full test suite before migration/restart.'
+pnpm test
 
 log 'Building all workspaces before migration/restart.'
 pnpm build
@@ -65,9 +54,14 @@ pnpm db:deploy
 
 case "$RESTART_MODE" in
   systemd)
-    log "Restarting only the $PROFILE systemd application services."
-    sudo systemctl restart "defterdar-api@$PROFILE.service"
-    sudo systemctl restart "defterdar-web@$PROFILE.service"
+    log 'Restarting canonical Defterdar application services.'
+    if [[ "$EUID" -eq 0 ]]; then
+      systemctl restart defterdar-api.service
+      systemctl restart defterdar-web.service
+    else
+      sudo systemctl restart defterdar-api.service
+      sudo systemctl restart defterdar-web.service
+    fi
     ;;
   none)
     log 'Restart skipped (DEFTERDAR_RESTART_MODE=none).'
@@ -82,7 +76,7 @@ if [[ "$SKIP_VERIFY" == '1' ]]; then
 elif [[ "$RESTART_MODE" == 'none' ]]; then
   log 'Application verification skipped because no process restart method was selected.'
 else
-  "$SCRIPT_DIR/verify.sh" "$PROFILE"
+  "$SCRIPT_DIR/verify.sh"
 fi
 
 log 'Deployment workflow completed.'

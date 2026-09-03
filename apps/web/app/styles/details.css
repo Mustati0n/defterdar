@@ -35,6 +35,12 @@
 .detail-cover--ledger {
   min-height: 210px;
   padding-block: clamp(1.7rem, 4vw, 3rem);
+  border: 1px solid #0f2635;
+  border-left: 14px solid #102b3d;
+  box-shadow:
+    7px 8px 0 #d8cdb6,
+    11px 12px 0 rgba(190, 176, 149, 0.55),
+    var(--shadow-raised);
 }
 .detail-cover--ledger::before {
   position: absolute;
@@ -48,6 +54,61 @@
 }
 .detail-cover--ledger h1 {
   color: white;
+}
+.detail-cover--collaborative {
+  border-left-color: var(--color-wine);
+}
+.detail-cover--collaborative::after {
+  position: absolute;
+  top: 0;
+  right: 24px;
+  bottom: 0;
+  width: 3px;
+  content: '';
+  background: rgba(221, 198, 155, 0.55);
+}
+.detail-cover--collaborative .detail-cover__bookmark {
+  background: var(--color-wine);
+}
+.detail-cover--ledger > div {
+  position: relative;
+  z-index: 1;
+  width: min(100%, 880px);
+}
+.detail-cover__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin-top: 1.25rem;
+}
+.detail-cover__meta > span,
+.detail-cover__meta > a {
+  display: inline-flex;
+  min-height: 36px;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.65rem;
+  color: #edf0e9;
+  border: 1px solid rgba(238, 226, 199, 0.24);
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.06);
+  font-size: 0.75rem;
+  font-weight: 750;
+}
+.detail-cover__meta svg {
+  width: 16px;
+  height: 16px;
+  color: var(--color-gold-soft);
+}
+.expense-section .button--primary,
+.expense-section .button--primary:visited {
+  color: #fffdf7;
+  background: #762f3e;
+}
+.expense-section .button--primary:hover,
+.expense-section .button--primary:focus-visible {
+  color: white;
+  background: #5e2330;
 }
 .detail-cover__bookmark {
   position: absolute;
@@ -203,6 +264,7 @@
   display: grid;
   grid-template-columns: 0.9fr 1.1fr;
   gap: 1.5rem;
+  margin-top: clamp(1.5rem, 2.5vw, 2rem);
 }
 .paper-section,
 .lined-section {
@@ -246,6 +308,18 @@
 }
 .detail-full {
   min-height: 310px;
+}
+.expense-list > a {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+.expense-list > a > div {
+  display: grid;
+  min-width: 0;
+  gap: 0.15rem;
+}
+.expense-list > a > div:last-child {
+  justify-items: end;
+  text-align: right;
 }
 .balance-list {
   display: grid;

@@ -25,13 +25,14 @@ const ledger: Ledger = {
   id: 'ledger-1',
   name: 'Ev',
   description: null,
-  type: 'SHARED',
   currency: 'TRY',
   ownerId: 'owner',
   role: 'OWNER',
   createdAt: '2026-01-01',
   updatedAt: '2026-01-01',
   archivedAt: null,
+  isCollaborative: true,
+  activeMemberCount: 2,
 };
 
 function providers(children: ReactNode) {
@@ -48,18 +49,14 @@ function providers(children: ReactNode) {
 
 describe('Ledger and Plan management flows', () => {
   beforeEach(() => {
-    jest
-      .mocked(useCreateLedger)
-      .mockReturnValue({
-        mutateAsync: jest.fn().mockResolvedValue(ledger),
-        isPending: false,
-      } as unknown as ReturnType<typeof useCreateLedger>);
-    jest
-      .mocked(useCreatePlan)
-      .mockReturnValue({
-        mutateAsync: jest.fn().mockResolvedValue({ id: 'plan-1' }),
-        isPending: false,
-      } as unknown as ReturnType<typeof useCreatePlan>);
+    jest.mocked(useCreateLedger).mockReturnValue({
+      mutateAsync: jest.fn().mockResolvedValue(ledger),
+      isPending: false,
+    } as unknown as ReturnType<typeof useCreateLedger>);
+    jest.mocked(useCreatePlan).mockReturnValue({
+      mutateAsync: jest.fn().mockResolvedValue({ id: 'plan-1' }),
+      isPending: false,
+    } as unknown as ReturnType<typeof useCreatePlan>);
   });
 
   it('creates a Ledger and opens its detail', async () => {
@@ -85,9 +82,8 @@ describe('Ledger and Plan management flows', () => {
       />,
     );
     expect(screen.getByText(/Ev içinde oluşturulacak/)).toBeInTheDocument();
-    expect(
-      screen.queryByRole('combobox', { name: /Bağlı defter/ }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/Deftere ekle/)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/Para birimi/)).not.toBeInTheDocument();
     fireEvent.change(screen.getByLabelText('Plan adı'), {
       target: { value: 'Tatil' },
     });
@@ -95,6 +91,46 @@ describe('Ledger and Plan management flows', () => {
     await waitFor(() =>
       expect(jest.mocked(useCreatePlan)().mutateAsync).toHaveBeenCalledWith(
         expect.objectContaining({ ledgerId: 'ledger-1' }),
+      ),
+    );
+  });
+
+  it('keeps optional Ledger and currency details out of quick Plan creation', () => {
+    providers(<CreatePlanDialog defaultOpen ledgers={[ledger]} />);
+    expect(screen.queryByLabelText(/Deftere ekle/)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/Para birimi/)).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Daha fazla seçenek' }));
+
+    expect(screen.getByLabelText(/Deftere ekle/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Para birimi/)).toBeInTheDocument();
+  });
+
+  it('inherits the selected Ledger currency without submitting a second currency', async () => {
+    providers(
+      <CreatePlanDialog
+        defaultOpen
+        ledgers={[{ ...ledger, currency: 'EUR' }]}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Daha fazla seçenek' }));
+    fireEvent.change(screen.getByLabelText(/Deftere ekle/), {
+      target: { value: 'ledger-1' },
+    });
+    expect(screen.queryByLabelText(/Para birimi/)).not.toBeInTheDocument();
+    expect(
+      screen.getByText(/Para birimi Defterden gelir: EUR/),
+    ).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Plan adı'), {
+      target: { value: 'Avrupa turu' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Planı ekle' }));
+    await waitFor(() =>
+      expect(jest.mocked(useCreatePlan)().mutateAsync).toHaveBeenCalledWith(
+        expect.objectContaining({
+          ledgerId: 'ledger-1',
+          input: expect.not.objectContaining({ currency: expect.anything() }),
+        }),
       ),
     );
   });
@@ -120,10 +156,10 @@ describe('Ledger and Plan management flows', () => {
     expect(screen.queryByText('MEMBER')).not.toBeInTheDocument();
   });
 
-  it('renders no shared member controls for a PERSONAL Ledger', () => {
+  it('keeps member controls available for a single-person Ledger', () => {
     providers(
       <LedgerMembersPanel
-        ledger={{ ...ledger, type: 'PERSONAL' }}
+        ledger={{ ...ledger, isCollaborative: false, activeMemberCount: 1 }}
         members={[
           {
             user: { id: 'owner', displayName: 'Ece' },
@@ -133,10 +169,10 @@ describe('Ledger and Plan management flows', () => {
         ]}
       />,
     );
-    expect(screen.queryByText('Üyeler ve roller')).not.toBeInTheDocument();
+    expect(screen.getByText('Üyeler ve roller')).toBeInTheDocument();
     expect(
-      screen.queryByRole('button', { name: 'Davet oluştur' }),
-    ).not.toBeInTheDocument();
+      screen.getByRole('button', { name: 'Davet oluştur' }),
+    ).toBeInTheDocument();
   });
 
   it('blocks mutation fields for an archived Ledger', () => {

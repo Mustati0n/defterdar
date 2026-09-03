@@ -51,13 +51,13 @@ const ledger = {
   id: 'ledger-1',
   name: 'Ev',
   description: null,
-  type: 'SHARED' as const,
   currency: 'TRY',
   ownerId: 'me',
   role: 'OWNER' as const,
   createdAt: '2026-01-01',
   updatedAt: '2026-01-01',
   archivedAt: null,
+  isCollaborative: true,
 };
 
 function setup(presentation: 'page' | 'wizard' = 'page') {
@@ -166,10 +166,10 @@ describe('simple-first Expense form', () => {
   it('collapses advanced methods by default and retains EXACT behavior', async () => {
     setup();
     const disclosure = screen
-      .getByText('Diğer paylaşım yöntemleri')
+      .getByText('Paylaşımı değiştir')
       .closest('details');
     expect(disclosure).not.toHaveAttribute('open');
-    fireEvent.click(screen.getByText('Diğer paylaşım yöntemleri'));
+    fireEvent.click(screen.getByText('Paylaşımı değiştir'));
     fireEvent.click(screen.getByRole('radio', { name: /Tutar gir/ }));
     await waitFor(() =>
       expect(screen.getByLabelText('Ece payı')).toBeInTheDocument(),

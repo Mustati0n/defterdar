@@ -1,4 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import type { SettlementStatus } from '../../generated/prisma/client.js';
 
 class SafeSettlementUserDto {
   @ApiProperty({ format: 'uuid' }) id!: string;
@@ -22,5 +23,20 @@ export class SettlementResponseDto {
   @ApiProperty() settledAt!: Date;
   @ApiProperty({ format: 'uuid' }) createdById!: string;
   @ApiProperty() createdAt!: Date;
+  @ApiProperty({
+    enum: ['PENDING', 'CONFIRMED', 'REJECTED', 'CANCELLED', 'VOID'],
+  })
+  status!: SettlementStatus;
+  @ApiPropertyOptional({ format: 'uuid', nullable: true })
+  confirmedById!: string | null;
+  @ApiPropertyOptional({ type: SafeSettlementUserDto, nullable: true })
+  confirmedBy!: SafeSettlementUserDto | null;
+  @ApiPropertyOptional({ nullable: true }) confirmedAt!: Date | null;
+  @ApiPropertyOptional({ format: 'uuid', nullable: true })
+  rejectedById!: string | null;
+  @ApiPropertyOptional({ type: SafeSettlementUserDto, nullable: true })
+  rejectedBy!: SafeSettlementUserDto | null;
+  @ApiPropertyOptional({ nullable: true }) rejectedAt!: Date | null;
+  @ApiPropertyOptional({ nullable: true }) cancelledAt!: Date | null;
   @ApiPropertyOptional({ nullable: true }) voidedAt!: Date | null;
 }

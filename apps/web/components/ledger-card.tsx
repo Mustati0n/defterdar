@@ -12,19 +12,22 @@ import { ledgerRoleLabel } from '@/lib/format';
 interface LedgerCardProps {
   ledger: Ledger;
   index?: number;
+  size?: 'compact' | 'regular' | 'tall';
 }
 
-export function LedgerNotebookCard({ ledger }: LedgerCardProps) {
+export function LedgerNotebookCard({ ledger, size }: LedgerCardProps) {
   const RoleIcon =
     ledger.role === 'OWNER'
       ? Crown
       : ledger.role === 'ADMIN'
         ? ShieldCheck
         : UserRound;
+  const collaborative = Boolean(ledger.isCollaborative);
+  const memberCount = ledger.activeMemberCount ?? 1;
 
   return (
     <Link
-      className={`ledger-card ledger-card--${ledger.type.toLowerCase()}${ledger.archivedAt ? ' ledger-card--archived' : ''}`}
+      className={`ledger-card${collaborative ? ' ledger-card--collaborative' : ''}${ledger.archivedAt ? ' ledger-card--archived' : ''}${size ? ` workspace-card--${size}` : ''}`}
       href={`/ledgers/${ledger.id}`}
     >
       <span className="ledger-card__rings" aria-hidden="true">
@@ -34,7 +37,7 @@ export function LedgerNotebookCard({ ledger }: LedgerCardProps) {
       </span>
       <div className="ledger-card__top">
         <span className="ledger-card__label">
-          {ledger.type === 'PERSONAL' ? 'Kişisel defter' : 'Ortak defter'}
+          {collaborative ? 'Ortak defter' : 'Defter'}
         </span>
         {ledger.archivedAt ? (
           <span className="status-chip status-chip--muted">
@@ -52,9 +55,7 @@ export function LedgerNotebookCard({ ledger }: LedgerCardProps) {
           <RoleIcon /> {ledgerRoleLabel(ledger.role)}
         </span>
         <span>
-          {ledger.type === 'SHARED'
-            ? `${ledger.activeMemberCount ?? '—'} üye · `
-            : 'Kişisel · '}
+          {collaborative ? `${memberCount} kişi · ` : ''}
           {ledger.activePlanCount ?? '—'} aktif Plan
         </span>
         <strong>{ledger.currency}</strong>

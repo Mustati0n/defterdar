@@ -12,16 +12,16 @@ fail() {
 
 # shellcheck source=profile.sh
 source "$SCRIPT_DIR/profile.sh"
-select_profile "${1:-}"
-require_profile_environment
+select_environment
+require_environment
 
-if [[ "${2:-}" != '--confirm' || -z "${3:-}" ]]; then
-  printf 'Usage: %s dev|staging --confirm /absolute/path/to/backup.dump\n' "$0" >&2
+if [[ "${1:-}" != '--confirm' || -z "${2:-}" ]]; then
+  printf 'Usage: %s --confirm /absolute/path/to/backup.dump\n' "$0" >&2
   printf 'This replaces objects in the configured PostgreSQL database. Stop application services first.\n' >&2
   exit 2
 fi
 
-BACKUP_FILE="$3"
+BACKUP_FILE="$2"
 [[ "$BACKUP_FILE" = /* ]] || {
   printf '[restore-db] ERROR: backup path must be absolute.\n' >&2
   exit 1
@@ -32,7 +32,7 @@ BACKUP_FILE="$3"
 }
 
 printf '[restore-db] Restoring %s into the configured database.\n' "$BACKUP_FILE"
-compose_profile exec -T postgres \
+compose_environment exec -T postgres \
   sh -c 'exec pg_restore -U "$POSTGRES_USER" -d "$POSTGRES_DB" --clean --if-exists --no-owner --no-privileges' \
   <"$BACKUP_FILE"
-printf '[restore-db] Restore completed. Run pnpm db:status and scripts/server/verify.sh %s.\n' "$PROFILE"
+printf '[restore-db] Restore completed. Run pnpm db:status and scripts/server/verify.sh.\n'

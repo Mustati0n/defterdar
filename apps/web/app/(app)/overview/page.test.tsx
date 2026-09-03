@@ -23,13 +23,13 @@ const ledger = {
   id: 'ledger-1',
   name: 'Kişisel Defterim',
   description: null,
-  type: 'PERSONAL' as const,
   currency: 'TRY',
   ownerId: 'me',
   role: 'OWNER' as const,
   archivedAt: null,
   createdAt: '2026-08-24T10:00:00Z',
   updatedAt: '2026-08-24T10:00:00Z',
+  isCollaborative: false,
 };
 
 describe('Overview hierarchy', () => {
@@ -41,6 +41,7 @@ describe('Overview hierarchy', () => {
         ledgerBalances: [],
         planBalances: [],
         activity: { items: [], nextCursor: null },
+        pendingPayments: [],
       },
       isLoading: false,
       isError: false,
@@ -70,6 +71,7 @@ describe('Overview hierarchy', () => {
         ledgerBalances: [],
         planBalances: [],
         activity: null,
+        pendingPayments: [],
       },
       isLoading: false,
       isError: false,
@@ -83,9 +85,11 @@ describe('Overview hierarchy', () => {
       screen.queryByRole('heading', { name: 'Planlar' }),
     ).not.toBeInTheDocument();
     expect(screen.getByText('Henüz Defterin yok.')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Bağımsız Plan' })).toHaveAttribute(
+    expect(
+      screen.getByRole('link', { name: 'Deftere ekli olmayan Plan' }),
+    ).toHaveAttribute(
       'href',
-      '/plans?create=1&standalone=1',
+      '/workspace?type=plan&create=plan&standalone=1',
     );
     expect(screen.queryByText('Şimdi ne yapmak istersin?')).toBeNull();
   });
@@ -95,7 +99,7 @@ describe('Overview hierarchy', () => {
       data: {
         ledgers: [
           ledger,
-          { ...ledger, id: 'ledger-2', name: 'Ev', type: 'SHARED' },
+          { ...ledger, id: 'ledger-2', name: 'Ev', isCollaborative: true },
           {
             ...ledger,
             id: 'ledger-3',
@@ -113,6 +117,7 @@ describe('Overview hierarchy', () => {
         ledgerBalances: [],
         planBalances: [],
         activity: { items: [], nextCursor: null },
+        pendingPayments: [],
       },
       isLoading: false,
       isError: false,

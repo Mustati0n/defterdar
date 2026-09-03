@@ -125,12 +125,15 @@ export function AnalyticsView({
         </article>
       </section>
 
-      {largestCategory && Number(largestCategory.expenseMinor) > 0 ? (
+      {largestCategory?.category && Number(largestCategory.expenseMinor) > 0 ? (
         <p className="analytics-insight">
-          Bu dönemde en çok{' '}
-          <strong>{largestCategory.category?.name ?? 'Kategorisiz'}</strong>{' '}
+          Bu dönemde en çok <strong>{largestCategory.category.name}</strong>{' '}
           için harcadın:{' '}
           {formatMoneyFromMinor(largestCategory.expenseMinor, data.currency)}.
+        </p>
+      ) : largestCategory && Number(largestCategory.expenseMinor) > 0 ? (
+        <p className="analytics-insight">
+          Bu dönemdeki harcamaların henüz bir kategoriye bağlanmamış.
         </p>
       ) : null}
 
@@ -400,7 +403,7 @@ export function AnalyticsDateControls({
   return (
     <div className="analytics-filters" aria-label="İstatistik tarih aralığı">
       <div
-        className="segmented-control"
+        className="segmented-control analytics-preset-expanded"
         role="group"
         aria-label="Tarih seçenekleri"
       >
@@ -416,6 +419,18 @@ export function AnalyticsDateControls({
           </button>
         ))}
       </div>
+      <select
+        className="input analytics-preset-compact"
+        aria-label="Tarih aralığı"
+        value={preset}
+        onChange={(event) => setPreset(event.target.value as AnalyticsPreset)}
+      >
+        {analyticsPresets.map((item) => (
+          <option value={item.id} key={item.id}>
+            {item.label}
+          </option>
+        ))}
+      </select>
       {preset === 'custom' ? (
         <div className="analytics-custom-dates">
           <label className="field">

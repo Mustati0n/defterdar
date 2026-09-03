@@ -1,17 +1,17 @@
 [Unit]
-Description=Defterdar NestJS API (%i)
+Description=Defterdar NestJS API
 After=network-online.target docker.service
 Wants=network-online.target
 
 [Service]
 Type=simple
-User=<DEPLOY_USER>
-Group=<DEPLOY_GROUP>
-WorkingDirectory=<WORKTREE_ROOT>/defterdar-%i
-EnvironmentFile=<WORKTREE_ROOT>/defterdar-%i/.env
+User=defterdar
+Group=defterdar
+WorkingDirectory=/srv/defterdar
+EnvironmentFile=/srv/defterdar/.env
 Environment=NODE_ENV=production
-Environment=PATH=<NODE_BIN_DIR>:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-ExecStart=<PNPM_PATH> start:api
+Environment=PATH=/usr/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/sbin:/bin
+ExecStart=/usr/bin/pnpm start:api
 Restart=on-failure
 RestartSec=5
 TimeoutStopSec=30

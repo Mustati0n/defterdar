@@ -27,7 +27,6 @@ import {
   LedgerMembersPanel,
   LedgerSettingsPanel,
 } from '@/features/ledgers/ledger-management';
-import { activitySentence } from '@/lib/activity';
 import { ExpenseIndicators } from '@/features/expenses/expense-indicators';
 import { BalanceExperience } from '@/features/financial/balance-experience';
 import { positionState } from '@/features/financial/financial-ux';
@@ -40,22 +39,14 @@ import { AnalyticsExperience } from '@/features/analytics/analytics-experience';
 import { CategoryManager } from '@/features/settings/category-manager';
 import { PageIntro } from '@/features/page-intro/page-intro';
 
-const primarySharedViews = [
+const primaryViews = [
   { id: 'general', label: 'Genel', icon: BookOpenText },
   { id: 'balances', label: 'Bakiyeler', icon: WalletCards },
   { id: 'analytics', label: 'İstatistikler', icon: BarChart3 },
 ] as const;
-const primaryPersonalViews = [
-  { id: 'general', label: 'Genel', icon: BookOpenText },
-  { id: 'analytics', label: 'İstatistikler', icon: BarChart3 },
-] as const;
-const secondarySharedViews = [
-  { id: 'activity', label: 'Tüm hareketler', icon: Clock3 },
+const secondaryViews = [
+  { id: 'activity', label: 'Hareket geçmişi', icon: Clock3 },
   { id: 'members', label: 'Üyeler', icon: UsersRound },
-  { id: 'settings', label: 'Ayarlar', icon: Settings },
-] as const;
-const secondaryPersonalViews = [
-  { id: 'activity', label: 'Tüm hareketler', icon: Clock3 },
   { id: 'settings', label: 'Ayarlar', icon: Settings },
 ] as const;
 type LedgerView =
@@ -70,7 +61,7 @@ export default function LedgerDetailPage() {
     ['general', 'activity', 'balances', 'analytics', 'members', 'settings'],
     'general',
   ) as LedgerDetailView;
-  const { ledger, plans, members, balance, activity, expenses, incomes } =
+  const { ledger, plans, members, balance, expenses, incomes } =
     useLedgerDetailData(ledgerId, requestedView);
 
   if (ledger.isLoading) return <LoadingState label="Defter açılıyor…" />;
@@ -83,11 +74,11 @@ export default function LedgerDetailPage() {
     );
 
   const data = ledger.data;
-  const primaryViews =
-    data.type === 'PERSONAL' ? primaryPersonalViews : primarySharedViews;
-  const secondaryViews =
-    data.type === 'PERSONAL' ? secondaryPersonalViews : secondarySharedViews;
-  const allowedViews = [...primaryViews, ...secondaryViews].map(
+  const collaborative = Boolean(data.isCollaborative);
+  const visiblePrimaryViews = collaborative
+    ? primaryViews
+    : primaryViews.filter((view) => view.id !== 'balances');
+  const allowedViews = [...visiblePrimaryViews, ...secondaryViews].map(
     (view) => view.id,
   ) as LedgerView[];
   const activeView = resolveDetailView(
@@ -102,137 +93,65 @@ export default function LedgerDetailPage() {
 
   return (
     <>
-      <Link className="back-link" href="/ledgers">
-        <ArrowLeft /> Defterlere dön
+      <Link className="back-link" href="/workspace?type=ledger">
+        <ArrowLeft /> Defterler &amp; Planlara dön
       </Link>
-      <section className="detail-cover detail-cover--ledger">
+      <section
+        className={`detail-cover detail-cover--ledger${collaborative ? ' detail-cover--collaborative' : ''}`}
+      >
         <span className="detail-cover__bookmark">
           {ledgerRoleLabel(data.role)}
         </span>
         <div>
           <span className="eyebrow eyebrow--light">
-            {data.type === 'PERSONAL' ? 'Kişisel defter' : 'Ortak defter'} ·{' '}
-            {data.currency}
+            {collaborative ? 'Ortak defter' : 'Defter'} · {data.currency}
           </span>
           <h1>{data.name}</h1>
           {data.description ? <p>{data.description}</p> : null}
+          <div className="detail-cover__meta" aria-label="Defter özeti">
+            <span>
+              <UsersRound />
+              {collaborative
+                ? `${data.activeMemberCount ?? members.data?.length ?? '—'} kişi`
+                : 'Tek kişilik alan'}
+            </span>
+            <span>
+              <BookOpenText />{' '}
+              {data.activePlanCount ?? plans.data?.length ?? '—'} aktif plan
+            </span>
+            {collaborative ? (
+              <Link href={`/ledgers/${ledgerId}?view=balances`}>
+                <CircleDollarSign />
+                {myBalanceState === 'receivable'
+                  ? `${formatMoneyFromMinor(Math.abs(myPosition?.netMinor ?? 0), data.currency)} alacak`
+                  : myBalanceState === 'payable'
+                    ? `${formatMoneyFromMinor(Math.abs(myPosition?.netMinor ?? 0), data.currency)} ödeme`
+                    : 'Hesap kapalı'}
+              </Link>
+            ) : (
+              <span>
+                <CircleDollarSign /> {expenses.data?.length ?? '—'} harcama
+              </span>
+            )}
+          </div>
         </div>
       </section>
       <DetailNavigation
         label="Defter bölümleri"
         basePath={`/ledgers/${ledgerId}`}
         activeView={activeView}
-        primary={primaryViews}
+        primary={visiblePrimaryViews}
         secondary={secondaryViews}
       />
 
       {activeView === 'general' ? (
         <>
-          <div className="detail-grid">
-            <section className="paper-section">
-              <span className="eyebrow">Defter özeti</span>
-              <h2>
-                {data.type === 'PERSONAL' ? 'Kişisel özet' : 'Ortak hesap'}
-              </h2>
-              <div className="summary-list">
-                {data.type === 'SHARED' ? (
-                  <div>
-                    <UsersRound />
-                    <span>
-                      <small>Aktif üyeler</small>
-                      <strong>{members.data?.length ?? '—'}</strong>
-                    </span>
-                  </div>
-                ) : (
-                  <div>
-                    <ReceiptText />
-                    <span>
-                      <small>Harcamalar</small>
-                      <strong>{expenses.data?.length ?? '—'}</strong>
-                    </span>
-                  </div>
-                )}
-                <div>
-                  <BookOpenText />
-                  <span>
-                    <small>Bağlı planlar</small>
-                    <strong>{plans.data?.length ?? '—'}</strong>
-                  </span>
-                </div>
-                {data.type === 'SHARED' ? (
-                  <Link
-                    className="summary-list__balance"
-                    href={`/ledgers/${ledgerId}?view=balances`}
-                  >
-                    <CircleDollarSign />
-                    <span>
-                      <small>Bakiyen</small>
-                      <strong>
-                        {myBalanceState === 'receivable'
-                          ? `${formatMoneyFromMinor(Math.abs(myPosition?.netMinor ?? 0), data.currency)} alacağın var`
-                          : myBalanceState === 'payable'
-                            ? `${formatMoneyFromMinor(Math.abs(myPosition?.netMinor ?? 0), data.currency)} ödemen var`
-                            : 'Hesaplar kapalı'}
-                      </strong>
-                    </span>
-                    <span>Bakiyeleri gör</span>
-                  </Link>
-                ) : (
-                  <div>
-                    <CircleDollarSign />
-                    <span>
-                      <small>Gelirler</small>
-                      <strong>{incomes.data?.length ?? '—'}</strong>
-                    </span>
-                  </div>
-                )}
-              </div>
-            </section>
-            <section className="lined-section">
-              <div className="section-heading">
-                <div>
-                  <span className="eyebrow">Son kayıtlar</span>
-                  <h2>Yakın hareketler</h2>
-                </div>
-                {activity.data?.items.length ? (
-                  <Link href={`/ledgers/${ledgerId}?view=activity`}>
-                    Daha fazlasını gör
-                  </Link>
-                ) : null}
-              </div>
-              <ol className="compact-activity">
-                {(activity.data?.items ?? []).slice(0, 5).map((item) => (
-                  <li key={item.id}>
-                    <span />
-                    <div>
-                      <strong>{item.actor?.displayName ?? 'Sistem'}</strong>
-                      <p>{activitySentence(item)}</p>
-                    </div>
-                    <time>
-                      {new Date(item.createdAt).toLocaleDateString('tr-TR')}
-                    </time>
-                  </li>
-                ))}
-                {!activity.data?.items.length ? (
-                  <li className="muted-copy">Henüz hareket kaydı yok.</li>
-                ) : null}
-              </ol>
-            </section>
-          </div>
           <section className="paper-section expense-section">
             <div className="section-heading">
               <div>
                 <span className="eyebrow">Defter hareketleri</span>
                 <h2>Son harcamalar</h2>
               </div>
-              {expenses.data?.length && !data.archivedAt ? (
-                <Link
-                  className="button button--primary button--small"
-                  href={`/expenses/new?ledgerId=${ledgerId}`}
-                >
-                  <Plus /> Harcama ekle
-                </Link>
-              ) : null}
             </div>
             {expenses.data?.length ? (
               <div className="expense-list">
@@ -244,7 +163,7 @@ export default function LedgerDetailPage() {
                     <div>
                       <strong>{expense.title}</strong>
                       <small>
-                        {data.type === 'PERSONAL'
+                        {!collaborative
                           ? (expense.category?.name ?? 'Kategorisiz')
                           : `${expense.payer.displayName} ödedi · ${expense.splits.length} kişi paylaştı`}
                       </small>
@@ -275,8 +194,8 @@ export default function LedgerDetailPage() {
                   <h3>Henüz harcama yok.</h3>
                   <p>
                     {!data.archivedAt
-                      ? data.type === 'PERSONAL'
-                        ? 'İlk kişisel harcamanı ekleyebilirsin.'
+                      ? !collaborative
+                        ? 'İlk harcamanı ekleyebilirsin.'
                         : 'İlk harcamayı eklediğinde paylar ve bakiyeler hesaplanır.'
                       : 'Bu Defter arşivde olduğu için yeni harcama eklenemez; mevcut kayıtlar okunmaya devam eder.'}
                   </p>
@@ -299,14 +218,6 @@ export default function LedgerDetailPage() {
                   <span className="eyebrow">Planlar</span>
                   <h2>Planlar</h2>
                 </div>
-                {!data.archivedAt ? (
-                  <Link
-                    className="button button--quiet button--small"
-                    href={`/plans?create=1&ledgerId=${ledgerId}`}
-                  >
-                    <Plus /> Plan ekle
-                  </Link>
-                ) : null}
               </div>
               <div className="simple-list">
                 {(plans.data ?? []).slice(0, 5).map((plan) => (
@@ -329,14 +240,6 @@ export default function LedgerDetailPage() {
                   <span className="eyebrow">Gelen para</span>
                   <h2>Son gelirler</h2>
                 </div>
-                {!data.archivedAt ? (
-                  <Link
-                    className="button button--quiet button--small"
-                    href={`/incomes/new?ledgerId=${ledgerId}`}
-                  >
-                    <Plus /> Gelir ekle
-                  </Link>
-                ) : null}
               </div>
               <div className="simple-list">
                 {(incomes.data ?? []).slice(0, 5).map((income) => (
@@ -361,7 +264,7 @@ export default function LedgerDetailPage() {
         </>
       ) : null}
       {activeView === 'activity' ? <ActivityFeed ledgerId={ledgerId} /> : null}
-      {activeView === 'balances' && data.type === 'SHARED' ? (
+      {activeView === 'balances' && collaborative ? (
         <>
           <PageIntro
             pageKey="balances"
@@ -387,10 +290,10 @@ export default function LedgerDetailPage() {
         <AnalyticsExperience
           scope="ledger"
           resourceId={ledgerId}
-          personal={data.type === 'PERSONAL'}
+          personal={!collaborative}
         />
       ) : null}
-      {activeView === 'members' && data.type === 'SHARED' ? (
+      {activeView === 'members' ? (
         <LedgerMembersPanel ledger={data} members={members.data ?? []} />
       ) : null}
       {activeView === 'settings' ? (

@@ -101,10 +101,11 @@ function PaymentDialogContent({
         aria-describedby="payment-dialog-description"
         onKeyDown={handleDialogKeyDown}
       >
-        <span className="eyebrow">Defterdar içi kayıt</span>
-        <h2 id="payment-dialog-title">Ödeme kaydet</h2>
+        <span className="eyebrow">Ödeme bildirimi</span>
+        <h2 id="payment-dialog-title">Ödedim</h2>
         <p id="payment-dialog-description">
-          Bu işlem para göndermez; yaptığın ödemeyi Defterde kayıt altına alır.
+          Bu işlem para göndermez. Alıcı ödemeyi onaylayana kadar bakiye
+          değişmez.
         </p>
         <div
           className="payment-direction"
@@ -186,7 +187,7 @@ function PaymentDialogContent({
               type="submit"
               disabled={pending}
             >
-              {pending ? 'Kaydediliyor…' : 'Ödendi'}
+              {pending ? 'Bildiriliyor…' : 'Ödedim'}
             </button>
           </div>
         </form>

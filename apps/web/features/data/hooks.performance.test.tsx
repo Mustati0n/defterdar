@@ -14,13 +14,13 @@ const ledger = {
   id: 'ledger-1',
   name: 'Ev',
   description: null,
-  type: 'SHARED',
   currency: 'TRY',
   ownerId: 'me',
   role: 'OWNER',
   createdAt: '2026-08-24T10:00:00Z',
   updatedAt: '2026-08-24T10:00:00Z',
   archivedAt: null,
+  isCollaborative: true,
 } satisfies Ledger;
 
 const plan = {
@@ -84,6 +84,7 @@ describe('performance query boundaries', () => {
       ledgerBalances: [],
       planBalances: [],
       activity: null,
+      pendingPayments: [],
     };
     const overview = jest
       .spyOn(api.overview, 'get')

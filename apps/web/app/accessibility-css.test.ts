@@ -41,7 +41,10 @@ describe('critical accessibility CSS', () => {
 
   it('uses a focus indicator above the 3:1 component target on paper', () => {
     expect(contrast('#8d2d4a', '#fffdf5')).toBeGreaterThanOrEqual(3);
-    expect(css).toMatch(/:focus-visible\s*\{[^}]*outline: 3px solid #8d2d4a/s);
+    expect(css).toContain('--focus-ring-color: #8d2d4a');
+    expect(css).toMatch(
+      /:focus-visible\s*\{[^}]*outline: var\(--focus-ring-width\) solid var\(--focus-ring-color\)/s,
+    );
   });
 
   it('keeps critical controls at least 44px and honors mobile safe areas', () => {

@@ -243,8 +243,6 @@ export const api = {
       apiRequest<Ledger>(`/ledgers/${ledgerId}`, { signal }),
     create: (input: CreateLedgerInput) =>
       apiRequest<Ledger>('/ledgers', { method: 'POST', body: input }),
-    createPersonal: (input: CreateLedgerInput) =>
-      apiRequest<Ledger>('/ledgers/personal', { method: 'POST', body: input }),
     update: (
       ledgerId: string,
       input: { name?: string; description?: string | null },
@@ -514,6 +512,18 @@ export const api = {
       }),
     void: (settlementId: string) =>
       apiRequest<Settlement>(`/settlements/${settlementId}/void`, {
+        method: 'POST',
+      }),
+    confirm: (settlementId: string) =>
+      apiRequest<Settlement>(`/settlements/${settlementId}/confirm`, {
+        method: 'POST',
+      }),
+    reject: (settlementId: string) =>
+      apiRequest<Settlement>(`/settlements/${settlementId}/reject`, {
+        method: 'POST',
+      }),
+    cancel: (settlementId: string) =>
+      apiRequest<Settlement>(`/settlements/${settlementId}/cancel`, {
         method: 'POST',
       }),
   },

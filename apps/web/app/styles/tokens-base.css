@@ -14,6 +14,49 @@
   --color-line: #d7cdb7;
   --color-success: #3e6f5d;
   --color-danger: #9a3947;
+  --color-info: #416c82;
+  --color-warning: #81612d;
+
+  /* Semantic color roles */
+  --color-brand: var(--color-navy);
+  --color-brand-soft: var(--color-navy-soft);
+  --color-accent: var(--color-wine);
+  --color-accent-strong: var(--color-wine-dark);
+  --color-highlight: var(--color-gold);
+  --text-primary: var(--color-ink);
+  --text-secondary: var(--color-muted);
+  --text-heading: var(--color-navy);
+  --text-on-strong: #fffaf0;
+
+  /* Surface hierarchy: canvas < sunken < base < raised < overlay */
+  --surface-canvas: var(--color-ivory);
+  --surface-sunken: var(--color-paper-deep);
+  --surface-subtle: var(--color-cream);
+  --surface-base: var(--color-paper);
+  --surface-raised: var(--color-paper);
+  --surface-strong: var(--color-navy);
+  --surface-overlay: rgba(14, 30, 41, 0.68);
+
+  /* State roles keep status meaning independent from components. */
+  --state-neutral-fg: #625b52;
+  --state-neutral-bg: #e8ddc7;
+  --state-neutral-border: #cbbda3;
+  --state-success-fg: #285744;
+  --state-success-bg: #dcebdd;
+  --state-success-border: #a8cbb5;
+  --state-info-fg: #415c70;
+  --state-info-bg: #dfe8ed;
+  --state-info-border: #b5cbd6;
+  --state-warning-fg: #6d5127;
+  --state-warning-bg: #f2e5c8;
+  --state-warning-border: #d7bd82;
+  --state-critical-fg: #7c2d39;
+  --state-critical-bg: #f4dfe2;
+  --state-critical-border: #d9aeb5;
+  --state-muted-fg: #6b645c;
+  --state-muted-bg: #e4ded4;
+  --state-muted-border: #c9c0b3;
+  --state-disabled-opacity: 0.5;
   --font-display:
     'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif;
   --font-body:
@@ -21,6 +64,16 @@
     sans-serif;
   --font-page-title: clamp(2.4rem, 5vw, 4.8rem);
   --font-page-title-compact: clamp(1.15rem, 2vw, 1.5rem);
+  --font-size-xs: 0.72rem;
+  --font-size-sm: 0.82rem;
+  --font-size-md: 0.9375rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.35rem;
+  --font-weight-regular: 500;
+  --font-weight-semibold: 700;
+  --font-weight-bold: 800;
+  --line-height-tight: 1.08;
+  --line-height-body: 1.55;
   --space-1: 0.25rem;
   --space-2: 0.5rem;
   --space-3: 0.75rem;
@@ -32,15 +85,40 @@
   --space-12: 3rem;
   --layout-section-gap: clamp(2.2rem, 4vw, 3.6rem);
   --layout-card-gap: clamp(1rem, 2vw, 1.6rem);
+  --radius-xs: 6px;
   --radius-sm: 8px;
   --radius-md: 14px;
   --radius-lg: 22px;
+  --radius-xl: 28px;
   --radius-pill: 999px;
-  --shadow-paper:
+  --radius-control: var(--radius-sm);
+  --radius-surface: var(--radius-lg);
+  --radius-dialog: var(--radius-lg);
+  --border-width: 1px;
+  --border-width-strong: 2px;
+  --border-color: var(--color-line);
+  --border-color-strong: #b9ab91;
+  --border-color-accent: var(--color-gold);
+
+  /* Controlled soft-3D: one highlight and three elevation levels. */
+  --elevation-highlight: inset 0 1px rgba(255, 255, 255, 0.42);
+  --elevation-1:
     0 12px 34px rgba(47, 38, 25, 0.09), 0 2px 4px rgba(47, 38, 25, 0.06);
-  --shadow-raised: 0 18px 50px rgba(23, 43, 58, 0.16);
+  --elevation-2: 0 14px 30px rgba(23, 43, 58, 0.14);
+  --elevation-3: 0 22px 64px rgba(14, 30, 41, 0.24);
+  --elevation-control: 0 8px 18px rgba(130, 58, 70, 0.18);
+  --elevation-control-hover: 0 11px 24px rgba(130, 58, 70, 0.25);
+  --elevation-control-pressed: 0 3px 8px rgba(130, 58, 70, 0.2);
+  --shadow-paper: var(--elevation-1);
+  --shadow-raised: var(--elevation-3);
+  --focus-ring-color: #8d2d4a;
+  --focus-ring-width: 3px;
+  --focus-ring-offset: 3px;
+  --focus-ring-halo: 0 0 0 6px rgba(255, 253, 245, 0.94);
+  --focus-field-halo: 0 0 0 3px rgba(189, 152, 96, 0.14);
   --sidebar-width: 268px;
   --content-max: 1440px;
+  --header-sticky-top: 0.65rem;
   --motion-fast: 150ms;
   --motion-normal: 240ms;
   --motion-slow: 380ms;
@@ -62,8 +140,8 @@
 .gift-note {
   padding: 0.8rem 1rem;
   border-radius: 10px;
-  background: var(--color-paper-deep);
-  color: var(--color-muted);
+  background: var(--surface-sunken);
+  color: var(--text-secondary);
 }
 .status-banner {
   display: flex;
@@ -292,14 +370,15 @@
 html {
   background: var(--color-ivory);
   scroll-behavior: auto;
+  scrollbar-gutter: stable;
 }
 body {
   margin: 0;
-  color: var(--color-ink);
-  background: var(--color-ivory);
+  color: var(--text-primary);
+  background: var(--surface-canvas);
   font-family: var(--font-body);
-  font-size: 15px;
-  line-height: 1.55;
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-body);
 }
 button,
 input,
@@ -333,9 +412,9 @@ h1,
 h2,
 h3 {
   font-family: var(--font-display);
-  color: var(--color-navy);
+  color: var(--text-heading);
   letter-spacing: -0.025em;
-  line-height: 1.08;
+  line-height: var(--line-height-tight);
 }
 h1 {
   font-size: clamp(2.25rem, 4vw, 4rem);
@@ -347,9 +426,9 @@ h3 {
   font-size: 1.35rem;
 }
 :focus-visible {
-  outline: 3px solid #8d2d4a;
-  outline-offset: 3px;
-  box-shadow: 0 0 0 6px rgba(255, 253, 245, 0.94);
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--focus-ring-offset);
+  box-shadow: var(--focus-ring-halo);
 }
 ::selection {
   color: var(--color-paper);
@@ -363,47 +442,51 @@ h3 {
   justify-content: center;
   gap: 0.55rem;
   padding: 0.7rem 1.05rem;
-  border: 1px solid transparent;
+  border: var(--border-width) solid transparent;
   border-radius: var(--radius-pill);
-  font-weight: 750;
+  font-weight: var(--font-weight-semibold);
   cursor: pointer;
   transition:
-    transform 0.18s ease,
-    background 0.18s ease,
-    box-shadow 0.18s ease;
+    transform var(--motion-fast) var(--ease-standard),
+    background var(--motion-fast) var(--ease-standard),
+    box-shadow var(--motion-fast) var(--ease-standard);
 }
 .button:hover:not(:disabled) {
   transform: translateY(-2px);
 }
 .button:disabled {
-  opacity: 0.5;
+  opacity: var(--state-disabled-opacity);
   cursor: not-allowed;
 }
 .button--primary {
-  color: #fffaf0;
-  background: var(--color-wine);
-  box-shadow: 0 8px 18px rgba(130, 58, 70, 0.18);
+  color: var(--text-on-strong);
+  background: var(--color-accent);
+  box-shadow: var(--elevation-highlight), var(--elevation-control);
 }
 .button--primary:hover:not(:disabled) {
-  background: var(--color-wine-dark);
-  box-shadow: 0 11px 24px rgba(130, 58, 70, 0.25);
+  background: var(--color-accent-strong);
+  box-shadow: var(--elevation-highlight), var(--elevation-control-hover);
+}
+.button--primary:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: var(--elevation-control-pressed);
 }
 .button--quiet {
-  border-color: var(--color-line);
+  border-color: var(--border-color);
   background: transparent;
 }
 .button--quiet:hover {
-  background: rgba(255, 255, 255, 0.55);
+  background: color-mix(in srgb, var(--surface-base) 70%, transparent);
 }
 .button--paper {
-  color: var(--color-navy);
-  background: var(--color-paper);
-  box-shadow: var(--shadow-paper);
+  color: var(--text-heading);
+  background: var(--surface-raised);
+  box-shadow: var(--elevation-highlight), var(--elevation-1);
 }
 .button--small {
   min-height: 44px;
   padding: 0.45rem 0.75rem;
-  font-size: 0.82rem;
+  font-size: var(--font-size-sm);
 }
 .button--wide {
   width: 100%;
@@ -426,18 +509,19 @@ h3 {
   width: 100%;
   min-height: 46px;
   padding: 0.72rem 0.85rem;
-  color: var(--color-ink);
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  border: var(--border-width) solid var(--border-color);
+  border-radius: var(--radius-control);
   outline: none;
-  background: rgba(255, 253, 245, 0.8);
+  background: color-mix(in srgb, var(--surface-base) 80%, transparent);
+  box-shadow: var(--elevation-highlight);
   transition:
-    border 0.15s,
-    box-shadow 0.15s;
+    border-color var(--motion-fast) var(--ease-standard),
+    box-shadow var(--motion-fast) var(--ease-standard);
 }
 .input:focus {
-  border-color: var(--color-gold);
-  box-shadow: 0 0 0 3px rgba(189, 152, 96, 0.14);
+  border-color: var(--border-color-accent);
+  box-shadow: var(--focus-field-halo), var(--elevation-highlight);
 }
 .field {
   display: grid;

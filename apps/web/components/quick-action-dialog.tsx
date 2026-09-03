@@ -49,7 +49,6 @@ function PlanQuickActionDialog({
     <CreatePlanDialog
       ledgers={ledgers.data ?? []}
       initialLedgerId={action.context.ledgerId}
-      defaultStandalone={!action.context.ledgerId}
       open
       hideTrigger
       onOpenChange={(open) => !open && onClose()}

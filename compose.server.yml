@@ -64,4 +64,8 @@ services:
 
 volumes:
   postgres_data:
+    external: true
+    name: ${POSTGRES_VOLUME_NAME:?POSTGRES_VOLUME_NAME must be set}
   minio_data:
+    external: true
+    name: ${MINIO_VOLUME_NAME:?MINIO_VOLUME_NAME must be set}
