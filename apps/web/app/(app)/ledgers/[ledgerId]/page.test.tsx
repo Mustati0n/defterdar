@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { useLedgerDetailData } from '@/features/data/hooks';
+import { accessibilityViolations } from '@/test/accessibility';
 import LedgerDetailPage from './page';
 
 let view: string | null = null;
@@ -178,5 +179,10 @@ describe('Ledger detail information architecture', () => {
     expect(
       screen.getByRole('heading', { name: 'Son harcamalar' }),
     ).toBeInTheDocument();
+  });
+
+  it('has no detectable structural accessibility violations', async () => {
+    const { container } = render(<LedgerDetailPage />);
+    expect(await accessibilityViolations(container)).toEqual([]);
   });
 });

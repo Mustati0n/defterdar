@@ -21,6 +21,14 @@
   gap: 0.65rem;
   padding: 0 0.75rem;
   color: var(--color-muted);
+  border-radius: var(--radius-control);
+  transition:
+    background var(--motion-fast) var(--ease-standard),
+    box-shadow var(--motion-fast) var(--ease-standard);
+}
+.search-box:focus-within {
+  background: var(--surface-raised);
+  box-shadow: var(--focus-field-halo), var(--elevation-highlight);
 }
 .search-box input {
   width: 100%;

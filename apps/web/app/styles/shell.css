@@ -3,6 +3,36 @@
   min-height: 100vh;
   padding-left: var(--sidebar-width);
 }
+.skip-link {
+  position: fixed;
+  z-index: 100;
+  top: 0.75rem;
+  left: 0.75rem;
+  padding: 0.65rem 0.9rem;
+  color: var(--text-on-strong);
+  border-radius: var(--radius-sm);
+  opacity: 0;
+  background: var(--color-accent-strong);
+  box-shadow: var(--elevation-2);
+  pointer-events: none;
+  transform: translateY(-140%);
+  transition:
+    opacity var(--motion-fast) var(--ease-standard),
+    transform var(--motion-fast) var(--ease-standard);
+}
+.skip-link:focus {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+.route-content:focus {
+  outline: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .skip-link {
+    transition: none;
+  }
+}
 .app-frame--collapsed {
   --sidebar-width: 88px;
 }

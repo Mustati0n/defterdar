@@ -1,6 +1,14 @@
-import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import { useAllPlans, useLedgers } from '@/features/data/hooks';
 import type { Ledger, Plan } from '@/lib/types';
+import { accessibilityViolations } from '@/test/accessibility';
 import WorkspacePage, { filterWorkspaceItems, workspaceCardSize } from './page';
 
 jest.mock('next/navigation', () => ({
@@ -142,6 +150,23 @@ describe('Defterler & Planlar workspace', () => {
     ).toBeInTheDocument();
   });
 
+  it('moves focus through the create menu with standard menu keys', async () => {
+    render(<WorkspacePage />);
+    const trigger = screen.getByRole('button', { name: /Yeni/ });
+
+    fireEvent.keyDown(trigger, { key: 'ArrowDown' });
+    const items = screen.getAllByRole('menuitem');
+    await waitFor(() => expect(items[0]).toHaveFocus());
+    fireEvent.keyDown(items[0]!, { key: 'ArrowDown' });
+    expect(items[1]).toHaveFocus();
+    fireEvent.keyDown(items[1]!, { key: 'Home' });
+    expect(items[0]).toHaveFocus();
+
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(trigger).toHaveFocus();
+    expect(trigger).toHaveAttribute('aria-expanded', 'false');
+  });
+
   it('includes linked plans only when the scope switch is enabled', () => {
     render(<WorkspacePage />);
     const scope = screen.getByRole('switch', {
@@ -167,10 +192,11 @@ describe('Defterler & Planlar workspace', () => {
       fireEvent.click(scope);
 
       const linkedCard = document.querySelector('a[href="/plans/plan-1"]');
+      const exitingItem = linkedCard?.closest('[data-workspace-key]');
       expect(scope).toHaveAttribute('aria-checked', 'false');
-      expect(linkedCard?.closest('[data-workspace-key]')).toHaveClass(
-        'is-exiting',
-      );
+      expect(exitingItem).toHaveClass('is-exiting');
+      expect(exitingItem).toHaveAttribute('inert');
+      expect(exitingItem).toHaveAttribute('aria-hidden', 'true');
 
       act(() => jest.advanceTimersByTime(220));
 
@@ -254,5 +280,10 @@ describe('Defterler & Planlar workspace', () => {
         },
       }),
     ).toBe('tall');
+  });
+
+  it('has no detectable structural accessibility violations', async () => {
+    const { container } = render(<WorkspacePage />);
+    expect(await accessibilityViolations(container)).toEqual([]);
   });
 });

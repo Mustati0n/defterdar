@@ -484,4 +484,10 @@
   .overview-focus__count {
     justify-self: start;
   }
+  .overview-priority__copy strong,
+  .overview-priority__copy > span {
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+  }
 }

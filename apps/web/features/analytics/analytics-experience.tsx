@@ -112,7 +112,7 @@ export function AnalyticsView({
   }
 
   return (
-    <div className="analytics-experience" aria-live="polite">
+    <div className="analytics-experience">
       {planStatus === 'COMPLETED' ? (
         <section className="analytics-final-summary">
           <span className="eyebrow">Plan tamamlandı</span>

@@ -344,6 +344,16 @@
   }
 }
 
+@media (max-width: 480px) {
+  .page-heading--compact .workspace-heading-actions {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .page-heading--compact .workspace-create,
+  .page-heading--compact .workspace-create .button {
+    width: 100%;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .floating-quick-add *,
   .page-heading--adaptive {

@@ -189,6 +189,9 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className={`app-frame${collapsed ? ' app-frame--collapsed' : ''}`}>
+      <a className="skip-link" href="#main-content">
+        Ana içeriğe geç
+      </a>
       <button
         className="mobile-menu-button"
         type="button"
@@ -342,7 +345,12 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
         <SignatureLine />
         <div className="page-container">
-          <div className="route-content" key={pathname}>
+          <div
+            className="route-content"
+            id="main-content"
+            key={pathname}
+            tabIndex={-1}
+          >
             {children}
           </div>
         </div>

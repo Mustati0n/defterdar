@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { AnalyticsDateControls, AnalyticsView } from './analytics-experience';
 import { analyticsDateRange, analyticsPresets } from './analytics-date';
 import type { AnalyticsSummary } from '@/lib/types';
+import { accessibilityViolations } from '@/test/accessibility';
 
 const summary: AnalyticsSummary = {
   currency: 'TRY',
@@ -97,7 +98,9 @@ describe('analytics product experience', () => {
     expect(
       screen.getByText('Bu dönemde kayıtlı hareket yok.'),
     ).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: /Tüm zamanları göster/ }));
+    fireEvent.click(
+      screen.getByRole('button', { name: /Tüm zamanları göster/ }),
+    );
     expect(onShowAll).toHaveBeenCalledTimes(1);
     expect(screen.getByRole('link', { name: /Hareket ekle/ })).toHaveAttribute(
       'href',
@@ -138,5 +141,22 @@ describe('analytics product experience', () => {
     expect(compact).toHaveValue('3months');
     fireEvent.change(compact, { target: { value: 'year' } });
     expect(setPreset).toHaveBeenCalledWith('year');
+  });
+
+  it('keeps populated and empty analysis views structurally accessible', async () => {
+    const rendered = render(<AnalyticsView data={summary} />);
+    expect(await accessibilityViolations(rendered.container)).toEqual([]);
+
+    rendered.rerender(
+      <AnalyticsView
+        data={{ ...summary, expenseCount: 0, incomeCount: 0 }}
+        emptyState={{
+          preset: 'month',
+          onShowAll: jest.fn(),
+          addHref: '/expenses/new?ledgerId=ledger-1',
+        }}
+      />,
+    );
+    expect(await accessibilityViolations(rendered.container)).toEqual([]);
   });
 });

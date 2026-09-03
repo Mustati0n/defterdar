@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { useAllPlans, useLedgers } from '@/features/data/hooks';
 import { useAnalyticsSelection } from '@/features/analytics/use-analytics-selection';
+import { accessibilityViolations } from '@/test/accessibility';
 import StatisticsPage from './page';
 
 const select = jest.fn();
@@ -132,9 +133,13 @@ describe('flexible analytics scopes', () => {
         name: 'Önce analiz edilecek bir alan oluştur.',
       }),
     ).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /Defter oluştur/ })).toHaveAttribute(
-      'href',
-      '/workspace?type=ledger&create=ledger',
-    );
+    expect(
+      screen.getByRole('link', { name: /Defter oluştur/ }),
+    ).toHaveAttribute('href', '/workspace?type=ledger&create=ledger');
+  });
+
+  it('has no detectable structural accessibility violations', async () => {
+    const { container } = render(<StatisticsPage />);
+    expect(await accessibilityViolations(container)).toEqual([]);
   });
 });

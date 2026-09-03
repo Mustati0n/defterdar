@@ -195,9 +195,12 @@ function WorkspaceBoard({
     <section
       ref={boardRef}
       className="workspace-grid"
-      aria-label="Defterler ve Planlar"
+      aria-labelledby="workspace-results-title"
       data-layout="controlled-masonry"
     >
+      <h2 id="workspace-results-title" className="workspace-visually-hidden">
+        Defterler ve Planlar
+      </h2>
       {items.map((item) => {
         const size = workspaceCardSize(item);
         const linkedPlan =
@@ -207,6 +210,8 @@ function WorkspaceBoard({
             key={workspaceItemKey(item)}
             className={`workspace-grid__item workspace-grid__item--${item.kind} workspace-card--${size}${exitingLinkedPlans && linkedPlan ? ' is-exiting' : ''}`}
             data-workspace-key={workspaceItemKey(item)}
+            inert={exitingLinkedPlans && linkedPlan ? true : undefined}
+            aria-hidden={exitingLinkedPlans && linkedPlan ? true : undefined}
           >
             {item.kind === 'ledger' ? (
               <LedgerCard ledger={item.value} size={size} />
@@ -248,12 +253,21 @@ function WorkspaceContent() {
   });
   const createMenuRef = useRef<HTMLDivElement>(null);
   const createTriggerRef = useRef<HTMLButtonElement>(null);
+  const createMenuFocusRef = useRef<'first' | 'last'>('first');
   const exitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const ledgers = useLedgers(true);
   const plans = useAllPlans(true);
 
   useEffect(() => {
     if (!createMenuOpen) return;
+    const focusFrame = window.requestAnimationFrame(() => {
+      const items = document.querySelectorAll<HTMLElement>(
+        '[data-anchored-menu] [role="menuitem"]',
+      );
+      items[
+        createMenuFocusRef.current === 'first' ? 0 : items.length - 1
+      ]?.focus();
+    });
     const close = (event: MouseEvent) => {
       if (
         !createMenuRef.current?.contains(event.target as Node) &&
@@ -262,8 +276,33 @@ function WorkspaceContent() {
         setCreateMenuOpen(false);
     };
     document.addEventListener('mousedown', close);
-    return () => document.removeEventListener('mousedown', close);
+    return () => {
+      window.cancelAnimationFrame(focusFrame);
+      document.removeEventListener('mousedown', close);
+    };
   }, [createMenuOpen]);
+
+  const handleCreateMenuKeyDown = (
+    event: React.KeyboardEvent<HTMLDivElement>,
+  ) => {
+    if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return;
+    const items = Array.from(
+      event.currentTarget.querySelectorAll<HTMLElement>('[role="menuitem"]'),
+    );
+    if (!items.length) return;
+    event.preventDefault();
+    const currentIndex = items.indexOf(document.activeElement as HTMLElement);
+    if (event.key === 'Home') return items[0]?.focus();
+    if (event.key === 'End') return items.at(-1)?.focus();
+    const direction = event.key === 'ArrowDown' ? 1 : -1;
+    const nextIndex =
+      currentIndex < 0
+        ? direction > 0
+          ? 0
+          : items.length - 1
+        : (currentIndex + direction + items.length) % items.length;
+    items[nextIndex]?.focus();
+  };
 
   useEffect(
     () => () => {
@@ -320,7 +359,11 @@ function WorkspaceContent() {
         variant="compact"
         action={
           <div className="workspace-heading-actions">
-            <output className="workspace-heading-count" aria-live="polite">
+            <output
+              className="workspace-heading-count"
+              aria-live="polite"
+              aria-atomic="true"
+            >
               {filtered.length} kayıt
             </output>
             <button
@@ -357,7 +400,19 @@ function WorkspaceContent() {
                 type="button"
                 aria-expanded={createMenuOpen}
                 aria-haspopup="menu"
-                onClick={() => setCreateMenuOpen((current) => !current)}
+                aria-controls="workspace-create-menu"
+                onClick={() => {
+                  createMenuFocusRef.current = 'first';
+                  setCreateMenuOpen((current) => !current);
+                }}
+                onKeyDown={(event) => {
+                  if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp')
+                    return;
+                  event.preventDefault();
+                  createMenuFocusRef.current =
+                    event.key === 'ArrowDown' ? 'first' : 'last';
+                  setCreateMenuOpen(true);
+                }}
               >
                 <Plus /> Yeni <ChevronDown />
               </button>
@@ -367,11 +422,17 @@ function WorkspaceContent() {
                 onDismiss={() => setCreateMenuOpen(false)}
                 className="workspace-create__menu"
               >
-                <div role="menu">
+                <div
+                  id="workspace-create-menu"
+                  role="menu"
+                  aria-label="Yeni oluştur"
+                  onKeyDown={handleCreateMenuKeyDown}
+                >
                   <button
                     type="button"
                     role="menuitem"
                     onClick={() => {
+                      createTriggerRef.current?.focus();
                       setCreator('ledger');
                       setCreateMenuOpen(false);
                     }}
@@ -386,6 +447,7 @@ function WorkspaceContent() {
                     type="button"
                     role="menuitem"
                     onClick={() => {
+                      createTriggerRef.current?.focus();
                       setCreator('plan');
                       setCreateMenuOpen(false);
                     }}

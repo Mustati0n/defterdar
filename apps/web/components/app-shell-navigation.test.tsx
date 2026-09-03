@@ -6,6 +6,7 @@ import {
   within,
 } from '@testing-library/react';
 import { writeRecentItems } from '@/lib/recent-items';
+import { accessibilityViolations } from '@/test/accessibility';
 import { AppShell } from './app-shell';
 
 jest.mock('next/navigation', () => ({
@@ -69,6 +70,17 @@ describe('AppShell sidebar V2', () => {
     expect(screen.queryByText('Hızlı ekle')).not.toBeInTheDocument();
   });
 
+  it('offers a keyboard skip link to the focusable route content', () => {
+    render(<AppShell>İçerik</AppShell>);
+
+    const skipLink = screen.getByRole('link', { name: 'Ana içeriğe geç' });
+    const content = document.querySelector<HTMLElement>('#main-content');
+    expect(skipLink).toHaveAttribute('href', '#main-content');
+    expect(content).toHaveAttribute('tabindex', '-1');
+    content?.focus();
+    expect(content).toHaveFocus();
+  });
+
   it('opens the mobile drawer, traps focus and closes with Escape', async () => {
     render(<AppShell>İçerik</AppShell>);
     const trigger = screen.getByRole('button', { name: 'Menüyü aç' });
@@ -86,5 +98,10 @@ describe('AppShell sidebar V2', () => {
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(trigger).toHaveAttribute('aria-expanded', 'false');
     await waitFor(() => expect(trigger).toHaveFocus());
+  });
+
+  it('has no detectable structural accessibility violations', async () => {
+    const { container } = render(<AppShell>İçerik</AppShell>);
+    expect(await accessibilityViolations(container)).toEqual([]);
   });
 });

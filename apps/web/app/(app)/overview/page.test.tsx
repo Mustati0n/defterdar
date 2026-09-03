@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { useOverview } from '@/features/data/hooks';
+import { accessibilityViolations } from '@/test/accessibility';
 import OverviewPage from './page';
 
 jest.mock('@/features/data/hooks', () => ({
@@ -93,10 +94,7 @@ describe('Overview hierarchy', () => {
     expect(screen.getByText('Henüz Defterin yok.')).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: 'Deftere ekli olmayan Plan' }),
-    ).toHaveAttribute(
-      'href',
-      '/workspace?type=plan&create=plan&standalone=1',
-    );
+    ).toHaveAttribute('href', '/workspace?type=plan&create=plan&standalone=1');
     expect(screen.queryByText('Şimdi ne yapmak istersin?')).toBeNull();
   });
 
@@ -153,7 +151,10 @@ describe('Overview hierarchy', () => {
             balance: {
               currency: 'TRY',
               positions: [
-                { user: { id: 'me', displayName: 'Mustafa' }, netMinor: -25000 },
+                {
+                  user: { id: 'me', displayName: 'Mustafa' },
+                  netMinor: -25000,
+                },
               ],
               suggestions: [],
             },
@@ -193,7 +194,9 @@ describe('Overview hierarchy', () => {
 
     render(<OverviewPage />);
 
-    expect(screen.getByText('1 ödeme onayı senden aksiyon bekliyor.')).toBeInTheDocument();
+    expect(
+      screen.getByText('1 ödeme onayı senden aksiyon bekliyor.'),
+    ).toBeInTheDocument();
     expect(screen.getByText('Onayın gerekiyor').closest('a')).toHaveClass(
       'overview-priority--critical',
     );
@@ -206,5 +209,10 @@ describe('Overview hierarchy', () => {
     expect(screen.getByText('Yaklaşan Plan').closest('a')).toHaveClass(
       'overview-priority--positive',
     );
+  });
+
+  it('has no detectable structural accessibility violations', async () => {
+    const { container } = render(<OverviewPage />);
+    expect(await accessibilityViolations(container)).toEqual([]);
   });
 });
