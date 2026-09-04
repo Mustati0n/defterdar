@@ -344,21 +344,58 @@ a.overview-activity:focus-visible {
   margin-block: var(--layout-section-gap);
 }
 .overview-card-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
-  justify-content: start;
+  display: flex;
   gap: var(--layout-card-gap);
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  padding: 2px 2px 0.85rem;
+  scroll-padding-inline: 2px;
+  scroll-snap-type: inline mandatory;
 }
 .overview-card-grid--ledgers {
-  padding-left: 10px;
+  padding-left: 12px;
 }
 .overview-card-grid .ledger-card,
 .overview-card-grid .plan-card {
-  width: 100%;
+  flex: 0 0 clamp(250px, 28vw, 320px);
+  width: auto;
   min-height: 270px;
+  scroll-snap-align: start;
 }
 .overview-card-grid--ledgers .ledger-card {
   margin-left: 0;
+}
+.overview-card-grid__more {
+  display: grid;
+  flex: 0 0 144px;
+  min-height: 210px;
+  align-content: center;
+  justify-items: center;
+  gap: 0.55rem;
+  padding: 1rem;
+  color: var(--color-wine);
+  border: 1px dashed var(--color-line);
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--surface-raised) 64%, transparent);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  cursor: pointer;
+  scroll-snap-align: end;
+  transition:
+    border-color var(--motion-fast) var(--ease-standard),
+    background var(--motion-fast) var(--ease-standard),
+    transform var(--motion-fast) var(--ease-standard);
+}
+.overview-card-grid__more:hover,
+.overview-card-grid__more:focus-visible {
+  border-color: var(--color-wine);
+  background: var(--surface-raised);
+  transform: translateY(-2px);
+}
+.overview-card-grid__more svg {
+  width: 19px;
+  height: 19px;
 }
 .overview-card-grid .ledger-card--overview {
   min-width: 0;
@@ -495,18 +532,11 @@ a.overview-activity:focus-visible {
     width: 100%;
   }
   .overview-card-grid--plans {
-    grid-auto-columns: min(82vw, 320px);
-    grid-auto-flow: column;
-    grid-template-columns: none;
-    justify-content: normal;
-    overflow-x: auto;
-    overscroll-behavior-inline: contain;
-    padding: 2px 2px 0.75rem;
-    scroll-padding-inline: 2px;
-    scroll-snap-type: inline mandatory;
+    padding-bottom: 0.75rem;
   }
-  .overview-card-grid--plans .plan-card {
-    scroll-snap-align: start;
+  .overview-card-grid .ledger-card,
+  .overview-card-grid .plan-card {
+    flex-basis: min(82vw, 300px);
   }
   .overview-activity {
     grid-template-columns: 44px minmax(0, 1fr);

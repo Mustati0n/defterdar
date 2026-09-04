@@ -168,6 +168,63 @@ describe('Overview hierarchy', () => {
     );
   });
 
+  it('reveals Ledgers and Plans in batches and removes the final more buttons', () => {
+    const ledgers = Array.from({ length: 7 }, (_, index) => ({
+      ...ledger,
+      id: `ledger-${index + 1}`,
+      name: `Defter ${index + 1}`,
+    }));
+    const plans = Array.from({ length: 7 }, (_, index) => ({
+      id: `plan-${index + 1}`,
+      name: `Plan ${index + 1}`,
+      ledgerId: null,
+      status: 'ACTIVE' as const,
+    }));
+    jest.mocked(useOverview).mockReturnValue({
+      data: {
+        ledgers,
+        plans,
+        ledgerBalances: [],
+        planBalances: [],
+        activity: { items: [], nextCursor: null },
+        pendingPayments: [],
+      },
+      isLoading: false,
+      isError: false,
+      refetch: jest.fn(),
+    } as unknown as ReturnType<typeof useOverview>);
+
+    render(<OverviewPage />);
+
+    expect(screen.getAllByTestId('ledger-card')).toHaveLength(3);
+    expect(screen.getAllByTestId('plan-card')).toHaveLength(3);
+
+    const moreLedgers = screen.getByRole('button', {
+      name: 'Daha fazla Defter göster',
+    });
+    const morePlans = screen.getByRole('button', {
+      name: 'Daha fazla Plan göster',
+    });
+
+    fireEvent.click(moreLedgers);
+    fireEvent.click(morePlans);
+    expect(screen.getAllByTestId('ledger-card')).toHaveLength(6);
+    expect(screen.getAllByTestId('plan-card')).toHaveLength(6);
+    expect(moreLedgers).toBeInTheDocument();
+    expect(morePlans).toBeInTheDocument();
+
+    fireEvent.click(moreLedgers);
+    fireEvent.click(morePlans);
+    expect(screen.getAllByTestId('ledger-card')).toHaveLength(7);
+    expect(screen.getAllByTestId('plan-card')).toHaveLength(7);
+    expect(
+      screen.queryByRole('button', { name: 'Daha fazla Defter göster' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Daha fazla Plan göster' }),
+    ).not.toBeInTheDocument();
+  });
+
   it('prioritizes action, obligation and an approaching Plan', () => {
     jest.mocked(useOverview).mockReturnValue({
       data: {

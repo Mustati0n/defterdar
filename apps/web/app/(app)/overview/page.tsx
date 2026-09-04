@@ -22,12 +22,20 @@ import { useAuth } from '@/features/auth/auth-provider';
 import { formatDate, formatMoneyFromMinor } from '@/lib/format';
 import { useInterfacePreferences } from '@/features/preferences/use-interface-preferences';
 
+const OVERVIEW_COLLECTION_BATCH_SIZE = 3;
+
 export default function OverviewPage() {
   const { user } = useAuth();
   const overview = useOverview();
   const { preferences } = useInterfacePreferences(user?.id);
   const [referenceTime] = useState(Date.now);
   const [showAllPriorities, setShowAllPriorities] = useState(false);
+  const [visibleLedgerCount, setVisibleLedgerCount] = useState(
+    OVERVIEW_COLLECTION_BATCH_SIZE,
+  );
+  const [visiblePlanCount, setVisiblePlanCount] = useState(
+    OVERVIEW_COLLECTION_BATCH_SIZE,
+  );
   const activeLedgers = overview.data?.ledgers.filter(
     (ledger) => !ledger.archivedAt,
   );
@@ -225,8 +233,11 @@ export default function OverviewPage() {
               Tümünü gör <ArrowRight />
             </Link>
           </div>
-          <div className="overview-card-grid overview-card-grid--ledgers">
-            {activeLedgers.slice(0, 3).map((ledger) => {
+          <div
+            className="overview-card-grid overview-card-grid--ledgers"
+            id="overview-ledgers"
+          >
+            {activeLedgers.slice(0, visibleLedgerCount).map((ledger) => {
               const ledgerBalance = overview.data?.ledgerBalances.find(
                 (item) => item.ledgerId === ledger.id,
               );
@@ -243,6 +254,25 @@ export default function OverviewPage() {
                 />
               );
             })}
+            {visibleLedgerCount < activeLedgers.length ? (
+              <button
+                className="overview-card-grid__more"
+                type="button"
+                aria-controls="overview-ledgers"
+                aria-label="Daha fazla Defter göster"
+                onClick={() =>
+                  setVisibleLedgerCount((current) =>
+                    Math.min(
+                      current + OVERVIEW_COLLECTION_BATCH_SIZE,
+                      activeLedgers.length,
+                    ),
+                  )
+                }
+              >
+                <span>Daha fazla</span>
+                <ArrowRight />
+              </button>
+            ) : null}
           </div>
         </section>
       ) : preferences.overview.ledgers ? (
@@ -281,8 +311,11 @@ export default function OverviewPage() {
               Tümünü gör <ArrowRight />
             </Link>
           </div>
-          <div className="overview-card-grid overview-card-grid--plans">
-            {orderedPlans.slice(0, 3).map((plan) => {
+          <div
+            className="overview-card-grid overview-card-grid--plans"
+            id="overview-plans"
+          >
+            {orderedPlans.slice(0, visiblePlanCount).map((plan) => {
               const planBalance = overview.data?.planBalances.find(
                 (item) => item.planId === plan.id,
               );
@@ -300,6 +333,25 @@ export default function OverviewPage() {
                 />
               );
             })}
+            {visiblePlanCount < orderedPlans.length ? (
+              <button
+                className="overview-card-grid__more"
+                type="button"
+                aria-controls="overview-plans"
+                aria-label="Daha fazla Plan göster"
+                onClick={() =>
+                  setVisiblePlanCount((current) =>
+                    Math.min(
+                      current + OVERVIEW_COLLECTION_BATCH_SIZE,
+                      orderedPlans.length,
+                    ),
+                  )
+                }
+              >
+                <span>Daha fazla</span>
+                <ArrowRight />
+              </button>
+            ) : null}
           </div>
         </section>
       ) : null}
