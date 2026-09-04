@@ -151,70 +151,17 @@
 .overview-focus__more {
   display: none;
 }
-.section-heading {
-  display: flex;
-  align-items: end;
-  justify-content: space-between;
-  gap: 1rem;
-  margin-bottom: 1.2rem;
-}
-.section-heading h2 {
-  margin: 0;
-}
 .overview-activity-section .section-heading p {
   margin: 0.3rem 0 0;
   color: var(--text-secondary);
   font-size: var(--font-size-sm);
 }
-.section-heading > a {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  color: var(--color-wine);
-  font-size: 0.76rem;
-  font-weight: 800;
-  transition:
-    color var(--motion-fast) var(--ease-standard),
-    transform var(--motion-fast) var(--ease-standard);
-}
-.section-heading > a:hover,
-.section-heading > a:focus-visible {
-  color: var(--color-wine-dark);
-  transform: translateX(2px);
-}
-.paper-section,
-.lined-section {
-  padding: 1.6rem;
-  border: var(--border-width) solid var(--border-color);
-  background: var(--surface-raised);
-  box-shadow: var(--elevation-highlight), var(--elevation-1);
-}
-.activity-list,
-.compact-activity {
+.activity-list {
   display: grid;
   gap: 0.85rem;
   margin: 0;
   padding: 0;
   list-style: none;
-}
-.compact-activity li {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 0.7rem;
-}
-.compact-activity li > span {
-  width: 10px;
-  height: 10px;
-  margin-top: 0.35rem;
-  border: 2px solid var(--color-paper);
-  border-radius: 50%;
-  background: var(--color-wine);
-  box-shadow: 0 0 0 1px var(--color-wine);
-}
-.compact-activity p {
-  margin: 0.05rem 0;
-  color: var(--color-muted);
-  font-size: 0.75rem;
 }
 .activity-list {
   gap: 0;
@@ -323,21 +270,8 @@ a.overview-activity:focus-visible {
 .overview-activity__status--critical {
   color: var(--state-critical-fg);
 }
-.activity-list__empty {
-  color: var(--color-muted);
-  font-size: 0.82rem;
-}
 .overview-plans {
   margin-top: 0;
-}
-.inline-note {
-  display: grid;
-  min-height: 220px;
-  padding: 2rem;
-  color: var(--color-muted);
-  border: 1px dashed var(--color-line);
-  place-items: center;
-  text-align: center;
 }
 .overview-section {
   min-width: 0;
