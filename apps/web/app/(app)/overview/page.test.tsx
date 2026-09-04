@@ -87,6 +87,9 @@ describe('Overview hierarchy', () => {
     expect(
       screen.queryByText('Ortak hesabın hafızası burada.'),
     ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('İlgili çalışma alanları'),
+    ).not.toBeInTheDocument();
   });
 
   it('does not render data sections when there is no data', () => {
@@ -111,6 +114,7 @@ describe('Overview hierarchy', () => {
       screen.queryByRole('heading', { name: 'Planların' }),
     ).not.toBeInTheDocument();
     expect(screen.getByText('Her şey yolunda.')).toBeInTheDocument();
+    expect(screen.queryByText('Güncel')).not.toBeInTheDocument();
     expect(
       screen.getByText('Şu an dikkatini isteyen bir kayıt yok.'),
     ).toBeInTheDocument();
@@ -287,6 +291,11 @@ describe('Overview hierarchy', () => {
     expect(
       screen.getByRole('heading', { name: 'Son hareketler' }),
     ).toBeInTheDocument();
+    expect(
+      screen
+        .getByRole('heading', { name: 'Son hareketler' })
+        .closest('section'),
+    ).not.toHaveClass('activity-paper');
     expect(
       screen.getByText('Defterlerinde ve Planlarında yapılan son kayıtlar.'),
     ).toBeInTheDocument();

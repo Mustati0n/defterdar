@@ -161,21 +161,10 @@ export default function OverviewPage() {
           <div>
             <span className="eyebrow">Dikkatini isteyenler</span>
             <h2 id="overview-focus-title">Bugünün durumu</h2>
-            <p>
-              {priorityItems.length
-                ? `${priorityItems.length} konu dikkatini bekliyor.`
-                : 'Defterlerin ve Planların güncel görünüyor.'}
-            </p>
+            {priorityItems.length ? (
+              <p>{priorityItems.length} konu dikkatini bekliyor.</p>
+            ) : null}
           </div>
-          {priorityItems.length ? (
-            <span className="overview-focus__count">
-              {priorityItems.length} konu
-            </span>
-          ) : (
-            <span className="overview-focus__count overview-focus__count--clear">
-              Güncel
-            </span>
-          )}
         </div>
 
         {priorityItems.length ? (
@@ -231,10 +220,7 @@ export default function OverviewPage() {
       {preferences.overview.ledgers && activeLedgers?.length ? (
         <section className="overview-section">
           <div className="section-heading">
-            <div>
-              <span className="eyebrow">İlgili çalışma alanları</span>
-              <h2>Defterlerin</h2>
-            </div>
+            <h2>Defterlerin</h2>
             <Link href="/workspace?type=ledger">
               Tümünü gör <ArrowRight />
             </Link>
@@ -292,7 +278,7 @@ export default function OverviewPage() {
               <h2>Planların</h2>
             </div>
             <Link href="/workspace?type=plan">
-              Tüm planlar <ArrowRight />
+              Tümünü gör <ArrowRight />
             </Link>
           </div>
           <div className="overview-card-grid overview-card-grid--plans">
@@ -320,7 +306,7 @@ export default function OverviewPage() {
 
       {preferences.overview.activity &&
       overview.data?.activity?.items.length ? (
-        <section className="activity-paper overview-section">
+        <section className="overview-section overview-activity-section">
           <div className="section-heading">
             <div>
               <h2>Son hareketler</h2>

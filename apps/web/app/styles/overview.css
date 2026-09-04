@@ -30,21 +30,6 @@
   color: var(--text-secondary);
   font-size: var(--font-size-sm);
 }
-.overview-focus__count {
-  flex: 0 0 auto;
-  padding: 0.35rem 0.65rem;
-  color: var(--color-wine);
-  border: 1px solid color-mix(in srgb, var(--color-wine) 28%, transparent);
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--color-paper) 72%, white);
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-bold);
-}
-.overview-focus__count--clear {
-  color: var(--text-secondary);
-  border-color: var(--border-color);
-  background: color-mix(in srgb, var(--surface-raised) 68%, transparent);
-}
 .overview-focus__grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -176,7 +161,7 @@
 .section-heading h2 {
   margin: 0;
 }
-.activity-paper .section-heading p {
+.overview-activity-section .section-heading p {
   margin: 0.3rem 0 0;
   color: var(--text-secondary);
   font-size: var(--font-size-sm);
@@ -197,17 +182,12 @@
   color: var(--color-wine-dark);
   transform: translateX(2px);
 }
-.activity-paper,
 .paper-section,
 .lined-section {
   padding: 1.6rem;
   border: var(--border-width) solid var(--border-color);
   background: var(--surface-raised);
   box-shadow: var(--elevation-highlight), var(--elevation-1);
-}
-.activity-paper {
-  border-radius: var(--radius-lg);
-  background: color-mix(in srgb, var(--surface-raised) 94%, var(--color-paper));
 }
 .activity-list,
 .compact-activity {
@@ -522,9 +502,6 @@ a.overview-activity:focus-visible {
   .overview-card-grid--plans .plan-card {
     scroll-snap-align: start;
   }
-  .activity-paper {
-    padding: 1rem;
-  }
   .overview-activity {
     grid-template-columns: 44px minmax(0, 1fr);
   }
@@ -547,9 +524,6 @@ a.overview-activity:focus-visible {
 @media (max-width: 480px) {
   .overview-focus__heading {
     display: grid;
-  }
-  .overview-focus__count {
-    justify-self: start;
   }
   .overview-priority__copy strong,
   .overview-priority__copy > span {

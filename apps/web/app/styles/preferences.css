@@ -7,8 +7,7 @@ html[data-density='compact'] .page-container {
   padding-block: 3.3rem;
 }
 html[data-density='compact'] .paper-section,
-html[data-density='compact'] .lined-section,
-html[data-density='compact'] .activity-paper {
+html[data-density='compact'] .lined-section {
   padding: 1.1rem;
 }
 html[data-density='compact'] .ledger-card,
