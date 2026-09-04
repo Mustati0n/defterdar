@@ -69,4 +69,51 @@ describe('PlanCard', () => {
     expect(screen.getByText('TRY')).toBeInTheDocument();
     expect(screen.queryByText('Bağlı Defter')).not.toBeInTheDocument();
   });
+
+  it('keeps the Overview variant focused on date, participants and balance', () => {
+    render(
+      <PlanCard
+        plan={plan}
+        ledger={ledger}
+        netMinor={-520000}
+        referenceTime={new Date('2026-09-12T00:00:00Z').getTime()}
+        variant="overview"
+      />,
+    );
+
+    const card = screen.getByRole('link', { name: /Yaz tatili/ });
+    expect(card).toHaveClass('plan-card--overview');
+    expect(screen.getByText('3 gün kaldı')).toBeInTheDocument();
+    expect(screen.getByText('4 kişi')).toBeInTheDocument();
+    expect(screen.getByText('₺5.200,00 ödemen var')).toBeInTheDocument();
+    expect(screen.queryByText('Devam ediyor')).not.toBeInTheDocument();
+    expect(screen.queryByText(plan.description!)).not.toBeInTheDocument();
+    expect(screen.queryByText('Bağlı Defter')).not.toBeInTheDocument();
+    expect(screen.queryByText('Bağımsız Plan')).not.toBeInTheDocument();
+  });
+
+  it('uses a calm date label when an active Plan has already started', () => {
+    render(
+      <PlanCard
+        plan={{ ...plan, startsAt: '2026-09-01T00:00:00Z' }}
+        referenceTime={new Date('2026-09-12T00:00:00Z').getTime()}
+        variant="overview"
+      />,
+    );
+
+    expect(screen.getByText('Devam ediyor')).toBeInTheDocument();
+    expect(screen.queryByText('TRY')).not.toBeInTheDocument();
+  });
+
+  it('calls a Plan later on the same calendar day today', () => {
+    render(
+      <PlanCard
+        plan={{ ...plan, startsAt: '2026-09-15T20:00:00Z' }}
+        referenceTime={new Date('2026-09-15T08:00:00Z').getTime()}
+        variant="overview"
+      />,
+    );
+
+    expect(screen.getByText('Bugün başlıyor')).toBeInTheDocument();
+  });
 });

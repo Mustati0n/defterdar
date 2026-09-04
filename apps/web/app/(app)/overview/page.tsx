@@ -295,15 +295,24 @@ export default function OverviewPage() {
             </Link>
           </div>
           <div className="overview-card-grid overview-card-grid--plans">
-            {orderedPlans.slice(0, 3).map((plan) => (
-              <PlanCard
-                key={plan.id}
-                plan={plan}
-                ledger={activeLedgers?.find(
-                  (ledger) => ledger.id === plan.ledgerId,
-                )}
-              />
-            ))}
+            {orderedPlans.slice(0, 3).map((plan) => {
+              const planBalance = overview.data?.planBalances.find(
+                (item) => item.planId === plan.id,
+              );
+              const netMinor = planBalance?.balance.positions.find(
+                (position) => position.user.id === user?.id,
+              )?.netMinor;
+
+              return (
+                <PlanCard
+                  key={plan.id}
+                  plan={plan}
+                  netMinor={netMinor}
+                  referenceTime={referenceTime}
+                  variant="overview"
+                />
+              );
+            })}
           </div>
         </section>
       ) : null}

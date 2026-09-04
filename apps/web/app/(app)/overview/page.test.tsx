@@ -23,8 +23,16 @@ jest.mock('@/components/ledger-card', () => ({
   ),
 }));
 jest.mock('@/components/plan-card', () => ({
-  PlanCard: ({ plan }: { plan: { name: string } }) => (
-    <article data-testid="plan-card">{plan.name}</article>
+  PlanCard: ({
+    plan,
+    variant,
+  }: {
+    plan: { name: string };
+    variant?: string;
+  }) => (
+    <article data-testid="plan-card" data-variant={variant}>
+      {plan.name}
+    </article>
   ),
 }));
 
@@ -150,6 +158,10 @@ describe('Overview hierarchy', () => {
         expect(card).toHaveAttribute('data-variant', 'overview'),
       );
     expect(screen.getAllByTestId('plan-card')).toHaveLength(1);
+    expect(screen.getByTestId('plan-card')).toHaveAttribute(
+      'data-variant',
+      'overview',
+    );
   });
 
   it('prioritizes action, obligation and an approaching Plan', () => {

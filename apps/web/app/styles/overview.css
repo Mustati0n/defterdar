@@ -304,6 +304,49 @@
   color: var(--border-strong);
   content: '·';
 }
+.overview-card-grid .plan-card--overview {
+  min-width: 0;
+  min-height: 210px;
+}
+.plan-card--overview .plan-card__heading h3 {
+  margin-top: 0;
+}
+.plan-card__overview-date {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-top: 0.35rem;
+  color: var(--state-warning-fg);
+}
+.plan-card__overview-date svg,
+.plan-card__overview-meta svg {
+  width: 18px;
+  height: 18px;
+}
+.plan-card__overview-date strong {
+  color: var(--text-heading);
+  font-size: clamp(1rem, 1.5vw, 1.15rem);
+}
+.plan-card__overview-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.7rem;
+  margin-top: auto;
+  padding-top: 0.85rem;
+  color: var(--text-secondary);
+  border-top: var(--border-width) solid var(--state-warning-border);
+  font-size: var(--font-size-xs);
+}
+.plan-card__overview-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.plan-card__overview-meta span + span::before {
+  margin-right: 0.4rem;
+  color: var(--state-warning-border);
+  content: '·';
+}
 .overview-empty {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto auto;
@@ -363,6 +406,20 @@
   .overview-empty .button {
     grid-column: 1 / -1;
     width: 100%;
+  }
+  .overview-card-grid--plans {
+    grid-auto-columns: min(82vw, 320px);
+    grid-auto-flow: column;
+    grid-template-columns: none;
+    justify-content: normal;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    padding: 2px 2px 0.75rem;
+    scroll-padding-inline: 2px;
+    scroll-snap-type: inline mandatory;
+  }
+  .overview-card-grid--plans .plan-card {
+    scroll-snap-align: start;
   }
 }
 @media (max-width: 480px) {
