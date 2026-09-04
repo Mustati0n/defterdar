@@ -11,6 +11,7 @@ import {
   resetPageIntro,
   type PageIntroKey,
 } from '@/lib/page-intros';
+import { reloadPage } from '@/lib/reload-page';
 
 const introLabels: Record<PageIntroKey, string> = {
   ledgers: 'Defterler',
@@ -109,9 +110,10 @@ export function InterfacePreferencesPanel() {
         <input
           type="checkbox"
           checked={preferences.symmetricWorkspaceCards}
-          onChange={(event) =>
-            update({ symmetricWorkspaceCards: event.target.checked })
-          }
+          onChange={(event) => {
+            update({ symmetricWorkspaceCards: event.target.checked });
+            reloadPage();
+          }}
         />
       </label>
 

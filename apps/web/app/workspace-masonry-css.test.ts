@@ -30,12 +30,15 @@ describe('controlled workspace masonry CSS', () => {
 
   it('offers an equal-height row layout without changing the masonry default', () => {
     expect(css).toMatch(
-      /\.workspace-grid--symmetric\s*\{[^}]*grid-auto-rows: 360px;[^}]*row-gap: var\(--workspace-masonry-gap\);/s,
+      /\.workspace-grid\.workspace-grid--symmetric\s*\{[^}]*grid-auto-rows: 360px;[^}]*row-gap: var\(--workspace-masonry-gap\);/s,
     );
     expect(css).toMatch(
-      /\.workspace-grid--symmetric > \.workspace-grid__item\s*\{[^}]*height: 360px;[^}]*grid-row-end: auto;[^}]*margin-bottom: 0;/s,
+      /\.workspace-grid\.workspace-grid--symmetric > \.workspace-grid__item\s*\{[^}]*height: 360px;[^}]*grid-row-end: auto;[^}]*margin-bottom: 0;/s,
     );
     expect(css).toMatch(
+      /\.workspace-grid\.workspace-grid--symmetric[\s\S]*?> \.workspace-grid__item[\s\S]*?> \.ledger-card,[\s\S]*?> \.plan-card\s*\{[^}]*width: 100%;[^}]*height: 100%;/s,
+    );
+    expect(css).not.toMatch(
       /@media \(max-width: 680px\)[\s\S]*?\.workspace-grid--symmetric\s*\{[^}]*grid-auto-rows: auto;/s,
     );
   });
