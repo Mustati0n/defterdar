@@ -100,6 +100,23 @@ export function InterfacePreferencesPanel() {
 
       <label className="preference-toggle">
         <span>
+          <strong>Simetrik kart düzeni</strong>
+          <small>
+            Defterler &amp; Planlar ekranında kartları eşit yükseklikte düzenli
+            satırlara dizer.
+          </small>
+        </span>
+        <input
+          type="checkbox"
+          checked={preferences.symmetricWorkspaceCards}
+          onChange={(event) =>
+            update({ symmetricWorkspaceCards: event.target.checked })
+          }
+        />
+      </label>
+
+      <label className="preference-toggle">
+        <span>
           <strong>Otomatik kompakt başlık</strong>
           <small>
             Uzun sayfalarda başlığı kaydırırken çalışma barına dönüştürür.

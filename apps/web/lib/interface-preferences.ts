@@ -4,6 +4,7 @@ export type MotionPreference = 'system' | 'standard' | 'reduced';
 export interface InterfacePreferences {
   density: InterfaceDensity;
   motion: MotionPreference;
+  symmetricWorkspaceCards: boolean;
   overview: {
     ledgers: boolean;
     plans: boolean;
@@ -16,6 +17,7 @@ export interface InterfacePreferences {
 export const defaultInterfacePreferences: InterfacePreferences = {
   density: 'comfortable',
   motion: 'system',
+  symmetricWorkspaceCards: false,
   overview: { ledgers: true, plans: true, activity: true },
   pageIntros: true,
   adaptiveHeader: true,

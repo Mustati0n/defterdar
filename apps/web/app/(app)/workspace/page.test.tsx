@@ -19,6 +19,17 @@ jest.mock('@/features/data/hooks', () => ({
   useLedgers: jest.fn(),
   useAllPlans: jest.fn(),
 }));
+let mockSymmetricWorkspaceCards = false;
+jest.mock('@/features/auth/auth-provider', () => ({
+  useAuth: () => ({ user: { id: 'me' } }),
+}));
+jest.mock('@/features/preferences/use-interface-preferences', () => ({
+  useInterfacePreferences: () => ({
+    preferences: {
+      symmetricWorkspaceCards: mockSymmetricWorkspaceCards,
+    },
+  }),
+}));
 jest.mock('@/components/page-heading', () => ({
   PageHeading: ({
     title,
@@ -79,6 +90,7 @@ const standalonePlan: Plan = {
 
 describe('Defterler & Planlar workspace', () => {
   beforeEach(() => {
+    mockSymmetricWorkspaceCards = false;
     jest.mocked(useLedgers).mockReturnValue({
       data: [ledger],
       isLoading: false,
@@ -114,6 +126,15 @@ describe('Defterler & Planlar workspace', () => {
         .getAllByRole('link')
         .map((link) => link.getAttribute('href')),
     ).toEqual(['/plans/plan-2', '/ledgers/ledger-1']);
+  });
+
+  it('uses the symmetric board when the saved preference is enabled', () => {
+    mockSymmetricWorkspaceCards = true;
+    render(<WorkspacePage />);
+
+    const board = screen.getByRole('region', { name: 'Defterler ve Planlar' });
+    expect(board).toHaveAttribute('data-layout', 'symmetric');
+    expect(board).toHaveClass('workspace-grid--symmetric');
   });
 
   it('searches names and descriptions across both kinds', () => {

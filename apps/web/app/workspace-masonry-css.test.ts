@@ -28,6 +28,18 @@ describe('controlled workspace masonry CSS', () => {
     );
   });
 
+  it('offers an equal-height row layout without changing the masonry default', () => {
+    expect(css).toMatch(
+      /\.workspace-grid--symmetric\s*\{[^}]*grid-auto-rows: 360px;[^}]*row-gap: var\(--workspace-masonry-gap\);/s,
+    );
+    expect(css).toMatch(
+      /\.workspace-grid--symmetric > \.workspace-grid__item\s*\{[^}]*height: 360px;[^}]*grid-row-end: auto;[^}]*margin-bottom: 0;/s,
+    );
+    expect(css).toMatch(
+      /@media \(max-width: 680px\)[\s\S]*?\.workspace-grid--symmetric\s*\{[^}]*grid-auto-rows: auto;/s,
+    );
+  });
+
   it('uses transform and opacity for exit while honoring reduced motion', () => {
     expect(css).toMatch(
       /@keyframes workspace-card-exit\s*\{[^}]*to\s*\{[^}]*opacity: 0;[^}]*transform:/s,

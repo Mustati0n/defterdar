@@ -26,7 +26,9 @@ import { PageHeading } from '@/components/page-heading';
 import { PlanCard } from '@/components/plan-card';
 import { AnchoredMenu } from '@/components/ui/anchored-menu';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/states';
+import { useAuth } from '@/features/auth/auth-provider';
 import { useAllPlans, useLedgers } from '@/features/data/hooks';
+import { useInterfacePreferences } from '@/features/preferences/use-interface-preferences';
 import type { Ledger, Plan } from '@/lib/types';
 
 type WorkspaceFilter = 'recent' | 'active' | 'archived';
@@ -128,10 +130,12 @@ function WorkspaceBoard({
   items,
   ledgers,
   exitingLinkedPlans,
+  symmetric,
 }: {
   items: WorkspaceItem[];
   ledgers: Ledger[];
   exitingLinkedPlans: boolean;
+  symmetric: boolean;
 }) {
   const boardRef = useRef<HTMLElement>(null);
   const positionsRef = useRef(new Map<string, DOMRect>());
@@ -189,14 +193,14 @@ function WorkspaceBoard({
 
     initializedRef.current = true;
     positionsRef.current = currentPositions;
-  }, [exitingLinkedPlans, items]);
+  }, [exitingLinkedPlans, items, symmetric]);
 
   return (
     <section
       ref={boardRef}
-      className="workspace-grid"
+      className={`workspace-grid${symmetric ? ' workspace-grid--symmetric' : ''}`}
       aria-labelledby="workspace-results-title"
-      data-layout="controlled-masonry"
+      data-layout={symmetric ? 'symmetric' : 'controlled-masonry'}
     >
       <h2 id="workspace-results-title" className="workspace-visually-hidden">
         Defterler ve Planlar
@@ -232,6 +236,8 @@ function WorkspaceBoard({
 }
 
 function WorkspaceContent() {
+  const { user } = useAuth();
+  const { preferences } = useInterfacePreferences(user?.id);
   const searchParams = useSearchParams();
   const requestedType = searchParams.get('type');
   const [search, setSearch] = useState('');
@@ -552,6 +558,7 @@ function WorkspaceContent() {
           items={filtered}
           ledgers={ledgers.data ?? []}
           exitingLinkedPlans={exitingLinkedPlans}
+          symmetric={preferences.symmetricWorkspaceCards}
         />
       ) : null}
       {!isLoading && !isError && !filtered.length ? (
