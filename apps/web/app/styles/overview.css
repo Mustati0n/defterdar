@@ -349,10 +349,16 @@ a.overview-activity:focus-visible {
   justify-content: start;
   gap: var(--layout-card-gap);
 }
+.overview-card-grid--ledgers {
+  padding-left: 10px;
+}
 .overview-card-grid .ledger-card,
 .overview-card-grid .plan-card {
   width: 100%;
   min-height: 270px;
+}
+.overview-card-grid--ledgers .ledger-card {
+  margin-left: 0;
 }
 .overview-card-grid .ledger-card--overview {
   min-width: 0;

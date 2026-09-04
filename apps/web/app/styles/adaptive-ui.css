@@ -267,6 +267,7 @@
   }
   .app-main--overview .page-container {
     padding-top: 2.5rem;
+    padding-bottom: max(6rem, calc(5rem + env(safe-area-inset-bottom)));
   }
   .floating-quick-add {
     right: max(1rem, env(safe-area-inset-right));
