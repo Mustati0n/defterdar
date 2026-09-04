@@ -264,7 +264,7 @@
 }
 .overview-card-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 420px));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
   justify-content: start;
   gap: var(--layout-card-gap);
 }
@@ -272,6 +272,37 @@
 .overview-card-grid .plan-card {
   width: 100%;
   min-height: 270px;
+}
+.overview-card-grid .ledger-card--overview {
+  min-width: 0;
+  min-height: 210px;
+}
+.ledger-card--overview .ledger-card__top {
+  justify-content: flex-end;
+  min-height: 24px;
+}
+.ledger-card--overview h3 {
+  margin-bottom: 0.8rem;
+}
+.ledger-card__balance {
+  color: var(--text-heading);
+  font-size: clamp(1rem, 1.5vw, 1.15rem);
+}
+.ledger-card__overview-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.7rem;
+  margin-top: auto;
+  padding-top: 0.85rem;
+  color: var(--text-secondary);
+  border-top: var(--border-width) solid
+    color-mix(in srgb, var(--border-color) 70%, transparent);
+  font-size: var(--font-size-xs);
+}
+.ledger-card__overview-meta span + span::before {
+  margin-right: 0.7rem;
+  color: var(--border-strong);
+  content: '·';
 }
 .overview-empty {
   display: grid;

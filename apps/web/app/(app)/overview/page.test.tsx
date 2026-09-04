@@ -10,8 +10,16 @@ jest.mock('@/features/auth/auth-provider', () => ({
   useAuth: () => ({ user: { id: 'me', displayName: 'Mustafa' } }),
 }));
 jest.mock('@/components/ledger-card', () => ({
-  LedgerCard: ({ ledger: item }: { ledger: { name: string } }) => (
-    <article data-testid="ledger-card">{item.name}</article>
+  LedgerCard: ({
+    ledger: item,
+    variant,
+  }: {
+    ledger: { name: string };
+    variant?: string;
+  }) => (
+    <article data-testid="ledger-card" data-variant={variant}>
+      {item.name}
+    </article>
   ),
 }));
 jest.mock('@/components/plan-card', () => ({
@@ -136,6 +144,11 @@ describe('Overview hierarchy', () => {
     } as unknown as ReturnType<typeof useOverview>);
     render(<OverviewPage />);
     expect(screen.getAllByTestId('ledger-card')).toHaveLength(3);
+    screen
+      .getAllByTestId('ledger-card')
+      .forEach((card) =>
+        expect(card).toHaveAttribute('data-variant', 'overview'),
+      );
     expect(screen.getAllByTestId('plan-card')).toHaveLength(1);
   });
 

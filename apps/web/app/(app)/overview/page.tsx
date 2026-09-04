@@ -239,9 +239,23 @@ export default function OverviewPage() {
             </Link>
           </div>
           <div className="overview-card-grid overview-card-grid--ledgers">
-            {activeLedgers.slice(0, 3).map((ledger) => (
-              <LedgerCard ledger={ledger} key={ledger.id} />
-            ))}
+            {activeLedgers.slice(0, 3).map((ledger) => {
+              const ledgerBalance = overview.data?.ledgerBalances.find(
+                (item) => item.ledgerId === ledger.id,
+              );
+              const netMinor = ledgerBalance?.balance.positions.find(
+                (position) => position.user.id === user?.id,
+              )?.netMinor;
+
+              return (
+                <LedgerCard
+                  ledger={ledger}
+                  key={ledger.id}
+                  netMinor={netMinor}
+                  variant="overview"
+                />
+              );
+            })}
           </div>
         </section>
       ) : preferences.overview.ledgers ? (

@@ -50,4 +50,41 @@ describe('LedgerNotebookCard', () => {
     expect(screen.getByText('1 aktif Plan')).toBeInTheDocument();
     expect(screen.getByText('TRY')).toHaveClass('ledger-card__currency');
   });
+
+  it('keeps the Overview variant focused on balance and short metadata', () => {
+    render(
+      <LedgerNotebookCard ledger={base} netMinor={85000} variant="overview" />,
+    );
+
+    const card = screen.getByRole('link', { name: /Ev hesabı/ });
+    expect(card).toHaveClass('ledger-card--overview');
+    expect(screen.getByText('₺850,00 alacağın var')).toHaveClass(
+      'ledger-card__balance',
+    );
+    expect(screen.getByText('3 kişi')).toBeInTheDocument();
+    expect(screen.getByText('1 aktif Plan')).toBeInTheDocument();
+    expect(screen.queryByText('Sahip')).not.toBeInTheDocument();
+    expect(screen.queryByText('Ortak defter')).not.toBeInTheDocument();
+    expect(screen.queryByText('Kişisel')).not.toBeInTheDocument();
+    expect(screen.queryByText(base.description!)).not.toBeInTheDocument();
+  });
+
+  it('shows a calm balance and no Personal label for a single-person Ledger', () => {
+    render(
+      <LedgerNotebookCard
+        ledger={{
+          ...base,
+          activeMemberCount: 1,
+          activePlanCount: 0,
+          isCollaborative: false,
+        }}
+        variant="overview"
+      />,
+    );
+
+    expect(screen.getByText('Dengede')).toBeInTheDocument();
+    expect(screen.getByText('Aktif Plan yok')).toBeInTheDocument();
+    expect(screen.queryByText('1 kişi')).not.toBeInTheDocument();
+    expect(screen.queryByText('Kişisel')).not.toBeInTheDocument();
+  });
 });
