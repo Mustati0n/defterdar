@@ -162,6 +162,14 @@ describe('Plan lifecycle and participant API', () => {
       plans: expect.any(Array),
       ledgerBalances: expect.any(Array),
       planBalances: expect.any(Array),
+      activity: {
+        items: expect.arrayContaining([
+          expect.objectContaining({
+            planId,
+            action: 'plan.created',
+          }),
+        ]),
+      },
     });
   });
 

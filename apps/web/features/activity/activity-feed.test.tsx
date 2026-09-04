@@ -83,6 +83,6 @@ describe('ActivityFeed cache isolation', () => {
       'plan-1',
       expect.any(AbortSignal),
     );
-    expect(screen.getByText(/plan kaydını değiştirdi/i)).toBeInTheDocument();
+    expect(screen.getByText(/planı güncelledi/i)).toBeInTheDocument();
   });
 });

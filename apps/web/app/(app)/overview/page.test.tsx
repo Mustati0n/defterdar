@@ -251,6 +251,54 @@ describe('Overview hierarchy', () => {
     expect(moreButton).toHaveTextContent('Daha az göster');
   });
 
+  it('presents recent activity as meaningful linked events', () => {
+    jest.mocked(useOverview).mockReturnValue({
+      data: {
+        ledgers: [ledger],
+        plans: [],
+        ledgerBalances: [],
+        planBalances: [],
+        activity: {
+          items: [
+            {
+              id: 'activity-1',
+              ledgerId: ledger.id,
+              planId: null,
+              actorUserId: 'friend',
+              actor: { id: 'friend', displayName: 'Sako' },
+              entityType: 'Settlement',
+              entityId: 'settlement-1',
+              action: 'payment.marked_paid',
+              metadata: { amountMinor: '50000', currency: 'TRY' },
+              createdAt: new Date().toISOString(),
+            },
+          ],
+          nextCursor: null,
+        },
+        pendingPayments: [],
+      },
+      isLoading: false,
+      isError: false,
+      refetch: jest.fn(),
+    } as unknown as ReturnType<typeof useOverview>);
+
+    render(<OverviewPage />);
+
+    expect(
+      screen.getByRole('heading', { name: 'Son hareketler' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('Defterlerinde ve Planlarında yapılan son kayıtlar.'),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Sako/ })).toHaveAttribute(
+      'href',
+      `/ledgers/${ledger.id}`,
+    );
+    expect(screen.getAllByText(ledger.name)).toHaveLength(2);
+    expect(screen.getByText('₺500,00')).toBeInTheDocument();
+    expect(screen.getByText('Onay bekliyor')).toBeInTheDocument();
+  });
+
   it('has no detectable structural accessibility violations', async () => {
     const { container } = render(<OverviewPage />);
     expect(await accessibilityViolations(container)).toEqual([]);

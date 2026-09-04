@@ -25,7 +25,10 @@ export class OverviewService {
     const collaborativeLedgers = ledgers.filter(
       (ledger) => (ledger.activeMemberCount ?? 1) > 1,
     );
-    const firstLedger = ledgers[0];
+    const ledgerIds = ledgers.map((ledger) => ledger.id);
+    const standalonePlanIds = plans
+      .filter((plan) => !plan.ledgerId)
+      .map((plan) => plan.id);
 
     const [ledgerBalances, planBalances, activityResult, pendingRows] =
       await Promise.all([
@@ -41,13 +44,7 @@ export class OverviewService {
             balance: await this.balancesService.plan(plan.id, userId),
           })),
         ),
-        firstLedger
-          ? this.activityService.list(firstLedger.id, userId, { limit: 5 })
-          : activePlans[0]
-            ? this.activityService.listPlan(activePlans[0].id, userId, {
-                limit: 5,
-              })
-            : null,
+        this.activityService.listOverview(ledgerIds, standalonePlanIds, 5),
         this.prisma.settlement.findMany({
           where: {
             status: 'PENDING',

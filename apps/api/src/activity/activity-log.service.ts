@@ -30,6 +30,35 @@ export class ActivityLogService {
     });
   }
 
+  async listOverview(
+    ledgerIds: string[],
+    standalonePlanIds: string[],
+    limit: number,
+  ) {
+    if (!ledgerIds.length && !standalonePlanIds.length) return null;
+
+    const items = await this.prisma.activityLog.findMany({
+      where: {
+        OR: [
+          ...(ledgerIds.length ? [{ ledgerId: { in: ledgerIds } }] : []),
+          ...(standalonePlanIds.length
+            ? [
+                {
+                  ledgerId: null,
+                  planId: { in: standalonePlanIds },
+                },
+              ]
+            : []),
+        ],
+      },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: limit,
+      include: { actor: { select: { id: true, displayName: true } } },
+    });
+
+    return { items, nextCursor: null };
+  }
+
   async list(ledgerId: string, actorId: string, query: ActivityQueryDto) {
     await this.authorization.requireMember(ledgerId, actorId);
     const scope = query.planId

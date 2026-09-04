@@ -13,13 +13,13 @@ import {
 import Link from 'next/link';
 import { useState } from 'react';
 import { LedgerCard } from '@/components/ledger-card';
+import { OverviewActivityRow } from '@/components/overview-activity-row';
 import { PageHeading } from '@/components/page-heading';
 import { PlanCard } from '@/components/plan-card';
 import { ErrorState, LoadingState } from '@/components/ui/states';
 import { useOverview } from '@/features/data/hooks';
 import { useAuth } from '@/features/auth/auth-provider';
 import { formatDate, formatMoneyFromMinor } from '@/lib/format';
-import { activitySentence } from '@/lib/activity';
 import { useInterfacePreferences } from '@/features/preferences/use-interface-preferences';
 
 export default function OverviewPage() {
@@ -139,10 +139,11 @@ export default function OverviewPage() {
   ]
     .sort((left, right) => left.priority - right.priority)
     .slice(0, 3);
-  const activityTarget = activeLedgers?.[0]
-    ? `/ledgers/${activeLedgers[0].id}?view=activity`
-    : activePlans[0]
-      ? `/plans/${activePlans[0].id}?view=activity`
+  const firstActivity = overview.data?.activity?.items[0];
+  const activityTarget = firstActivity?.planId
+    ? `/plans/${firstActivity.planId}?view=activity`
+    : firstActivity?.ledgerId
+      ? `/ledgers/${firstActivity.ledgerId}?view=activity`
       : null;
   return (
     <>
@@ -322,8 +323,8 @@ export default function OverviewPage() {
         <section className="activity-paper overview-section">
           <div className="section-heading">
             <div>
-              <span className="eyebrow">Son kayıtlar</span>
               <h2>Son hareketler</h2>
+              <p>Defterlerinde ve Planlarında yapılan son kayıtlar.</p>
             </div>
             {activityTarget ? (
               <Link href={activityTarget}>
@@ -332,18 +333,24 @@ export default function OverviewPage() {
             ) : null}
           </div>
           <ol className="activity-list">
-            {(overview.data.activity?.items ?? []).map((item) => (
-              <li key={item.id}>
-                <span />
-                <div>
-                  <strong>{item.actor?.displayName ?? 'Defterdar'}</strong>
-                  <p>{activitySentence(item)}</p>
-                  <small>
-                    {new Date(item.createdAt).toLocaleString('tr-TR')}
-                  </small>
-                </div>
-              </li>
-            ))}
+            {(overview.data.activity?.items ?? []).map((item) => {
+              const contextName = item.planId
+                ? overview.data?.plans.find((plan) => plan.id === item.planId)
+                    ?.name
+                : overview.data?.ledgers.find(
+                    (ledger) => ledger.id === item.ledgerId,
+                  )?.name;
+
+              return (
+                <li key={item.id}>
+                  <OverviewActivityRow
+                    contextName={contextName}
+                    item={item}
+                    referenceTime={referenceTime}
+                  />
+                </li>
+              );
+            })}
           </ol>
         </section>
       ) : null}
