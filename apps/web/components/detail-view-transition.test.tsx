@@ -46,7 +46,7 @@ describe('DetailViewTransition', () => {
     );
 
     expect(motionCss).toMatch(
-      /@media \(prefers-reduced-motion: reduce\)[\s\S]*?\.detail-view-transition\s*\{[^}]*animation: none !important;[^}]*transform: none !important;/s,
+      /@media \(prefers-reduced-motion: reduce\)[\s\S]*?\.detail-view-transition,\s*\.card-detail-surface\s*\{[^}]*animation: none !important;[^}]*transform: none !important;/s,
     );
   });
 });

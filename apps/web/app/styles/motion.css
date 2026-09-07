@@ -180,6 +180,12 @@
   animation: detail-view-enter-backward 180ms var(--ease-enter) both;
   will-change: transform, opacity;
 }
+.card-detail-surface[data-from-card='true'] {
+  animation: card-detail-surface-enter var(--motion-normal)
+    var(--ease-emphasized) both;
+  transform-origin: 50% 20%;
+  will-change: transform, opacity;
+}
 
 @keyframes backdrop-enter {
   from {
@@ -281,9 +287,16 @@
     transform: translateX(-12px);
   }
 }
+@keyframes card-detail-surface-enter {
+  from {
+    opacity: 0.9;
+    transform: translateY(10px) scale(0.985);
+  }
+}
 
 @media (prefers-reduced-motion: reduce) {
-  .detail-view-transition {
+  .detail-view-transition,
+  .card-detail-surface {
     animation: none !important;
     transform: none !important;
   }

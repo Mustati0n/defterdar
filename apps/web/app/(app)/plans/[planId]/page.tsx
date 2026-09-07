@@ -42,6 +42,7 @@ import { BalanceExperience } from '@/features/financial/balance-experience';
 import { AnalyticsExperience } from '@/features/analytics/analytics-experience';
 import { PageIntro } from '@/features/page-intro/page-intro';
 import { DetailViewTransition } from '@/components/detail-view-transition';
+import { CardDetailSurface } from '@/components/card-detail-transition';
 
 const primaryViews = [
   { id: 'general', label: 'Genel', icon: CheckSquare2 },
@@ -127,26 +128,28 @@ export default function PlanDetailPage() {
       <Link className="back-link" href="/workspace?type=plan">
         <ArrowLeft /> Planlara dön
       </Link>
-      <section className="detail-cover detail-cover--plan">
-        <span className="detail-cover__pin" aria-hidden="true" />
-        <div>
-          <span className="eyebrow">
-            {data.scope === 'STANDALONE'
-              ? 'Deftere ekli olmayan Plan'
-              : 'Deftere bağlı Plan'}{' '}
-            · {planStatusLabel(data.status)}
-          </span>
-          <h1>{data.name}</h1>
-          {data.description ? <p>{data.description}</p> : null}
-        </div>
-        <div className="detail-cover__date">
-          <CalendarDays />
-          <span>
-            <small>Başlangıç</small>
-            <strong>{formatDate(data.startsAt, 'Serbest')}</strong>
-          </span>
-        </div>
-      </section>
+      <CardDetailSurface transitionKey={`plan:${planId}`}>
+        <section className="detail-cover detail-cover--plan">
+          <span className="detail-cover__pin" aria-hidden="true" />
+          <div>
+            <span className="eyebrow">
+              {data.scope === 'STANDALONE'
+                ? 'Deftere ekli olmayan Plan'
+                : 'Deftere bağlı Plan'}{' '}
+              · {planStatusLabel(data.status)}
+            </span>
+            <h1>{data.name}</h1>
+            {data.description ? <p>{data.description}</p> : null}
+          </div>
+          <div className="detail-cover__date">
+            <CalendarDays />
+            <span>
+              <small>Başlangıç</small>
+              <strong>{formatDate(data.startsAt, 'Serbest')}</strong>
+            </span>
+          </div>
+        </section>
+      </CardDetailSurface>
       <DetailNavigation
         label="Plan bölümleri"
         basePath={`/plans/${planId}`}

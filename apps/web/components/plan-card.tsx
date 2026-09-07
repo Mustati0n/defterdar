@@ -6,13 +6,13 @@ import {
   Clock3,
   UsersRound,
 } from 'lucide-react';
-import Link from 'next/link';
 import {
   formatDate,
   formatMoneyFromMinor,
   planStatusLabel,
 } from '@/lib/format';
 import type { Ledger, Plan } from '@/lib/types';
+import { CardDetailLink } from '@/components/card-detail-transition';
 
 function overviewDateLabel(plan: Plan, referenceTime: number) {
   if (!plan.startsAt) return 'Tarih belirtilmedi';
@@ -67,9 +67,10 @@ export function PlanCard({
         : Archive;
 
   return (
-    <Link
+    <CardDetailLink
       className={`plan-card${overview ? ' plan-card--overview' : ''}${size ? ` workspace-card--${size}` : ''}`}
       href={`/plans/${plan.id}`}
+      transitionKey={`plan:${plan.id}`}
     >
       <div className="plan-card__heading">
         {!overview ? <span className="plan-card__label">Plan</span> : null}
@@ -137,6 +138,6 @@ export function PlanCard({
           </div>
         </>
       )}
-    </Link>
+    </CardDetailLink>
   );
 }

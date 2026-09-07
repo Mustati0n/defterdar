@@ -46,6 +46,7 @@ import { CategoryManager } from '@/features/settings/category-manager';
 import { PageIntro } from '@/features/page-intro/page-intro';
 import { DetailViewHeader } from '@/components/detail-view-header';
 import { DetailViewTransition } from '@/components/detail-view-transition';
+import { CardDetailSurface } from '@/components/card-detail-transition';
 
 const primaryViews = [
   { id: 'general', label: 'Genel', icon: BookOpenText },
@@ -162,32 +163,37 @@ export default function LedgerDetailPage() {
       <Link className="back-link" href="/workspace?type=ledger">
         <ArrowLeft /> Defterler &amp; Planlara dön
       </Link>
-      <section
-        className={`ledger-detail-identity${collaborative ? ' ledger-detail-identity--collaborative' : ''}`}
-        aria-labelledby="ledger-detail-title"
-      >
-        <div className="ledger-detail-identity__copy">
-          <span className="eyebrow">
-            {collaborative ? 'Ortak defter' : 'Defter'} · {data.currency}
-          </span>
-          <h1 className="type-detail-title" id="ledger-detail-title">
-            {data.name}
-          </h1>
-          {data.description ? <p>{data.description}</p> : null}
-        </div>
-        <div className="ledger-detail-identity__meta" aria-label="Defter özeti">
-          <span>{ledgerRoleLabel(data.role)}</span>
-          {data.archivedAt ? <span>Arşivde</span> : null}
-          {collaborative ? (
-            <span>
-              <UsersRound />
-              {data.activeMemberCount ?? members.data?.length ?? '—'} kişi
+      <CardDetailSurface transitionKey={`ledger:${ledgerId}`}>
+        <section
+          className={`ledger-detail-identity${collaborative ? ' ledger-detail-identity--collaborative' : ''}`}
+          aria-labelledby="ledger-detail-title"
+        >
+          <div className="ledger-detail-identity__copy">
+            <span className="eyebrow">
+              {collaborative ? 'Ortak defter' : 'Defter'} · {data.currency}
             </span>
-          ) : (
-            <span>Tek kişilik alan</span>
-          )}
-        </div>
-      </section>
+            <h1 className="type-detail-title" id="ledger-detail-title">
+              {data.name}
+            </h1>
+            {data.description ? <p>{data.description}</p> : null}
+          </div>
+          <div
+            className="ledger-detail-identity__meta"
+            aria-label="Defter özeti"
+          >
+            <span>{ledgerRoleLabel(data.role)}</span>
+            {data.archivedAt ? <span>Arşivde</span> : null}
+            {collaborative ? (
+              <span>
+                <UsersRound />
+                {data.activeMemberCount ?? members.data?.length ?? '—'} kişi
+              </span>
+            ) : (
+              <span>Tek kişilik alan</span>
+            )}
+          </div>
+        </section>
+      </CardDetailSurface>
 
       {activeView === 'general' ? (
         <div className="ledger-financial-priority">

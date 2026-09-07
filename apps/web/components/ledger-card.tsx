@@ -5,9 +5,9 @@ import {
   ShieldCheck,
   UserRound,
 } from 'lucide-react';
-import Link from 'next/link';
 import type { Ledger } from '@/lib/types';
 import { formatMoneyFromMinor, ledgerRoleLabel } from '@/lib/format';
+import { CardDetailLink } from '@/components/card-detail-transition';
 
 interface LedgerCardProps {
   ledger: Ledger;
@@ -45,9 +45,10 @@ export function LedgerNotebookCard({
   ].filter(Boolean);
 
   return (
-    <Link
+    <CardDetailLink
       className={`ledger-card${overview ? ' ledger-card--overview' : ''}${collaborative ? ' ledger-card--collaborative' : ''}${ledger.archivedAt ? ' ledger-card--archived' : ''}${size ? ` workspace-card--${size}` : ''}`}
       href={`/ledgers/${ledger.id}`}
+      transitionKey={`ledger:${ledger.id}`}
     >
       <span className="ledger-card__rings" aria-hidden="true">
         {Array.from({ length: 5 }, (_, ring) => (
@@ -91,7 +92,7 @@ export function LedgerNotebookCard({
           <strong className="ledger-card__currency">{ledger.currency}</strong>
         </>
       )}
-    </Link>
+    </CardDetailLink>
   );
 }
 
