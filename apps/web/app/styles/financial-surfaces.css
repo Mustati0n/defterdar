@@ -431,7 +431,7 @@
   border-radius: var(--radius-sm);
 }
 
-@media (max-width: 720px) {
+@media (max-width: 900px) {
   .financial-position {
     grid-template-columns: auto minmax(0, 1fr);
   }
@@ -488,6 +488,12 @@
 }
 
 @media (max-width: 480px) {
+  .financial-number--title {
+    font-size: clamp(1.45rem, 8vw, 2.1rem);
+  }
+  .balance-hero div > strong {
+    font-size: clamp(1.8rem, 10vw, 3rem);
+  }
   .financial-position {
     grid-template-columns: minmax(0, 1fr);
   }

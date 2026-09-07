@@ -1,11 +1,7 @@
 /* Frontend MVP motion system */
 .auth-story__copy,
-.auth-note,
 .auth-panel__inner {
   animation: auth-surface-enter var(--motion-slow) var(--ease-enter) both;
-}
-.auth-note {
-  animation-delay: 70ms;
 }
 .auth-panel__inner {
   animation-delay: 110ms;
@@ -291,6 +287,20 @@
   from {
     opacity: 0.9;
     transform: translateY(10px) scale(0.985);
+  }
+}
+
+@keyframes detail-view-enter-mobile {
+  from {
+    opacity: 0.94;
+    transform: translateY(8px);
+  }
+}
+
+@media (max-width: 760px) {
+  .detail-view-transition[data-direction='forward'],
+  .detail-view-transition[data-direction='backward'] {
+    animation-name: detail-view-enter-mobile;
   }
 }
 

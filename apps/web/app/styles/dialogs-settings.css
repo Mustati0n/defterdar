@@ -210,9 +210,6 @@
   .auth-story__copy h2 {
     font-size: clamp(2.6rem, 11vw, 4.5rem);
   }
-  .auth-note {
-    display: none;
-  }
   .auth-panel {
     min-height: 100dvh;
     padding: 1.2rem;
@@ -316,9 +313,6 @@
     align-items: flex-start;
     flex-direction: column;
   }
-  .detail-cover__date {
-    align-self: flex-end;
-  }
   .collection-toolbar {
     align-items: stretch;
     flex-direction: column;
@@ -361,6 +355,14 @@
   .dialog-card__actions .button {
     width: 100%;
   }
+  .page-actions,
+  .page-actions > .button {
+    width: 100%;
+  }
+  .people-list article {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
   .detail-tabs {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -378,9 +380,6 @@
   }
   .detail-cover {
     padding: 2rem 1.4rem;
-  }
-  .detail-cover__bookmark {
-    right: 4%;
   }
   .dialog-backdrop,
   .onboarding-overlay {

@@ -384,6 +384,7 @@
   color: var(--text-heading);
   font-family: var(--font-serif);
   font-size: clamp(1.55rem, 3vw, 2.15rem);
+  overflow-wrap: anywhere;
 }
 .detail-view-header__copy p {
   max-width: 68ch;
@@ -462,7 +463,7 @@
   height: 15px;
 }
 
-@media (max-width: 760px) {
+@media (max-width: 900px) {
   .detail-view-header {
     grid-template-columns: auto minmax(0, 1fr);
     align-items: start;

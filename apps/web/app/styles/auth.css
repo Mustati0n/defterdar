@@ -123,44 +123,6 @@
   color: #d4d9d8;
   font-size: 1.1rem;
 }
-.auth-note {
-  display: grid;
-  width: min(390px, 85%);
-  grid-template-columns: auto 1fr;
-  gap: 0.9rem;
-  padding: 1.2rem 1.4rem;
-  color: var(--color-ink);
-  transform: rotate(-1.5deg);
-  background: #f8ecc8;
-  box-shadow: 12px 14px 30px rgba(0, 0, 0, 0.18);
-}
-.auth-note > svg {
-  margin-top: 0.2rem;
-  color: var(--color-wine);
-  font-size: 1.5rem;
-}
-.auth-note p {
-  margin: 0.15rem 0 0.8rem;
-  font-size: 0.86rem;
-}
-.auth-note > span:last-child {
-  display: flex;
-  grid-column: 2;
-  align-items: center;
-  gap: 0.35rem;
-  color: var(--color-success);
-  font-size: 0.78rem;
-  font-weight: 800;
-}
-.auth-note__clip {
-  position: absolute;
-  top: -12px;
-  right: 34px;
-  width: 13px;
-  height: 44px;
-  border: 3px solid var(--color-gold);
-  border-radius: 8px;
-}
 .auth-panel {
   display: flex;
   min-width: 0;

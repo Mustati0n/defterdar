@@ -222,6 +222,12 @@
 .simple-list > * {
   flex: 1;
 }
+.people-list article > div {
+  min-width: 0;
+}
+.people-list strong {
+  overflow-wrap: anywhere;
+}
 .people-list small,
 .attachment-list small,
 .list-row small,

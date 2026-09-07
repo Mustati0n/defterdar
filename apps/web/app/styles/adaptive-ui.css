@@ -342,6 +342,10 @@
   .detail-tabs {
     top: 0.5rem;
   }
+  .detail-tabs {
+    position: relative;
+    top: auto;
+  }
 }
 
 @media (max-width: 820px) and (min-width: 761px) {

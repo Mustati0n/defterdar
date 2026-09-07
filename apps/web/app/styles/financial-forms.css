@@ -390,16 +390,6 @@
   .domain-compare__link {
     transform: rotate(90deg);
   }
-  .expense-demo {
-    grid-template-columns: 1fr;
-  }
-  .expense-demo__arrow {
-    justify-self: center;
-    transform: rotate(90deg);
-  }
-  .money-concepts {
-    grid-template-columns: 1fr;
-  }
 }
 
 @media (max-width: 580px) {
@@ -454,23 +444,8 @@
   .tour-heading h1 {
     font-size: 2.2rem;
   }
-  .first-action-grid,
-  .balance-legend {
+  .first-action-grid {
     grid-template-columns: 1fr;
-  }
-  .balance-legend > span + span {
-    border-top: 1px solid var(--color-line);
-    border-left: 0;
-  }
-  .offset-note {
-    grid-template-columns: 1fr;
-  }
-  .offset-note > svg {
-    justify-self: center;
-    transform: rotate(90deg);
-  }
-  .offset-note > p {
-    grid-column: 1;
   }
   .smart-empty {
     grid-template-columns: 1fr;
