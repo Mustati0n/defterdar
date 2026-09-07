@@ -7,7 +7,7 @@ import {
 } from '@testing-library/react';
 import { writeRecentItems } from '@/lib/recent-items';
 import { accessibilityViolations } from '@/test/accessibility';
-import { AppShell } from './app-shell';
+import { AppShell, mobilePageTitle } from './app-shell';
 
 jest.mock('next/navigation', () => ({
   usePathname: () => '/overview',
@@ -37,8 +37,6 @@ jest.mock('@/features/preferences/interface-preferences-effect', () => ({
 jest.mock('./floating-quick-add', () => ({
   FloatingQuickAdd: () => <div data-testid="global-create" />,
 }));
-jest.mock('./signature-line', () => ({ SignatureLine: () => null }));
-
 describe('AppShell sidebar V2', () => {
   beforeEach(() => {
     window.localStorage.clear();
@@ -69,8 +67,17 @@ describe('AppShell sidebar V2', () => {
     ).toHaveTextContent('Ayarlar');
     expect(screen.queryByText('Hızlı ekle')).not.toBeInTheDocument();
     expect(document.querySelector('.app-main')).toHaveClass(
-      'app-main--overview',
+      'app-main',
     );
+    expect(document.querySelector('.app-topbar')).toBeNull();
+    expect(document.querySelector('.profile-link')).toBeNull();
+    expect(screen.getByText('Genel Bakış', { selector: '.app-mobile-bar p' })).toBeInTheDocument();
+  });
+
+  it('uses short, route-aware titles in the compact mobile app bar', () => {
+    expect(mobilePageTitle('/ledgers/ledger-1')).toBe('Defter');
+    expect(mobilePageTitle('/plans/plan-1')).toBe('Plan');
+    expect(mobilePageTitle('/settings')).toBe('Ayarlar');
   });
 
   it('offers a keyboard skip link to the focusable route content', () => {

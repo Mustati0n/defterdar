@@ -6,11 +6,6 @@
 .auth-panel__inner {
   animation-delay: 110ms;
 }
-.signature-line path {
-  stroke-dasharray: none;
-  stroke-dashoffset: 0;
-  animation: none;
-}
 .button:active:not(:disabled),
 .icon-button:active:not(:disabled),
 .first-action-grid > button:active:not(:disabled),

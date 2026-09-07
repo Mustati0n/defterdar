@@ -6,8 +6,8 @@ describe('overview responsive CSS', () => {
     join(process.cwd(), 'app/styles/overview.css'),
     'utf8',
   );
-  const adaptiveCss = readFileSync(
-    join(process.cwd(), 'app/styles/adaptive-ui.css'),
+  const shellResponsiveCss = readFileSync(
+    join(process.cwd(), 'app/styles/dialogs-settings.css'),
     'utf8',
   );
 
@@ -33,8 +33,8 @@ describe('overview responsive CSS', () => {
   });
 
   it('reserves mobile safe-area space for the fixed quick-add control', () => {
-    expect(adaptiveCss).toMatch(
-      /@media \(max-width: 760px\)[\s\S]*?\.app-main--overview \.page-container\s*\{[^}]*padding-bottom: max\(6rem, calc\(5rem \+ env\(safe-area-inset-bottom\)\)\);/s,
+    expect(shellResponsiveCss).toMatch(
+      /@media \(max-width: 820px\)[\s\S]*?\.page-container\s*\{[^}]*padding-bottom: max\(6rem, calc\(5rem \+ env\(safe-area-inset-bottom\)\)\);/s,
     );
   });
 

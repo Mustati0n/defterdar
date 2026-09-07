@@ -271,10 +271,6 @@
     background: rgba(10, 23, 31, 0.58);
   }
   .mobile-menu-button {
-    position: fixed;
-    z-index: 30;
-    top: 13px;
-    left: 1rem;
     display: grid;
     width: 40px;
     height: 40px;
@@ -285,15 +281,33 @@
     background: var(--color-navy);
     box-shadow: var(--shadow-paper);
   }
-  .app-topbar {
-    padding-left: 4.7rem;
+  .app-mobile-bar {
+    position: relative;
+    z-index: 30;
+    display: grid;
+    min-height: 56px;
+    grid-template-columns: 40px minmax(0, 1fr) 40px;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0 1rem;
+    color: var(--text-heading);
+    border-bottom: 1px solid color-mix(in srgb, var(--color-line) 68%, transparent);
+    background: color-mix(in srgb, var(--color-paper) 92%, transparent);
   }
-  .app-topbar__context {
-    display: none;
+  .app-mobile-bar p {
+    grid-column: 2;
+    margin: 0;
+    overflow: hidden;
+    font-size: 0.86rem;
+    font-weight: var(--font-weight-bold);
+    text-align: center;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   .page-container {
     width: calc(100% - 2rem);
-    padding-top: 3.7rem;
+    padding-top: 1.5rem;
+    padding-bottom: max(6rem, calc(5rem + env(safe-area-inset-bottom)));
   }
   .page-heading {
     align-items: flex-start;
@@ -327,11 +341,8 @@
 }
 
 @media (max-width: 580px) {
-  .app-topbar .profile-link span {
-    display: none;
-  }
   .page-container {
-    padding-bottom: 3rem;
+    padding-bottom: max(6rem, calc(5rem + env(safe-area-inset-bottom)));
   }
   .ledger-card,
   .plan-card {

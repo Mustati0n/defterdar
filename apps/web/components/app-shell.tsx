@@ -5,7 +5,6 @@ import {
   BookOpenText,
   CalendarDays,
   ChevronLeft,
-  CircleUserRound,
   LayoutDashboard,
   LogOut,
   Menu,
@@ -28,7 +27,6 @@ import { useAuth } from '@/features/auth/auth-provider';
 import { useLedger, usePlan } from '@/features/data/hooks';
 import { initials } from '@/lib/format';
 import { Brand } from './brand';
-import { SignatureLine } from './signature-line';
 import { OnboardingExperience } from '@/features/onboarding/onboarding-experience';
 import { useProtectedRoute } from '@/features/auth/use-protected-route';
 import { FloatingQuickAdd } from './floating-quick-add';
@@ -62,6 +60,15 @@ export function matchesPath(pathname: string, href: string) {
     pathname.startsWith(`${href}/`) ||
     (href === '/workspace' &&
       (pathname.startsWith('/ledgers/') || pathname.startsWith('/plans/')))
+  );
+}
+
+export function mobilePageTitle(pathname: string) {
+  if (pathname.startsWith('/ledgers/')) return 'Defter';
+  if (pathname.startsWith('/plans/')) return 'Plan';
+  return (
+    navigation.find((item) => matchesPath(pathname, item.href))?.label ??
+    (matchesPath(pathname, settingsItem.href) ? settingsItem.label : 'Defterdar')
   );
 }
 
@@ -192,17 +199,20 @@ export function AppShell({ children }: { children: ReactNode }) {
       <a className="skip-link" href="#main-content">
         Ana içeriğe geç
       </a>
-      <button
-        className="mobile-menu-button"
-        type="button"
-        ref={mobileTriggerRef}
-        onClick={() => setMobileOpen(true)}
-        aria-label="Menüyü aç"
-        aria-expanded={mobileOpen}
-        aria-controls="app-sidebar"
-      >
-        <Menu />
-      </button>
+      <header className="app-mobile-bar">
+        <button
+          className="mobile-menu-button"
+          type="button"
+          ref={mobileTriggerRef}
+          onClick={() => setMobileOpen(true)}
+          aria-label="Menüyü aç"
+          aria-expanded={mobileOpen}
+          aria-controls="app-sidebar"
+        >
+          <Menu aria-hidden="true" />
+        </button>
+        <p>{mobilePageTitle(pathname)}</p>
+      </header>
       {mobileOpen ? (
         <button
           className="sidebar-scrim"
@@ -324,26 +334,10 @@ export function AppShell({ children }: { children: ReactNode }) {
       </aside>
 
       <main
-        className={`app-main${pathname === '/overview' ? ' app-main--overview' : ''}`}
+        className="app-main"
         inert={mobileOpen ? true : undefined}
         aria-hidden={mobileOpen || undefined}
       >
-        <div className="app-topbar">
-          <span className="app-topbar__context">
-            <NotebookTabs /> Defterdar /{' '}
-            <b>
-              {navigation.find((item) => matchesPath(pathname, item.href))
-                ?.label ??
-                (matchesPath(pathname, settingsItem.href)
-                  ? settingsItem.label
-                  : 'Genel Bakış')}
-            </b>
-          </span>
-          <Link className="profile-link" href="/settings">
-            <CircleUserRound /> <span>{user.displayName}</span>
-          </Link>
-        </div>
-        <SignatureLine />
         <div className="page-container">
           <div
             className="route-content"

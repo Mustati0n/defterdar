@@ -691,7 +691,6 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .route-content,
-  .signature-line path,
   .dialog-backdrop,
   .dialog-card,
   .toast,
@@ -704,9 +703,6 @@
   .analytics-category-list > div > i > b,
   .analytics-refresh svg {
     animation: none !important;
-  }
-  .signature-line path {
-    stroke-dashoffset: 0;
   }
   .analytics-bars__columns i {
     transform: scaleY(1);

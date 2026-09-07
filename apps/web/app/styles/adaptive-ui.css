@@ -76,29 +76,6 @@
   box-shadow: var(--elevation-highlight), var(--elevation-1);
 }
 
-.signature-line .signature-line__track {
-  opacity: 0.42;
-  stroke-dasharray: none;
-  stroke-dashoffset: 0;
-  animation: none;
-}
-.app-main--overview .signature-line {
-  top: 48px;
-  right: clamp(1.5rem, 5vw, 4rem);
-  left: clamp(1.5rem, 5vw, 4rem);
-  height: 30px;
-}
-.app-main--overview .signature-line .signature-line__track {
-  opacity: 0.24;
-  stroke-width: 1.25;
-}
-.app-main--overview .signature-line circle {
-  opacity: 0.45;
-}
-.app-main--overview .page-container {
-  padding-top: 3rem;
-}
-
 .page-heading--adaptive {
   --header-progress: 0;
   position: sticky;
@@ -259,16 +236,6 @@
 }
 
 @media (max-width: 760px) {
-  .app-main--overview .signature-line {
-    top: 50px;
-    right: 1rem;
-    left: 4.5rem;
-    height: 20px;
-  }
-  .app-main--overview .page-container {
-    padding-top: 2.5rem;
-    padding-bottom: max(6rem, calc(5rem + env(safe-area-inset-bottom)));
-  }
   .floating-quick-add {
     right: max(1rem, env(safe-area-inset-right));
     bottom: max(1rem, env(safe-area-inset-bottom));
@@ -375,12 +342,6 @@
 }
 
 @media (max-width: 480px) {
-  .app-main--overview .signature-line {
-    display: none;
-  }
-  .app-main--overview .page-container {
-    padding-top: 2rem;
-  }
   .page-heading--compact .workspace-heading-actions {
     grid-template-columns: minmax(0, 1fr);
   }
