@@ -1,6 +1,6 @@
 'use client';
 
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   ArrowDownLeft,
   ArrowRight,
@@ -17,7 +17,7 @@ import { useState } from 'react';
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 import { ErrorState, LoadingState } from '@/components/ui/states';
 import { useToast } from '@/components/ui/toast';
-import { queryKeys } from '@/features/data/hooks';
+import { useSettlementHistory } from '@/features/data/hooks';
 import { invalidateFinancialData } from '@/features/data/financial-invalidation';
 import { api, ApiError } from '@/lib/api-client';
 import { formatDate, formatMoneyFromMinor } from '@/lib/format';
@@ -61,17 +61,9 @@ export function BalanceExperience({
   const [payment, setPayment] = useState<Suggestion | null>(null);
   const [paymentError, setPaymentError] = useState<string | null>(null);
   const [voidTarget, setVoidTarget] = useState<Settlement | null>(null);
-  const settlements = useQuery({
-    queryKey: ledgerId
-      ? queryKeys.settlements(ledgerId, planId)
-      : queryKeys.planSettlements(planId ?? ''),
-    queryFn: ({ signal }) =>
-      ledgerId
-        ? api.settlements.list(ledgerId, planId, signal)
-        : api.settlements.listForPlan(planId ?? '', signal),
-    enabled: Boolean(ledgerId || planId),
-    staleTime: 15_000,
-    refetchOnWindowFocus: true,
+  const settlements = useSettlementHistory({
+    ledgerId,
+    planId,
   });
 
   async function refreshFinancialTruth() {
@@ -261,6 +253,7 @@ export function BalanceExperience({
 
       {pendingIncoming.length || pendingOutgoing.length ? (
         <section
+          id="payment-approvals"
           className="payment-attention"
           aria-labelledby="payment-attention-title"
         >

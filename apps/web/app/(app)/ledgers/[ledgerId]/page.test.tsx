@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { useLedgerDetailData } from '@/features/data/hooks';
 import { accessibilityViolations } from '@/test/accessibility';
+import type { Settlement } from '@/lib/types';
 import LedgerDetailPage from './page';
 
 let view: string | null = null;
@@ -58,6 +59,7 @@ const ledger = {
 function detailData(
   collaborative: boolean,
   plans: Array<Record<string, unknown>> = [],
+  settlements: Settlement[] = [],
 ) {
   return {
     ledger: {
@@ -81,6 +83,12 @@ function detailData(
     balance: { data: { currency: 'TRY', positions: [], suggestions: [] } },
     expenses: { data: [] },
     incomes: { data: [] },
+    settlements: {
+      data: settlements,
+      isLoading: false,
+      isError: false,
+      refetch: jest.fn(),
+    },
   } as unknown as ReturnType<typeof useLedgerDetailData>;
 }
 
@@ -124,7 +132,49 @@ describe('Ledger detail information architecture', () => {
     expect(screen.getAllByText('Sahip')).toHaveLength(1);
     expect(screen.queryByText('Daha fazla')).not.toBeInTheDocument();
     expect(screen.getByText('Yönetim', { exact: false })).toBeInTheDocument();
-    expect(screen.getByLabelText('Ödeme onayları')).toBeVisible();
+    expect(screen.queryByLabelText('Ödeme onayları')).not.toBeInTheDocument();
+  });
+
+  it('shows only real incoming approvals with their conditional impact', () => {
+    const pending = {
+      id: 'settlement-1',
+      ledgerId: 'ledger-1',
+      planId: null,
+      fromUserId: 'other',
+      toUserId: 'me',
+      fromUser: { id: 'other', displayName: 'Can' },
+      toUser: { id: 'me', displayName: 'Ece' },
+      amountMinor: '17500',
+      currency: 'TRY',
+      note: null,
+      settledAt: '2026-09-07',
+      createdById: 'other',
+      createdAt: '2026-09-07',
+      status: 'PENDING',
+      confirmedById: null,
+      confirmedBy: null,
+      confirmedAt: null,
+      rejectedById: null,
+      rejectedBy: null,
+      rejectedAt: null,
+      cancelledAt: null,
+      voidedAt: null,
+    } satisfies Settlement;
+    jest
+      .mocked(useLedgerDetailData)
+      .mockReturnValue(detailData(true, [], [pending]));
+
+    render(<LedgerDetailPage />);
+
+    expect(
+      screen.getByRole('heading', { name: 'Onayın gerekiyor' }),
+    ).toBeVisible();
+    expect(screen.getAllByText(/175/)).toHaveLength(2);
+    expect(screen.getByText('Can ödeme bildirdi')).toBeVisible();
+    expect(screen.getByRole('link', { name: /İncele/ })).toHaveAttribute(
+      'href',
+      '/ledgers/ledger-1?view=balances#payment-approvals',
+    );
   });
 
   it('uses the five task-oriented primary destinations', () => {

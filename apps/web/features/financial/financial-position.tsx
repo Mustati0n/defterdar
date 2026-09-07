@@ -15,7 +15,7 @@ import { formatMoneyFromMinor } from '@/lib/format';
 export interface FinancialPositionItem {
   id: string;
   label: string;
-  amountMinor: number;
+  amountMinor: number | string;
 }
 
 interface FinancialPositionAction {
@@ -27,7 +27,7 @@ interface FinancialPositionAction {
 export interface FinancialPositionProps {
   state: FinancialPositionState;
   currency: string;
-  amountMinor?: number;
+  amountMinor?: number | string;
   items?: FinancialPositionItem[];
   pendingCount?: number;
   description?: string;
@@ -83,6 +83,13 @@ export function FinancialPosition({
     (state === 'DEBTOR' ||
       state === 'CREDITOR' ||
       state === 'PENDING_APPROVAL');
+  const absoluteAmount =
+    typeof amountMinor === 'string'
+      ? (() => {
+          const value = BigInt(amountMinor);
+          return (value < 0n ? -value : value).toString();
+        })()
+      : Math.abs(amountMinor ?? 0);
 
   return (
     <section
@@ -97,7 +104,7 @@ export function FinancialPosition({
         <h2 id={titleId}>{content.title}</h2>
         {showsAmount ? (
           <strong className="financial-number financial-number--title">
-            {formatMoneyFromMinor(Math.abs(amountMinor!), currency)}
+            {formatMoneyFromMinor(absoluteAmount, currency)}
           </strong>
         ) : state === 'SETTLED' ? (
           <strong className="financial-position__completion">Tamamlandı</strong>

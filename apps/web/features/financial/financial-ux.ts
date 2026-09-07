@@ -1,4 +1,4 @@
-import type { BalancePosition, BalanceResponse } from '@/lib/types';
+import type { BalancePosition, BalanceResponse, Settlement } from '@/lib/types';
 
 export type PositionState = 'receivable' | 'payable' | 'closed';
 export type FinancialPositionState =
@@ -19,6 +19,22 @@ export function financialPositionState(
   if (netMinor < 0) return 'DEBTOR';
   if (netMinor > 0) return 'CREDITOR';
   return hasFinancialActivity ? 'SETTLED' : 'NO_ACTIVITY';
+}
+
+export function pendingApprovalsFor(
+  settlements: Settlement[],
+  currentUserId: string,
+) {
+  return settlements.filter(
+    (settlement) =>
+      settlement.status === 'PENDING' && settlement.toUserId === currentUserId,
+  );
+}
+
+export function pendingApprovalImpactMinor(settlements: Settlement[]) {
+  return settlements
+    .reduce((total, settlement) => total + BigInt(settlement.amountMinor), 0n)
+    .toString();
 }
 
 export function prioritizeSuggestions(

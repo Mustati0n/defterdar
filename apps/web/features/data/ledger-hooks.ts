@@ -5,6 +5,7 @@ import { useExpenses } from './expense-hooks';
 import { useIncomes } from './income-hooks';
 import { usePlans } from './plan-hooks';
 import { queryKeys } from './query-keys';
+import { useSettlementHistory } from './settlement-hooks';
 
 export function useLedgers(includeArchived = false, enabled = true) {
   return useQuery({
@@ -69,6 +70,10 @@ export function useLedgerDetailData(
   });
   const expenses = useExpenses(ledgerId, undefined, isGeneral);
   const incomes = useIncomes(ledgerId, undefined, isGeneral);
+  const settlements = useSettlementHistory({
+    ledgerId,
+    enabled: isCollaborative && isGeneral,
+  });
 
-  return { ledger, plans, members, balance, expenses, incomes };
+  return { ledger, plans, members, balance, expenses, incomes, settlements };
 }

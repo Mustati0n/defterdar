@@ -120,6 +120,7 @@ describe('performance query boundaries', () => {
     const activity = jest.spyOn(api.ledgers, 'activity');
     const expenses = jest.spyOn(api.expenses, 'list');
     const incomes = jest.spyOn(api.incomes, 'list');
+    const settlements = jest.spyOn(api.settlements, 'list');
 
     render(<LedgerAnalyticsHarness />, { wrapper });
 
@@ -130,6 +131,7 @@ describe('performance query boundaries', () => {
     expect(activity).not.toHaveBeenCalled();
     expect(expenses).not.toHaveBeenCalled();
     expect(incomes).not.toHaveBeenCalled();
+    expect(settlements).not.toHaveBeenCalled();
   });
 
   it('does not fetch closed Plan detail surfaces on Analytics', async () => {

@@ -3,7 +3,6 @@
 import {
   ArrowLeft,
   BarChart3,
-  BellRing,
   BookOpenText,
   Clock3,
   NotebookTabs,
@@ -31,6 +30,7 @@ import {
 import { ExpenseIndicators } from '@/features/expenses/expense-indicators';
 import { BalanceExperience } from '@/features/financial/balance-experience';
 import { FinancialPosition } from '@/features/financial/financial-position';
+import { PaymentApprovalSummary } from '@/features/financial/payment-approval-summary';
 import {
   financialPositionState,
   prioritizeSuggestions,
@@ -81,7 +81,7 @@ export default function LedgerDetailPage() {
     ],
     'general',
   ) as LedgerDetailView;
-  const { ledger, plans, members, balance, expenses, incomes } =
+  const { ledger, plans, members, balance, expenses, incomes, settlements } =
     useLedgerDetailData(ledgerId, requestedView);
 
   if (ledger.isLoading) return <LoadingState label="Defter açılıyor…" />;
@@ -221,28 +221,15 @@ export default function LedgerDetailPage() {
           )}
 
           {collaborative ? (
-            <aside
-              className="ledger-approval-entry"
-              aria-label="Ödeme onayları"
-            >
-              <span aria-hidden="true">
-                <BellRing />
-              </span>
-              <div>
-                <span className="type-detail-label">Ödeme onayları</span>
-                <h2>Ödeme bildirimlerini kontrol et</h2>
-                <p>
-                  Bekleyen onayları ve ödeme kayıtlarını Hesap bölümünden
-                  yönetebilirsin.
-                </p>
-              </div>
-              <Link
-                className="button button--quiet"
-                href={`/ledgers/${ledgerId}?view=balances`}
-              >
-                Onayları aç
-              </Link>
-            </aside>
+            <PaymentApprovalSummary
+              settlements={settlements.data}
+              currentUserId={user?.id ?? ''}
+              currency={data.currency}
+              accountHref={`/ledgers/${ledgerId}?view=balances#payment-approvals`}
+              isLoading={settlements.isLoading}
+              isError={settlements.isError}
+              onRetry={() => void settlements.refetch()}
+            />
           ) : null}
         </div>
       ) : null}

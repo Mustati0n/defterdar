@@ -335,6 +335,9 @@
   gap: var(--layout-card-gap);
   margin-top: var(--detail-section-gap);
 }
+.ledger-financial-priority > :only-child {
+  grid-column: 1 / -1;
+}
 .ledger-approval-entry {
   min-width: 0;
   border: var(--border-width) solid var(--border-color);
