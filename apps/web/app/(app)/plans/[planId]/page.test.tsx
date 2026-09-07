@@ -5,12 +5,21 @@ import {
   usePlanDetailData,
 } from '@/features/data/hooks';
 import PlanDetailPage, { planNextStep } from './page';
+import { accessibilityViolations } from '@/test/accessibility';
 
 let view: string | null = null;
 
 jest.mock('next/navigation', () => ({
   useParams: () => ({ planId: 'plan-1' }),
   useSearchParams: () => ({ get: () => view }),
+}));
+jest.mock('next/link', () => ({
+  __esModule: true,
+  default: ({ children, href, ...props }: React.ComponentProps<'a'>) => (
+    <a href={href} {...props}>
+      {children}
+    </a>
+  ),
 }));
 jest.mock('@tanstack/react-query', () => ({
   ...jest.requireActual('@tanstack/react-query'),
@@ -43,6 +52,8 @@ jest.mock('@/features/analytics/analytics-experience', () => ({
 const plan = {
   id: 'plan-1',
   ledgerId: 'ledger-1',
+  scope: 'LEDGER' as const,
+  currency: 'TRY',
   name: 'Tatil',
   description: null,
   startsAt: null,
@@ -61,8 +72,18 @@ describe('Plan detail information architecture', () => {
     jest.mocked(usePlanDetailData).mockReturnValue({
       plan: { data: plan, isLoading: false, isError: false },
       participants: { data: [] },
-      balance: { data: { currency: 'TRY', positions: [], suggestions: [] } },
-      expenses: { data: [] },
+      balance: {
+        data: { currency: 'TRY', positions: [], suggestions: [] },
+        isLoading: false,
+        isError: false,
+        refetch: jest.fn(),
+      },
+      expenses: {
+        data: [],
+        isLoading: false,
+        isError: false,
+        refetch: jest.fn(),
+      },
     } as unknown as ReturnType<typeof usePlanDetailData>);
     jest.mocked(useLedger).mockReturnValue({
       data: { role: 'OWNER', archivedAt: null },
@@ -80,10 +101,73 @@ describe('Plan detail information architecture', () => {
       screen.getByRole('button', { name: 'Planı tamamla' }),
     ).toBeInTheDocument();
     expect(screen.getByText('İlk harcamayı ekle.')).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Henüz hesap oluşmadı' }),
+    ).toBeVisible();
     expect(screen.getByRole('link', { name: /Hesap/ })).toHaveAttribute(
       'href',
       '/plans/plan-1?view=balances',
     );
+  });
+
+  it('puts the current financial state before the four primary destinations', () => {
+    jest.mocked(usePlanDetailData).mockReturnValue({
+      plan: { data: plan, isLoading: false, isError: false },
+      participants: { data: [] },
+      balance: {
+        data: {
+          currency: 'TRY',
+          positions: [
+            { user: { id: 'me', displayName: 'Ece' }, netMinor: -1234 },
+            { user: { id: 'other', displayName: 'Can' }, netMinor: 1234 },
+          ],
+          suggestions: [
+            { fromUserId: 'me', toUserId: 'other', amountMinor: 1234 },
+          ],
+        },
+        isLoading: false,
+        isError: false,
+        refetch: jest.fn(),
+      },
+      expenses: {
+        data: [],
+        isLoading: false,
+        isError: false,
+        refetch: jest.fn(),
+      },
+    } as unknown as ReturnType<typeof usePlanDetailData>);
+
+    render(<PlanDetailPage />);
+
+    const financialState = screen.getByRole('heading', { name: 'Borcun var' });
+    const navigation = screen.getByRole('navigation', {
+      name: 'Plan bölümleri',
+    });
+    expect(financialState.compareDocumentPosition(navigation)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+    expect(screen.getByText('Senin durumun')).toBeVisible();
+    expect(screen.getByText('Can kişisine')).toBeVisible();
+
+    for (const [name, href] of [
+      ['Genel', '/plans/plan-1'],
+      ['Hesap', '/plans/plan-1?view=balances'],
+      ['Katılımcılar', '/plans/plan-1?view=participants'],
+      ['Hareketler', '/plans/plan-1?view=activity'],
+    ] as const) {
+      expect(screen.getByRole('link', { name })).toHaveAttribute('href', href);
+    }
+  });
+
+  it('uses a compact Plan identity instead of the legacy metadata cover', () => {
+    const { container } = render(<PlanDetailPage />);
+
+    expect(screen.getByRole('heading', { name: 'Tatil' })).toBeVisible();
+    expect(screen.getByLabelText('Plan özeti')).toHaveTextContent(
+      'Başlangıç serbest',
+    );
+    expect(container.querySelector('.plan-detail-identity')).toBeVisible();
+    expect(container.querySelector('.detail-cover--plan')).toBeNull();
   });
 
   it('restores Plan view from the URL on refresh/back style rerenders', () => {
@@ -111,5 +195,10 @@ describe('Plan detail information architecture', () => {
     expect(planNextStep('ACTIVE', 2, 0)).toBe('İlk harcamayı ekle.');
     expect(planNextStep('COMPLETED', 2, 3)).toMatch(/tamamlandı/i);
     expect(planNextStep('ARCHIVED', 2, 3)).toMatch(/arşivde/i);
+  });
+
+  it('has no detectable structural accessibility violations', async () => {
+    const { container } = render(<PlanDetailPage />);
+    expect(await accessibilityViolations(container)).toEqual([]);
   });
 });

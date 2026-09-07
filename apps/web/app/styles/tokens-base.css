@@ -159,13 +159,6 @@
   --ease-emphasized: cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-.collection-section {
-  margin: 1.5rem 0 2.5rem;
-}
-.collection-section > h2 {
-  margin: 0 0 1rem;
-  font-family: var(--font-display);
-}
 .context-note,
 .status-banner,
 .gift-note {

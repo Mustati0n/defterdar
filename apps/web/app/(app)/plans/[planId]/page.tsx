@@ -43,15 +43,20 @@ import { AnalyticsExperience } from '@/features/analytics/analytics-experience';
 import { PageIntro } from '@/features/page-intro/page-intro';
 import { DetailViewTransition } from '@/components/detail-view-transition';
 import { CardDetailSurface } from '@/components/card-detail-transition';
+import { FinancialPosition } from '@/features/financial/financial-position';
+import {
+  financialPositionState,
+  prioritizeSuggestions,
+} from '@/features/financial/financial-ux';
 
 const primaryViews = [
   { id: 'general', label: 'Genel', icon: CheckSquare2 },
   { id: 'balances', label: 'Hesap', icon: WalletCards },
+  { id: 'participants', label: 'Katılımcılar', icon: UsersRound },
+  { id: 'activity', label: 'Hareketler', icon: Clock3 },
 ] as const;
 const secondaryViews = [
-  { id: 'activity', label: 'Hareket geçmişi', icon: Clock3 },
   { id: 'analytics', label: 'İstatistikler', icon: BarChart3 },
-  { id: 'participants', label: 'Katılımcılar', icon: UsersRound },
   { id: 'settings', label: 'Ayarlar', icon: Settings },
 ] as const;
 type PlanView =
@@ -59,9 +64,9 @@ type PlanView =
 const planViewOrder = [
   'general',
   'balances',
+  'participants',
   'activity',
   'analytics',
-  'participants',
   'settings',
 ] as const;
 
@@ -122,6 +127,43 @@ export default function PlanDetailPage() {
     allowedViews,
     'general',
   );
+  const myPosition = balance.data?.positions.find(
+    (position) => position.user.id === user?.id,
+  );
+  const myNet = myPosition?.netMinor ?? 0;
+  const hasFinancialActivity = Boolean(
+    expenses.data?.some(
+      (expense) =>
+        !expense.voidedAt &&
+        expense.splits.some((split) => split.isReimbursable),
+    ),
+  );
+  const myFinancialState = financialPositionState(myNet, hasFinancialActivity);
+  const suggestionGroups = prioritizeSuggestions(
+    balance.data?.suggestions ?? [],
+    user?.id ?? '',
+  );
+  const participantNames = new Map(
+    balance.data?.positions.map((position) => [
+      position.user.id,
+      position.user.displayName,
+    ]),
+  );
+  const financialItems = (
+    myFinancialState === 'DEBTOR'
+      ? suggestionGroups.payments.map((suggestion) => ({
+          id: `${suggestion.fromUserId}-${suggestion.toUserId}`,
+          label: `${participantNames.get(suggestion.toUserId) ?? 'Bir katılımcı'} kişisine`,
+          amountMinor: suggestion.amountMinor,
+        }))
+      : myFinancialState === 'CREDITOR'
+        ? suggestionGroups.receivables.map((suggestion) => ({
+            id: `${suggestion.fromUserId}-${suggestion.toUserId}`,
+            label: `${participantNames.get(suggestion.fromUserId) ?? 'Bir katılımcı'} kişisinden`,
+            amountMinor: suggestion.amountMinor,
+          }))
+        : []
+  ).slice(0, 3);
 
   return (
     <>
@@ -129,27 +171,74 @@ export default function PlanDetailPage() {
         <ArrowLeft /> Planlara dön
       </Link>
       <CardDetailSurface transitionKey={`plan:${planId}`}>
-        <section className="detail-cover detail-cover--plan">
-          <span className="detail-cover__pin" aria-hidden="true" />
-          <div>
+        <section
+          className="plan-detail-identity"
+          aria-labelledby="plan-detail-title"
+        >
+          <div className="plan-detail-identity__copy">
             <span className="eyebrow">
               {data.scope === 'STANDALONE'
-                ? 'Deftere ekli olmayan Plan'
+                ? 'Bağımsız Plan'
                 : 'Deftere bağlı Plan'}{' '}
               · {planStatusLabel(data.status)}
             </span>
-            <h1>{data.name}</h1>
+            <h1 className="type-detail-title" id="plan-detail-title">
+              {data.name}
+            </h1>
             {data.description ? <p>{data.description}</p> : null}
           </div>
-          <div className="detail-cover__date">
-            <CalendarDays />
+          <div className="plan-detail-identity__meta" aria-label="Plan özeti">
             <span>
-              <small>Başlangıç</small>
-              <strong>{formatDate(data.startsAt, 'Serbest')}</strong>
+              <CalendarDays /> {formatDate(data.startsAt, 'Başlangıç serbest')}
+            </span>
+            <span>
+              <UsersRound /> {data.participantCount} kişi
             </span>
           </div>
         </section>
       </CardDetailSurface>
+
+      {activeView === 'general' ? (
+        <div className="plan-financial-priority">
+          {balance.isLoading || expenses.isLoading ? (
+            <LoadingState label="Plan durumun hazırlanıyor…" />
+          ) : balance.isError || expenses.isError ? (
+            <ErrorState
+              message="Bu Plandaki finansal durumun şu anda gösterilemiyor."
+              onRetry={() => {
+                void balance.refetch();
+                void expenses.refetch();
+              }}
+            />
+          ) : (
+            <FinancialPosition
+              state={myFinancialState}
+              currency={data.currency}
+              amountMinor={myNet}
+              items={financialItems}
+              label="Senin durumun"
+              description={
+                myFinancialState === 'NO_ACTIVITY'
+                  ? 'Bu Planda henüz ortak harcama veya ödeme hareketi bulunmuyor.'
+                  : undefined
+              }
+              action={
+                myFinancialState === 'NO_ACTIVITY' && data.status === 'ACTIVE'
+                  ? {
+                      href: `/expenses/new?${data.ledgerId ? `ledgerId=${data.ledgerId}&` : ''}planId=${planId}`,
+                      label: 'İlk harcamayı ekle',
+                    }
+                  : myFinancialState !== 'NO_ACTIVITY'
+                    ? {
+                        href: `/plans/${planId}?view=balances`,
+                        label: 'Hesabı incele',
+                      }
+                    : undefined
+              }
+            />
+          )}
+        </div>
+      ) : null}
       <DetailNavigation
         label="Plan bölümleri"
         basePath={`/plans/${planId}`}

@@ -74,7 +74,7 @@ export function usePlanDetailData(
   const balance = useQuery({
     queryKey: queryKeys.planBalance(planId),
     queryFn: ({ signal }) => api.plans.balances(planId, signal),
-    enabled: Boolean(planId && view === 'balances'),
+    enabled: Boolean(planId && (view === 'general' || view === 'balances')),
     staleTime: 15_000,
     refetchOnWindowFocus: true,
   });

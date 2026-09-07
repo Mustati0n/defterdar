@@ -74,6 +74,11 @@ function PlanAnalyticsHarness() {
   return <span>{query.plan.data ? 'plan-ready' : 'loading'}</span>;
 }
 
+function PlanGeneralHarness() {
+  const query = usePlanDetailData(plan.id, 'general');
+  return <span>{query.plan.data ? 'plan-general-ready' : 'loading'}</span>;
+}
+
 describe('performance query boundaries', () => {
   afterEach(() => jest.restoreAllMocks());
 
@@ -146,5 +151,23 @@ describe('performance query boundaries', () => {
     expect(participants).not.toHaveBeenCalled();
     expect(balance).not.toHaveBeenCalled();
     expect(expenses).not.toHaveBeenCalled();
+  });
+
+  it('loads the Plan balance with expenses for the General financial state', async () => {
+    jest.spyOn(api.plans, 'get').mockResolvedValue(plan);
+    const balance = jest.spyOn(api.plans, 'balances').mockResolvedValue({
+      currency: 'TRY',
+      positions: [],
+      suggestions: [],
+    });
+    const expenses = jest
+      .spyOn(api.expenses, 'listForPlan')
+      .mockResolvedValue([]);
+
+    render(<PlanGeneralHarness />, { wrapper });
+
+    expect(await screen.findByText('plan-general-ready')).toBeInTheDocument();
+    expect(balance).toHaveBeenCalledTimes(1);
+    expect(expenses).toHaveBeenCalledTimes(1);
   });
 });

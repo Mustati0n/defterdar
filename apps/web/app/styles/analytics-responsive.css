@@ -553,14 +553,9 @@
   place-items: center;
   background: #f0dfd9;
 }
-.experience-settings__row p,
-.about-settings p {
+.experience-settings__row p {
   margin: 0;
   color: var(--color-muted);
-}
-.about-settings p {
-  display: flex;
-  gap: 0.65rem;
 }
 .standalone-state {
   display: grid;
