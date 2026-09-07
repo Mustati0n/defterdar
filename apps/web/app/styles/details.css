@@ -73,6 +73,12 @@
   color: white;
   background: var(--color-wine);
 }
+.detail-tabs > a:not(.is-active):is(:hover, :focus-visible),
+.detail-tabs__more:not(.is-active) > summary:is(:hover, :focus-visible),
+.detail-tabs__more[open] > summary {
+  color: var(--text-heading);
+  background: var(--color-paper-deep);
+}
 .detail-tabs__more.is-active > summary {
   color: var(--color-wine);
   border: 1px solid rgba(130, 58, 70, 0.2);

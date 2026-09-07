@@ -107,6 +107,11 @@
 }
 .onboarding-step {
   overflow: clip;
+}
+.onboarding-step.is-exiting--forward,
+.onboarding-step.is-entering--forward,
+.onboarding-step.is-exiting--backward,
+.onboarding-step.is-entering--backward {
   will-change: transform, opacity;
 }
 .onboarding-step.is-exiting--forward {
