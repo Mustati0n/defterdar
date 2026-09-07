@@ -6,8 +6,13 @@ export function LoadingState({
   label?: string;
 }) {
   return (
-    <div className="state-panel state-panel--loading" role="status">
-      <LoaderCircle className="spin" />
+    <div
+      className="state-panel state-panel--loading"
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+    >
+      <LoaderCircle className="spin" aria-hidden="true" />
       <p>{label}</p>
     </div>
   );
@@ -21,8 +26,8 @@ export function ErrorState({
   onRetry?: () => void;
 }) {
   return (
-    <div className="state-panel state-panel--error" role="alert">
-      <CircleAlert />
+    <div className="state-panel state-panel--error" role="alert" aria-atomic="true">
+      <CircleAlert aria-hidden="true" />
       <div>
         <strong>Kayıt burada takıldı</strong>
         <p>{message}</p>
@@ -33,7 +38,7 @@ export function ErrorState({
           type="button"
           onClick={onRetry}
         >
-          <RefreshCw /> Tekrar dene
+          <RefreshCw aria-hidden="true" /> Tekrar dene
         </button>
       ) : null}
     </div>
@@ -52,7 +57,7 @@ export function EmptyState({
   return (
     <div className="empty-state">
       <span className="empty-state__icon">
-        <Inbox />
+        <Inbox aria-hidden="true" />
       </span>
       <h3>{title}</h3>
       <p>{description}</p>

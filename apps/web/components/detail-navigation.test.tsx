@@ -37,5 +37,11 @@ describe('detail URL navigation', () => {
       'href',
       '/ledgers/l1?view=settings',
     );
+    expect(screen.getByRole('navigation', { name: 'Defter bölümleri' })).toBeVisible();
+    expect(screen.getByRole('link', { name: 'Ayarlar' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+    expect(screen.queryByRole('tab')).not.toBeInTheDocument();
   });
 });

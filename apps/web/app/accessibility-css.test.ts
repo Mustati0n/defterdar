@@ -66,4 +66,18 @@ describe('critical accessibility CSS', () => {
     expect(css).not.toMatch(/\.app-main\s*\{[^}]*overflow: hidden/s);
     expect(css).toMatch(/html\s*\{[^}]*scroll-behavior: auto/s);
   });
+
+  it('honors both operating-system and in-product reduced-motion preferences', () => {
+    expect(css).toMatch(
+      /@media \(prefers-reduced-motion: reduce\)\s*\{[^}]*\.detail-view-transition,[\s\S]*?animation: none !important/s,
+    );
+    expect(css).toContain("html[data-motion='reduced'] *");
+    expect(css).toContain('animation-duration: 0.01ms !important');
+  });
+
+  it('keeps semantic state foregrounds readable against their state surfaces', () => {
+    expect(contrast('#285744', '#dcebdd')).toBeGreaterThanOrEqual(4.5);
+    expect(contrast('#6d5127', '#f2e5c8')).toBeGreaterThanOrEqual(4.5);
+    expect(contrast('#7c2d39', '#f4dfe2')).toBeGreaterThanOrEqual(4.5);
+  });
 });

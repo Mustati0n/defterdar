@@ -51,7 +51,7 @@ export function DetailNavigation<T extends string>({
             aria-current={active ? 'page' : undefined}
             key={destination.id}
           >
-            <Icon /> {destination.label}
+            <Icon aria-hidden="true" /> {destination.label}
           </Link>
         );
       })}
@@ -60,7 +60,7 @@ export function DetailNavigation<T extends string>({
           className={`detail-tabs__more${secondaryActive ? ' is-active' : ''}`}
         >
           <summary>
-            <MoreHorizontal /> {secondaryLabel}
+            <MoreHorizontal aria-hidden="true" /> {secondaryLabel}
           </summary>
           <div>
             {secondary.map((destination) => {
@@ -73,7 +73,7 @@ export function DetailNavigation<T extends string>({
                   aria-current={active ? 'page' : undefined}
                   key={destination.id}
                 >
-                  <Icon /> {destination.label}
+                  <Icon aria-hidden="true" /> {destination.label}
                 </Link>
               );
             })}

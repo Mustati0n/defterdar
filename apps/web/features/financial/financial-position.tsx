@@ -77,6 +77,7 @@ export function FinancialPosition({
   label = 'Senin hesabın',
 }: FinancialPositionProps) {
   const titleId = useId();
+  const descriptionId = useId();
   const content = stateContent[state];
   const showsAmount =
     amountMinor !== undefined &&
@@ -95,6 +96,7 @@ export function FinancialPosition({
     <section
       className={`financial-position financial-position--${state.toLowerCase().replace('_', '-')}`}
       aria-labelledby={titleId}
+      aria-describedby={descriptionId}
     >
       <span className="financial-position__icon" aria-hidden="true">
         {content.icon}
@@ -109,7 +111,7 @@ export function FinancialPosition({
         ) : state === 'SETTLED' ? (
           <strong className="financial-position__completion">Tamamlandı</strong>
         ) : null}
-        <p>{description ?? content.description}</p>
+        <p id={descriptionId}>{description ?? content.description}</p>
         {state === 'PENDING_APPROVAL' && pendingCount > 0 ? (
           <p className="financial-position__pending-count">
             {pendingCount} yeni hareket senden onay bekliyor.
@@ -130,7 +132,9 @@ export function FinancialPosition({
       </div>
       {action ? (
         <Link className="button button--paper" href={action.href}>
-          {action.icon ?? <CircleDollarSign />}
+          <span aria-hidden="true">
+            {action.icon ?? <CircleDollarSign />}
+          </span>
           {action.label}
         </Link>
       ) : null}

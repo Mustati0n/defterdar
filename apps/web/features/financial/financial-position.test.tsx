@@ -60,4 +60,16 @@ describe('FinancialPosition', () => {
     ).toBeVisible();
     expect(screen.getByText(/175/)).toBeVisible();
   });
+
+  it('programmatically associates each financial state with its explanation', () => {
+    render(<FinancialPosition state="DEBTOR" currency="TRY" />);
+
+    const position = screen.getByRole('region', { name: 'Borcun var' });
+    const descriptionId = position.getAttribute('aria-describedby');
+
+    expect(descriptionId).toBeTruthy();
+    expect(document.getElementById(descriptionId!)).toHaveTextContent(
+      'Hesabı kapatmak için yapman gereken net ödemeler.',
+    );
+  });
 });
