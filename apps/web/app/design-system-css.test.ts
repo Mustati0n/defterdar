@@ -9,7 +9,12 @@ describe('Design System V1 CSS contract', () => {
 
   it.each([
     '--color-brand:',
+    '--font-family-display:',
+    '--font-family-ui:',
     '--font-size-md:',
+    '--type-detail-display:',
+    '--type-finance-hero:',
+    '--tracking-finance:',
     '--space-4:',
     '--border-color:',
     '--radius-control:',
@@ -20,6 +25,16 @@ describe('Design System V1 CSS contract', () => {
     '--state-success-bg:',
   ])('defines the %s semantic token family', (token) => {
     expect(tokens).toContain(token);
+  });
+
+  it('defines readable detail and tabular financial typography primitives', () => {
+    expect(tokens).toMatch(
+      /\.type-detail-display\s*,[\s\S]*?var\(--font-family-display\)/,
+    );
+    expect(tokens).toMatch(
+      /\.financial-number\s*,[\s\S]*?font-variant-numeric:\s*tabular-nums lining-nums/,
+    );
+    expect(tokens).toContain('--font-family-finance: var(--font-family-ui)');
   });
 
   it('connects shared controls to semantic design tokens', () => {

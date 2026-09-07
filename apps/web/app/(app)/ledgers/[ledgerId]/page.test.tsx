@@ -9,6 +9,14 @@ jest.mock('next/navigation', () => ({
   useParams: () => ({ ledgerId: 'ledger-1' }),
   useSearchParams: () => ({ get: () => view }),
 }));
+jest.mock('next/link', () => ({
+  __esModule: true,
+  default: ({ children, href, ...props }: React.ComponentProps<'a'>) => (
+    <a href={href} {...props}>
+      {children}
+    </a>
+  ),
+}));
 jest.mock('@/features/data/hooks', () => ({
   useLedgerDetailData: jest.fn(),
 }));
@@ -91,15 +99,20 @@ describe('Ledger detail information architecture', () => {
       screen.getByRole('heading', { name: 'Son harcamalar' }),
     ).toBeInTheDocument();
     expect(screen.queryByText('Aktif üyeler')).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /^Hesap$/ })).toHaveAttribute(
+      'href',
+      '/ledgers/ledger-1?view=balances',
+    );
     expect(
-      screen.queryByRole('link', { name: /^Bakiyeler$/ }),
-    ).not.toBeInTheDocument();
+      screen.getByRole('heading', { name: 'Henüz hesap oluşmadı' }),
+    ).toBeVisible();
+    expect(screen.queryByLabelText('Ödeme onayları')).not.toBeInTheDocument();
   });
 
   it('retains valid collaborative capabilities at secondary weight', () => {
     jest.mocked(useLedgerDetailData).mockReturnValue(detailData(true));
     render(<LedgerDetailPage />);
-    expect(screen.getByRole('link', { name: /^Bakiyeler$/ })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /^Hesap$/ })).toHaveAttribute(
       'href',
       '/ledgers/ledger-1?view=balances',
     );
@@ -110,22 +123,50 @@ describe('Ledger detail information architecture', () => {
     expect(screen.getByLabelText('Defter özeti')).toHaveTextContent('2 kişi');
     expect(screen.getAllByText('Sahip')).toHaveLength(1);
     expect(screen.queryByText('Daha fazla')).not.toBeInTheDocument();
-    expect(
-      screen.getByText('Hesap & yönetim', { exact: false }),
-    ).toBeInTheDocument();
+    expect(screen.getByText('Yönetim', { exact: false })).toBeInTheDocument();
+    expect(screen.getByLabelText('Ödeme onayları')).toBeVisible();
   });
 
-  it('uses the four task-oriented primary destinations', () => {
+  it('uses the five task-oriented primary destinations', () => {
     render(<LedgerDetailPage />);
 
     for (const [name, href] of [
       ['Genel', '/ledgers/ledger-1'],
+      ['Hesap', '/ledgers/ledger-1?view=balances'],
       ['Hareketler', '/ledgers/ledger-1?view=activity'],
       ['Planlar', '/ledgers/ledger-1?view=plans'],
       ['İstatistikler', '/ledgers/ledger-1?view=analytics'],
     ]) {
       expect(screen.getByRole('link', { name })).toHaveAttribute('href', href);
     }
+  });
+
+  it('places identity and the current user financial state before navigation', () => {
+    const collaborative = detailData(true);
+    collaborative.balance.data = {
+      currency: 'TRY',
+      positions: [
+        { user: { id: 'me', displayName: 'Ece' }, netMinor: -1234 },
+        { user: { id: 'other', displayName: 'Can' }, netMinor: 1234 },
+      ],
+      suggestions: [{ fromUserId: 'me', toUserId: 'other', amountMinor: 1234 }],
+    };
+    jest.mocked(useLedgerDetailData).mockReturnValue(collaborative);
+
+    render(<LedgerDetailPage />);
+
+    const identity = screen.getByRole('heading', { name: 'Günlük' });
+    const financialState = screen.getByRole('heading', { name: 'Borcun var' });
+    const navigation = screen.getByRole('navigation', {
+      name: 'Defter bölümleri',
+    });
+    expect(identity.compareDocumentPosition(financialState)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+    expect(financialState.compareDocumentPosition(navigation)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+    expect(screen.getAllByText(/12,34/)).toHaveLength(2);
   });
 
   it('shows only Plans belonging to the active Ledger in its Plans view', () => {

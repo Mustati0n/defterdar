@@ -1,5 +1,6 @@
 import {
   canRecordForSuggestion,
+  financialPositionState,
   positionState,
   prioritizeSuggestions,
   remainingAfterPayment,
@@ -16,6 +17,14 @@ describe('financial product language and prioritization', () => {
     expect(positionState(1)).toBe('receivable');
     expect(positionState(-1)).toBe('payable');
     expect(positionState(0)).toBe('closed');
+  });
+
+  it('resolves all reusable financial position states without estimating values', () => {
+    expect(financialPositionState(-1, true)).toBe('DEBTOR');
+    expect(financialPositionState(1, true)).toBe('CREDITOR');
+    expect(financialPositionState(0, true)).toBe('SETTLED');
+    expect(financialPositionState(0, false)).toBe('NO_ACTIVITY');
+    expect(financialPositionState(-1, true, true)).toBe('PENDING_APPROVAL');
   });
 
   it('prioritizes the current user payment and receivable separately', () => {

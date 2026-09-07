@@ -3,8 +3,8 @@
 import {
   ArrowLeft,
   BarChart3,
+  BellRing,
   BookOpenText,
-  CircleDollarSign,
   Clock3,
   NotebookTabs,
   Plus,
@@ -30,7 +30,11 @@ import {
 } from '@/features/ledgers/ledger-management';
 import { ExpenseIndicators } from '@/features/expenses/expense-indicators';
 import { BalanceExperience } from '@/features/financial/balance-experience';
-import { positionState } from '@/features/financial/financial-ux';
+import { FinancialPosition } from '@/features/financial/financial-position';
+import {
+  financialPositionState,
+  prioritizeSuggestions,
+} from '@/features/financial/financial-ux';
 import {
   formatMoneyFromMinor,
   ledgerRoleLabel,
@@ -42,6 +46,7 @@ import { PageIntro } from '@/features/page-intro/page-intro';
 
 const primaryViews = [
   { id: 'general', label: 'Genel', icon: BookOpenText },
+  { id: 'balances', label: 'Hesap', icon: WalletCards },
   { id: 'activity', label: 'Hareketler', icon: Clock3 },
   { id: 'plans', label: 'Planlar', icon: NotebookTabs },
   { id: 'analytics', label: 'İstatistikler', icon: BarChart3 },
@@ -90,12 +95,7 @@ export default function LedgerDetailPage() {
 
   const data = ledger.data;
   const collaborative = Boolean(data.isCollaborative);
-  const secondaryViews = collaborative
-    ? [
-        { id: 'balances', label: 'Bakiyeler', icon: WalletCards } as const,
-        ...managementViews,
-      ]
-    : managementViews;
+  const secondaryViews = managementViews;
   const allowedViews = [...primaryViews, ...secondaryViews].map(
     (view) => view.id,
   ) as LedgerView[];
@@ -107,7 +107,40 @@ export default function LedgerDetailPage() {
   const myPosition = balance.data?.positions.find(
     (position) => position.user.id === user?.id,
   );
-  const myBalanceState = positionState(myPosition?.netMinor ?? 0);
+  const myNet = myPosition?.netMinor ?? 0;
+  const hasFinancialActivity = Boolean(
+    expenses.data?.some(
+      (expense) =>
+        !expense.voidedAt &&
+        expense.splits.some((split) => split.isReimbursable),
+    ),
+  );
+  const myFinancialState = financialPositionState(myNet, hasFinancialActivity);
+  const suggestionGroups = prioritizeSuggestions(
+    balance.data?.suggestions ?? [],
+    user?.id ?? '',
+  );
+  const participantNames = new Map(
+    balance.data?.positions.map((position) => [
+      position.user.id,
+      position.user.displayName,
+    ]),
+  );
+  const financialItems = (
+    myFinancialState === 'DEBTOR'
+      ? suggestionGroups.payments.map((suggestion) => ({
+          id: `${suggestion.fromUserId}-${suggestion.toUserId}`,
+          label: `${participantNames.get(suggestion.toUserId) ?? 'Bir katılımcı'} kişisine`,
+          amountMinor: suggestion.amountMinor,
+        }))
+      : myFinancialState === 'CREDITOR'
+        ? suggestionGroups.receivables.map((suggestion) => ({
+            id: `${suggestion.fromUserId}-${suggestion.toUserId}`,
+            label: `${participantNames.get(suggestion.fromUserId) ?? 'Bir katılımcı'} kişisinden`,
+            amountMinor: suggestion.amountMinor,
+          }))
+        : []
+  ).slice(0, 3);
   const linkedPlans = (plans.data ?? []).filter(
     (plan) => plan.scope === 'LEDGER' && plan.ledgerId === ledgerId,
   );
@@ -118,52 +151,109 @@ export default function LedgerDetailPage() {
         <ArrowLeft /> Defterler &amp; Planlara dön
       </Link>
       <section
-        className={`detail-cover detail-cover--ledger${collaborative ? ' detail-cover--collaborative' : ''}`}
+        className={`ledger-detail-identity${collaborative ? ' ledger-detail-identity--collaborative' : ''}`}
+        aria-labelledby="ledger-detail-title"
       >
-        <span className="detail-cover__bookmark">
-          {ledgerRoleLabel(data.role)}
-        </span>
-        <div>
-          <span className="eyebrow eyebrow--light">
+        <div className="ledger-detail-identity__copy">
+          <span className="eyebrow">
             {collaborative ? 'Ortak defter' : 'Defter'} · {data.currency}
           </span>
-          <h1>{data.name}</h1>
+          <h1 className="type-detail-title" id="ledger-detail-title">
+            {data.name}
+          </h1>
           {data.description ? <p>{data.description}</p> : null}
-          <div className="detail-cover__meta" aria-label="Defter özeti">
+        </div>
+        <div className="ledger-detail-identity__meta" aria-label="Defter özeti">
+          <span>{ledgerRoleLabel(data.role)}</span>
+          {data.archivedAt ? <span>Arşivde</span> : null}
+          {collaborative ? (
             <span>
               <UsersRound />
-              {collaborative
-                ? `${data.activeMemberCount ?? members.data?.length ?? '—'} kişi`
-                : 'Tek kişilik alan'}
+              {data.activeMemberCount ?? members.data?.length ?? '—'} kişi
             </span>
-            <span>
-              <BookOpenText />{' '}
-              {data.activePlanCount ?? plans.data?.length ?? '—'} aktif plan
-            </span>
-            {collaborative ? (
-              <Link href={`/ledgers/${ledgerId}?view=balances`}>
-                <CircleDollarSign />
-                {myBalanceState === 'receivable'
-                  ? `${formatMoneyFromMinor(Math.abs(myPosition?.netMinor ?? 0), data.currency)} alacak`
-                  : myBalanceState === 'payable'
-                    ? `${formatMoneyFromMinor(Math.abs(myPosition?.netMinor ?? 0), data.currency)} ödeme`
-                    : 'Hesap kapalı'}
-              </Link>
-            ) : (
-              <span>
-                <CircleDollarSign /> {expenses.data?.length ?? '—'} harcama
-              </span>
-            )}
-          </div>
+          ) : (
+            <span>Tek kişilik alan</span>
+          )}
         </div>
       </section>
+
+      {activeView === 'general' ? (
+        <div className="ledger-financial-priority">
+          {collaborative && (balance.isLoading || expenses.isLoading) ? (
+            <LoadingState label="Finansal durumun hazırlanıyor…" />
+          ) : collaborative && (balance.isError || expenses.isError) ? (
+            <ErrorState
+              message="Finansal durumun şu anda gösterilemiyor. Kayıtların güvende."
+              onRetry={() => {
+                void balance.refetch();
+                void expenses.refetch();
+              }}
+            />
+          ) : (
+            <FinancialPosition
+              state={collaborative ? myFinancialState : 'NO_ACTIVITY'}
+              currency={data.currency}
+              amountMinor={myNet}
+              items={financialItems}
+              label={collaborative ? 'Senin hesabın' : 'Senin alanın'}
+              description={
+                collaborative
+                  ? undefined
+                  : 'Bu kişisel Defterde ortak ödeme ve tahsilat hesabı oluşmaz.'
+              }
+              action={
+                !data.archivedAt && myFinancialState === 'NO_ACTIVITY'
+                  ? {
+                      href: `/expenses/new?ledgerId=${ledgerId}`,
+                      label: collaborative
+                        ? 'İlk harcamayı ekle'
+                        : 'Harcama ekle',
+                    }
+                  : {
+                      href: `/ledgers/${ledgerId}?view=balances`,
+                      label:
+                        myFinancialState === 'DEBTOR'
+                          ? 'Hesabı incele / ödeme ekle'
+                          : 'Hesabı incele',
+                    }
+              }
+            />
+          )}
+
+          {collaborative ? (
+            <aside
+              className="ledger-approval-entry"
+              aria-label="Ödeme onayları"
+            >
+              <span aria-hidden="true">
+                <BellRing />
+              </span>
+              <div>
+                <span className="type-detail-label">Ödeme onayları</span>
+                <h2>Ödeme bildirimlerini kontrol et</h2>
+                <p>
+                  Bekleyen onayları ve ödeme kayıtlarını Hesap bölümünden
+                  yönetebilirsin.
+                </p>
+              </div>
+              <Link
+                className="button button--quiet"
+                href={`/ledgers/${ledgerId}?view=balances`}
+              >
+                Onayları aç
+              </Link>
+            </aside>
+          ) : null}
+        </div>
+      ) : null}
+
       <DetailNavigation
         label="Defter bölümleri"
         basePath={`/ledgers/${ledgerId}`}
         activeView={activeView}
         primary={primaryViews}
         secondary={secondaryViews}
-        secondaryLabel="Hesap & yönetim"
+        secondaryLabel="Yönetim"
       />
 
       {activeView === 'general' ? (
@@ -363,6 +453,21 @@ export default function LedgerDetailPage() {
             mutationsDisabled={Boolean(data.archivedAt)}
           />
         </>
+      ) : null}
+      {activeView === 'balances' && !collaborative ? (
+        <section className="paper-section personal-account-note">
+          <span aria-hidden="true">
+            <BookOpenText />
+          </span>
+          <div>
+            <span className="eyebrow">Kişisel Defter</span>
+            <h2>Ortak hesap oluşmaz</h2>
+            <p>
+              Bu alan yalnızca sana ait olduğu için kimseye borç veya alacak
+              hesaplanmaz. Harcamalarını Genel bölümünden takip edebilirsin.
+            </p>
+          </div>
+        </section>
       ) : null}
       {activeView === 'analytics' ? (
         <AnalyticsExperience

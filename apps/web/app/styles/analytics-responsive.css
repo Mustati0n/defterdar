@@ -190,8 +190,15 @@
 }
 .analytics-summary__primary strong {
   color: var(--text-on-strong);
-  font: var(--font-weight-bold) clamp(1.65rem, 3.2vw, 2.6rem)
-    var(--font-display);
+  font-family: var(--font-family-finance);
+  font-size: var(--type-finance-title);
+  font-variant-numeric: tabular-nums lining-nums;
+  font-feature-settings:
+    'tnum' 1,
+    'lnum' 1;
+  font-weight: var(--font-weight-bold);
+  letter-spacing: var(--tracking-finance);
+  line-height: var(--line-height-finance);
   overflow-wrap: anywhere;
 }
 .analytics-summary__primary p {

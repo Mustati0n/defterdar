@@ -57,11 +57,39 @@
   --state-muted-bg: #e4ded4;
   --state-muted-border: #c9c0b3;
   --state-disabled-opacity: 0.5;
-  --font-display:
+  /*
+   * Typography roles use local/system fonts only. The aliases keep the
+   * existing font contract stable while detail screens adopt semantic roles.
+   */
+  --font-family-display:
     'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif;
-  --font-body:
+  --font-family-ui:
     ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
     sans-serif;
+  --font-family-finance: var(--font-family-ui);
+  --font-display: var(--font-family-display);
+  --font-body: var(--font-family-ui);
+
+  /* Fluid detail typography: compact at 320px, measured at wide viewports. */
+  --type-detail-display: clamp(2.25rem, 1.48rem + 3.85vw, 4.75rem);
+  --type-detail-title: clamp(1.75rem, 1.35rem + 2vw, 3rem);
+  --type-detail-section: clamp(1.35rem, 1.16rem + 0.95vw, 1.95rem);
+  --type-detail-subtitle: clamp(1.05rem, 0.98rem + 0.38vw, 1.3rem);
+  --type-detail-body: clamp(0.9375rem, 0.91rem + 0.14vw, 1.025rem);
+  --type-detail-meta: clamp(0.75rem, 0.73rem + 0.1vw, 0.8125rem);
+  --type-finance-hero: clamp(2.35rem, 1.62rem + 3.65vw, 4.7rem);
+  --type-finance-title: clamp(1.65rem, 1.31rem + 1.7vw, 2.75rem);
+  --type-finance-value: clamp(1.15rem, 1.02rem + 0.65vw, 1.6rem);
+  --type-finance-meta: clamp(0.78rem, 0.75rem + 0.14vw, 0.875rem);
+  --tracking-display: -0.032em;
+  --tracking-heading: -0.022em;
+  --tracking-label: 0.115em;
+  --tracking-finance: -0.035em;
+  --line-height-display: 0.98;
+  --line-height-heading: 1.12;
+  --line-height-finance: 1;
+  --measure-detail-copy: 68ch;
+  --measure-detail-narrow: 48ch;
   --font-page-title: clamp(2.4rem, 5vw, 4.8rem);
   --font-page-title-compact: clamp(1.15rem, 2vw, 1.5rem);
   --font-size-xs: 0.72rem;
@@ -85,6 +113,9 @@
   --space-12: 3rem;
   --layout-section-gap: clamp(2.2rem, 4vw, 3.6rem);
   --layout-card-gap: clamp(1rem, 2vw, 1.6rem);
+  --detail-section-gap: clamp(1.75rem, 1.35rem + 2vw, 3rem);
+  --detail-content-gap: clamp(0.85rem, 0.72rem + 0.65vw, 1.25rem);
+  --detail-surface-padding: clamp(1rem, 0.74rem + 1.3vw, 1.85rem);
   --radius-xs: 6px;
   --radius-sm: 8px;
   --radius-md: 14px;
@@ -413,7 +444,7 @@ h2,
 h3 {
   font-family: var(--font-display);
   color: var(--text-heading);
-  letter-spacing: -0.025em;
+  letter-spacing: var(--tracking-heading);
   line-height: var(--line-height-tight);
 }
 h1 {
@@ -433,6 +464,70 @@ h3 {
 ::selection {
   color: var(--color-paper);
   background: var(--color-wine);
+}
+
+/* Detail typography primitives. They are opt-in until the detail IA lands. */
+.type-detail-display,
+.type-detail-title,
+.type-detail-section {
+  color: var(--text-heading);
+  font-family: var(--font-family-display);
+  text-wrap: balance;
+}
+.type-detail-display {
+  font-size: var(--type-detail-display);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: var(--tracking-display);
+  line-height: var(--line-height-display);
+}
+.type-detail-title {
+  font-size: var(--type-detail-title);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: var(--tracking-display);
+  line-height: var(--line-height-heading);
+}
+.type-detail-section {
+  font-size: var(--type-detail-section);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--tracking-heading);
+  line-height: var(--line-height-heading);
+}
+.type-detail-body {
+  max-width: var(--measure-detail-copy);
+  font-family: var(--font-family-ui);
+  font-size: var(--type-detail-body);
+  line-height: var(--line-height-body);
+}
+.type-detail-label {
+  font-family: var(--font-family-ui);
+  font-size: var(--type-detail-meta);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: var(--tracking-label);
+  line-height: 1.25;
+  text-transform: uppercase;
+}
+
+/* Financial values stay legible across locales and never shift by digit. */
+.financial-number,
+[data-financial-number] {
+  font-family: var(--font-family-finance);
+  font-variant-numeric: tabular-nums lining-nums;
+  font-feature-settings:
+    'tnum' 1,
+    'lnum' 1;
+  font-weight: var(--font-weight-bold);
+  letter-spacing: var(--tracking-finance);
+  line-height: var(--line-height-finance);
+  overflow-wrap: anywhere;
+}
+.financial-number--hero {
+  font-size: var(--type-finance-hero);
+}
+.financial-number--title {
+  font-size: var(--type-finance-title);
+}
+.financial-number--value {
+  font-size: var(--type-finance-value);
 }
 
 .button {
