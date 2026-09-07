@@ -151,6 +151,16 @@
 .overview-focus__more {
   display: none;
 }
+.overview-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
 .overview-activity-section .section-heading p {
   margin: 0.3rem 0 0;
   color: var(--text-secondary);
@@ -442,8 +452,10 @@ a.overview-activity:focus-visible {
   }
   .overview-focus__more {
     display: inline-flex;
+    min-height: 44px;
+    align-items: center;
     justify-self: start;
-    padding: 0.25rem 0;
+    padding: 0.5rem 0;
     color: var(--color-wine);
     border: 0;
     background: transparent;
@@ -489,6 +501,25 @@ a.overview-activity:focus-visible {
   }
   .overview-activity__aside > svg {
     margin-left: auto;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .overview-priority,
+  .overview-activity,
+  .overview-card-grid__more,
+  .overview-card-grid .ledger-card,
+  .overview-card-grid .plan-card {
+    transition: none;
+  }
+  .overview-priority:hover,
+  .overview-priority:focus-visible,
+  .overview-card-grid__more:hover,
+  .overview-card-grid__more:focus-visible,
+  .overview-card-grid .ledger-card:hover,
+  .overview-card-grid .ledger-card:focus-visible,
+  .overview-card-grid .plan-card:hover,
+  .overview-card-grid .plan-card:focus-visible {
+    transform: none;
   }
 }
 @media (max-width: 480px) {

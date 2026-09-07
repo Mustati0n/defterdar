@@ -198,6 +198,20 @@ describe('Overview hierarchy', () => {
 
     expect(screen.getAllByTestId('ledger-card')).toHaveLength(3);
     expect(screen.getAllByTestId('plan-card')).toHaveLength(3);
+    expect(screen.getByRole('region', { name: 'Defterlerin' })).toHaveAttribute(
+      'tabindex',
+      '0',
+    );
+    expect(screen.getByRole('region', { name: 'Planların' })).toHaveAttribute(
+      'tabindex',
+      '0',
+    );
+    expect(screen.getByText('7 Defterden 3 tanesi gösteriliyor.')).toHaveClass(
+      'overview-visually-hidden',
+    );
+    expect(screen.getByText('7 Plandan 3 tanesi gösteriliyor.')).toHaveClass(
+      'overview-visually-hidden',
+    );
 
     const moreLedgers = screen.getByRole('button', {
       name: 'Daha fazla Defter göster',
@@ -210,6 +224,12 @@ describe('Overview hierarchy', () => {
     fireEvent.click(morePlans);
     expect(screen.getAllByTestId('ledger-card')).toHaveLength(6);
     expect(screen.getAllByTestId('plan-card')).toHaveLength(6);
+    expect(
+      screen.getByText('7 Defterden 6 tanesi gösteriliyor.'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('7 Plandan 6 tanesi gösteriliyor.'),
+    ).toBeInTheDocument();
     expect(moreLedgers).toBeInTheDocument();
     expect(morePlans).toBeInTheDocument();
 

@@ -228,7 +228,7 @@ export default function OverviewPage() {
       {preferences.overview.ledgers && activeLedgers?.length ? (
         <section className="overview-section">
           <div className="section-heading">
-            <h2>Defterlerin</h2>
+            <h2 id="overview-ledgers-title">Defterlerin</h2>
             <Link href="/workspace?type=ledger">
               Tümünü gör <ArrowRight />
             </Link>
@@ -236,6 +236,10 @@ export default function OverviewPage() {
           <div
             className="overview-card-grid overview-card-grid--ledgers"
             id="overview-ledgers"
+            role="region"
+            aria-labelledby="overview-ledgers-title"
+            aria-roledescription="yatay kaydırılabilir kart listesi"
+            tabIndex={0}
           >
             {activeLedgers.slice(0, visibleLedgerCount).map((ledger) => {
               const ledgerBalance = overview.data?.ledgerBalances.find(
@@ -274,6 +278,11 @@ export default function OverviewPage() {
               </button>
             ) : null}
           </div>
+          <p className="overview-visually-hidden" aria-live="polite">
+            {activeLedgers.length} Defterden{' '}
+            {Math.min(visibleLedgerCount, activeLedgers.length)} tanesi
+            gösteriliyor.
+          </p>
         </section>
       ) : preferences.overview.ledgers ? (
         <section className="overview-empty" aria-label="Defter başlangıcı">
@@ -305,7 +314,7 @@ export default function OverviewPage() {
           <div className="section-heading">
             <div>
               <span className="eyebrow">Yaklaşan ve aktif</span>
-              <h2>Planların</h2>
+              <h2 id="overview-plans-title">Planların</h2>
             </div>
             <Link href="/workspace?type=plan">
               Tümünü gör <ArrowRight />
@@ -314,6 +323,10 @@ export default function OverviewPage() {
           <div
             className="overview-card-grid overview-card-grid--plans"
             id="overview-plans"
+            role="region"
+            aria-labelledby="overview-plans-title"
+            aria-roledescription="yatay kaydırılabilir kart listesi"
+            tabIndex={0}
           >
             {orderedPlans.slice(0, visiblePlanCount).map((plan) => {
               const planBalance = overview.data?.planBalances.find(
@@ -353,6 +366,11 @@ export default function OverviewPage() {
               </button>
             ) : null}
           </div>
+          <p className="overview-visually-hidden" aria-live="polite">
+            {orderedPlans.length} Plandan{' '}
+            {Math.min(visiblePlanCount, orderedPlans.length)} tanesi
+            gösteriliyor.
+          </p>
         </section>
       ) : null}
 

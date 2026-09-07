@@ -37,4 +37,13 @@ describe('overview responsive CSS', () => {
       /@media \(max-width: 760px\)[\s\S]*?\.app-main--overview \.page-container\s*\{[^}]*padding-bottom: max\(6rem, calc\(5rem \+ env\(safe-area-inset-bottom\)\)\);/s,
     );
   });
+
+  it('keeps mobile actions reachable and honors reduced motion', () => {
+    expect(overviewCss).toMatch(
+      /@media \(max-width: 760px\)[\s\S]*?\.overview-focus__more\s*\{[^}]*min-height: 44px;/s,
+    );
+    expect(overviewCss).toMatch(
+      /@media \(prefers-reduced-motion: reduce\)[\s\S]*?\.overview-card-grid__more,[\s\S]*?\.overview-card-grid \.plan-card\s*\{[^}]*transition: none;/s,
+    );
+  });
 });
