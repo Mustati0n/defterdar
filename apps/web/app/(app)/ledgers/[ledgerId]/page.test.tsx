@@ -252,8 +252,9 @@ describe('Ledger detail information architecture', () => {
 
     render(<LedgerDetailPage />);
 
+    expect(screen.getByRole('heading', { name: 'Planlar' })).toBeVisible();
     expect(
-      screen.getByRole('heading', { name: 'Günlük Planları' }),
+      screen.getByRole('region', { name: 'Günlük Planları' }),
     ).toBeVisible();
     expect(screen.getByRole('link', { name: /Günlük hedef/ })).toBeVisible();
     expect(screen.queryByText('Başka Defter Planı')).not.toBeInTheDocument();
@@ -270,6 +271,21 @@ describe('Ledger detail information architecture', () => {
     expect(
       screen.getByRole('heading', { name: 'Son harcamalar' }),
     ).toBeInTheDocument();
+  });
+
+  it('gives every primary sub-page a clear URL-backed section heading', () => {
+    const rendered = render(<LedgerDetailPage />);
+
+    for (const [nextView, heading] of [
+      ['balances', 'Hesap'],
+      ['activity', 'Hareketler'],
+      ['plans', 'Planlar'],
+      ['analytics', 'İstatistikler'],
+    ] as const) {
+      view = nextView;
+      rendered.rerender(<LedgerDetailPage />);
+      expect(screen.getByRole('heading', { name: heading })).toBeVisible();
+    }
   });
 
   it('has no detectable structural accessibility violations', async () => {

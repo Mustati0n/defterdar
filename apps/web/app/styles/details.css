@@ -419,6 +419,54 @@
   background: var(--surface-base);
   box-shadow: var(--elevation-highlight), var(--elevation-1);
 }
+.ledger-subpage {
+  display: grid;
+  min-width: 0;
+  gap: var(--detail-content-gap);
+}
+.detail-view-header {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-4);
+  padding: 0 var(--space-2);
+}
+.detail-view-header__icon {
+  display: grid;
+  width: 46px;
+  height: 46px;
+  color: var(--color-wine);
+  border: var(--border-width) solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
+  box-shadow: var(--elevation-highlight);
+  place-items: center;
+}
+.detail-view-header__icon svg {
+  width: 21px;
+  height: 21px;
+}
+.detail-view-header__copy {
+  display: grid;
+  min-width: 0;
+  gap: var(--space-1);
+}
+.detail-view-header__copy h2,
+.detail-view-header__copy p {
+  margin: 0;
+}
+.detail-view-header__copy h2 {
+  color: var(--text-heading);
+  font-family: var(--font-serif);
+  font-size: clamp(1.55rem, 3vw, 2.15rem);
+}
+.detail-view-header__copy p {
+  max-width: 68ch;
+  color: var(--text-secondary);
+}
+.detail-view-header__meta {
+  justify-self: end;
+}
 .ledger-plans-workspace .section-heading {
   margin-bottom: 0;
 }
@@ -473,16 +521,32 @@
   white-space: nowrap;
 }
 .ledger-plan-row small,
-.ledger-plan-row > span:last-child {
+.ledger-plan-row__context {
   color: var(--text-secondary);
   font-size: var(--font-size-xs);
 }
-.ledger-plan-row > span:last-child {
+.ledger-plan-row__context {
+  display: inline-flex;
   flex: 0 0 auto;
+  align-items: center;
+  gap: var(--space-1);
   font-weight: var(--font-weight-semibold);
+}
+.ledger-plan-row__context svg {
+  width: 15px;
+  height: 15px;
 }
 
 @media (max-width: 760px) {
+  .detail-view-header {
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: start;
+    padding-inline: 0;
+  }
+  .detail-view-header__meta {
+    grid-column: 2;
+    justify-self: start;
+  }
   .ledger-detail-identity {
     grid-template-columns: minmax(0, 1fr);
   }

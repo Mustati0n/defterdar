@@ -4,6 +4,7 @@ import {
   ArrowLeft,
   BarChart3,
   BookOpenText,
+  CalendarRange,
   Clock3,
   NotebookTabs,
   Plus,
@@ -43,6 +44,7 @@ import {
 import { AnalyticsExperience } from '@/features/analytics/analytics-experience';
 import { CategoryManager } from '@/features/settings/category-manager';
 import { PageIntro } from '@/features/page-intro/page-intro';
+import { DetailViewHeader } from '@/components/detail-view-header';
 
 const primaryViews = [
   { id: 'general', label: 'Genel', icon: BookOpenText },
@@ -362,65 +364,93 @@ export default function LedgerDetailPage() {
           </div>
         </>
       ) : null}
-      {activeView === 'activity' ? <ActivityFeed ledgerId={ledgerId} /> : null}
+      {activeView === 'activity' ? (
+        <div className="ledger-subpage">
+          <DetailViewHeader
+            eyebrow="Kayıt geçmişi"
+            title="Hareketler"
+            description="Bu Defterde gerçekleşen işlemleri en yeniden eskiye doğru incele."
+            icon={Clock3}
+          />
+          <ActivityFeed ledgerId={ledgerId} showHeading={false} />
+        </div>
+      ) : null}
       {activeView === 'plans' ? (
-        <section className="ledger-plans-workspace">
-          <div className="section-heading">
-            <div>
-              <span className="eyebrow">Deftere bağlı</span>
-              <h2>{data.name} Planları</h2>
-            </div>
-            <span className="ledger-plans-workspace__count">
-              {linkedPlans.length} Plan
-            </span>
-          </div>
-          {plans.isLoading ? (
-            <LoadingState label="Defter Planları hazırlanıyor…" />
-          ) : null}
-          {plans.isError ? (
-            <ErrorState
-              message="Bu Deftere bağlı Planlar yüklenemedi."
-              onRetry={() => void plans.refetch()}
-            />
-          ) : null}
-          {!plans.isLoading && !plans.isError && linkedPlans.length ? (
-            <div className="ledger-plans-grid">
-              {linkedPlans.map((plan) => (
-                <Link
-                  className="ledger-plan-row"
-                  href={`/plans/${plan.id}`}
-                  key={plan.id}
-                >
-                  <span>
-                    <strong>{plan.name}</strong>
-                    <small>
-                      {planStatusLabel(plan.status)} · {plan.participantCount}{' '}
-                      katılımcı
-                    </small>
-                  </span>
-                  <span>{data.name} içinde</span>
-                </Link>
-              ))}
-            </div>
-          ) : null}
-          {!plans.isLoading && !plans.isError && !linkedPlans.length ? (
-            <div className="smart-empty">
-              <span>
-                <NotebookTabs />
+        <div className="ledger-subpage">
+          <DetailViewHeader
+            eyebrow="Deftere bağlı"
+            title="Planlar"
+            description={`${data.name} kapsamında yürüttüğün Planları tek yerde takip et.`}
+            icon={NotebookTabs}
+            meta={
+              <span className="ledger-plans-workspace__count">
+                {linkedPlans.length} Plan
               </span>
-              <div>
-                <h3>Bu Deftere bağlı Plan yok.</h3>
-                <p>
-                  Sağ alttaki oluştur menüsünden bu Defter için yeni bir Plan
-                  ekleyebilirsin.
-                </p>
+            }
+          />
+          <section
+            className="ledger-plans-workspace"
+            aria-label={`${data.name} Planları`}
+          >
+            {plans.isLoading ? (
+              <LoadingState label="Defter Planları hazırlanıyor…" />
+            ) : null}
+            {plans.isError ? (
+              <ErrorState
+                message="Bu Deftere bağlı Planlar yüklenemedi."
+                onRetry={() => void plans.refetch()}
+              />
+            ) : null}
+            {!plans.isLoading && !plans.isError && linkedPlans.length ? (
+              <div className="ledger-plans-grid">
+                {linkedPlans.map((plan) => (
+                  <Link
+                    className="ledger-plan-row"
+                    href={`/plans/${plan.id}`}
+                    key={plan.id}
+                  >
+                    <span>
+                      <strong>{plan.name}</strong>
+                      <small>
+                        {planStatusLabel(plan.status)} · {plan.participantCount}{' '}
+                        katılımcı
+                      </small>
+                    </span>
+                    <span className="ledger-plan-row__context">
+                      <CalendarRange />
+                      {plan.startsAt
+                        ? new Date(plan.startsAt).toLocaleDateString('tr-TR')
+                        : 'Başlangıç serbest'}
+                    </span>
+                  </Link>
+                ))}
               </div>
-            </div>
-          ) : null}
-        </section>
+            ) : null}
+            {!plans.isLoading && !plans.isError && !linkedPlans.length ? (
+              <div className="smart-empty">
+                <span>
+                  <NotebookTabs />
+                </span>
+                <div>
+                  <h3>Bu Deftere bağlı Plan yok.</h3>
+                  <p>
+                    Sağ alttaki oluştur menüsünden bu Defter için yeni bir Plan
+                    ekleyebilirsin.
+                  </p>
+                </div>
+              </div>
+            ) : null}
+          </section>
+        </div>
       ) : null}
       {activeView === 'balances' && collaborative ? (
-        <>
+        <div className="ledger-subpage">
+          <DetailViewHeader
+            eyebrow="Ortak hesap"
+            title="Hesap"
+            description="Borç ve alacak durumunu, ödeme önerilerini ve onay bekleyen kayıtları incele."
+            icon={WalletCards}
+          />
           <PageIntro
             pageKey="balances"
             title="Bakiye, ortak hesabın bugünkü sonucudur."
@@ -439,29 +469,45 @@ export default function LedgerDetailPage() {
             role={data.role}
             mutationsDisabled={Boolean(data.archivedAt)}
           />
-        </>
+        </div>
       ) : null}
       {activeView === 'balances' && !collaborative ? (
-        <section className="paper-section personal-account-note">
-          <span aria-hidden="true">
-            <BookOpenText />
-          </span>
-          <div>
-            <span className="eyebrow">Kişisel Defter</span>
-            <h2>Ortak hesap oluşmaz</h2>
-            <p>
-              Bu alan yalnızca sana ait olduğu için kimseye borç veya alacak
-              hesaplanmaz. Harcamalarını Genel bölümünden takip edebilirsin.
-            </p>
-          </div>
-        </section>
+        <div className="ledger-subpage">
+          <DetailViewHeader
+            eyebrow="Kişisel Defter"
+            title="Hesap"
+            description="Kişisel Defterlerde katılımcılar arası borç veya alacak hesabı oluşmaz."
+            icon={WalletCards}
+          />
+          <section className="paper-section personal-account-note">
+            <span aria-hidden="true">
+              <BookOpenText />
+            </span>
+            <div>
+              <span className="eyebrow">Bilmen gereken</span>
+              <h2>Ortak hesap oluşmaz</h2>
+              <p>
+                Bu alan yalnızca sana ait olduğu için kimseye borç veya alacak
+                hesaplanmaz. Harcamalarını Genel bölümünden takip edebilirsin.
+              </p>
+            </div>
+          </section>
+        </div>
       ) : null}
       {activeView === 'analytics' ? (
-        <AnalyticsExperience
-          scope="ledger"
-          resourceId={ledgerId}
-          personal={!collaborative}
-        />
+        <div className="ledger-subpage">
+          <DetailViewHeader
+            eyebrow="Dönem görünümü"
+            title="İstatistikler"
+            description="Harcama, gelir ve kategori dağılımlarını seçtiğin döneme göre karşılaştır."
+            icon={BarChart3}
+          />
+          <AnalyticsExperience
+            scope="ledger"
+            resourceId={ledgerId}
+            personal={!collaborative}
+          />
+        </div>
       ) : null}
       {activeView === 'members' ? (
         <LedgerMembersPanel ledger={data} members={members.data ?? []} />
