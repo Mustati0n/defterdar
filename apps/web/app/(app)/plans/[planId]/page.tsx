@@ -41,6 +41,7 @@ import {
 import { BalanceExperience } from '@/features/financial/balance-experience';
 import { AnalyticsExperience } from '@/features/analytics/analytics-experience';
 import { PageIntro } from '@/features/page-intro/page-intro';
+import { DetailViewTransition } from '@/components/detail-view-transition';
 
 const primaryViews = [
   { id: 'general', label: 'Genel', icon: CheckSquare2 },
@@ -54,6 +55,14 @@ const secondaryViews = [
 ] as const;
 type PlanView =
   (typeof primaryViews)[number]['id'] | (typeof secondaryViews)[number]['id'];
+const planViewOrder = [
+  'general',
+  'balances',
+  'activity',
+  'analytics',
+  'participants',
+  'settings',
+] as const;
 
 export function planNextStep(
   status: 'ACTIVE' | 'COMPLETED' | 'ARCHIVED',
@@ -146,172 +155,174 @@ export default function PlanDetailPage() {
         secondary={secondaryViews}
       />
 
-      {activeView === 'general' ? (
-        <>
-          <div className="page-actions">
-            <PlanLifecycleAction plan={data} canEdit={Boolean(canEdit)} />
-          </div>
-          <div className="detail-grid">
-            <section className="paper-section">
-              <span className="eyebrow">Plan künyesi</span>
-              <h2>Takvim ve katılım</h2>
-              <div className="summary-list">
-                <div>
-                  <UsersRound />
-                  <span>
-                    <small>Katılımcılar</small>
-                    <strong>{data.participantCount}</strong>
-                  </span>
-                </div>
-                <div>
-                  <CalendarDays />
-                  <span>
-                    <small>Bitiş</small>
-                    <strong>{formatDate(data.endsAt, 'Açık')}</strong>
-                  </span>
-                </div>
-                <div>
-                  <CheckSquare2 />
-                  <span>
-                    <small>Durum</small>
-                    <strong>{planStatusLabel(data.status)}</strong>
-                  </span>
-                </div>
-              </div>
-            </section>
-            <section className="lined-section">
-              <span className="eyebrow">Sıradaki adım</span>
-              <h2>Sıradaki adım</h2>
-              <p className="context-note">
-                {planNextStep(
-                  data.status,
-                  data.participantCount,
-                  expenses.data?.length ?? 0,
-                )}
-              </p>
-            </section>
-          </div>
-          <section className="paper-section expense-section">
-            <div className="section-heading">
-              <div>
-                <span className="eyebrow">Plan harcamaları</span>
-                <h2>Birlikte ödenenler</h2>
-              </div>
+      <DetailViewTransition view={activeView} order={planViewOrder}>
+        {activeView === 'general' ? (
+          <>
+            <div className="page-actions">
+              <PlanLifecycleAction plan={data} canEdit={Boolean(canEdit)} />
             </div>
-            {expenses.data?.length ? (
-              <div className="expense-list">
-                {expenses.data.slice(0, 6).map((expense) => (
-                  <Link href={`/expenses/${expense.id}`} key={expense.id}>
+            <div className="detail-grid">
+              <section className="paper-section">
+                <span className="eyebrow">Plan künyesi</span>
+                <h2>Takvim ve katılım</h2>
+                <div className="summary-list">
+                  <div>
+                    <UsersRound />
                     <span>
-                      <ReceiptText />
+                      <small>Katılımcılar</small>
+                      <strong>{data.participantCount}</strong>
                     </span>
-                    <div>
-                      <strong>{expense.title}</strong>
-                      <small>
-                        {expense.payer.displayName} ödedi ·{' '}
-                        {expense.splits.length} kişi paylaştı
-                      </small>
-                      <ExpenseIndicators expense={expense} />
-                    </div>
-                    <div>
-                      <strong>
-                        {formatMoneyFromMinor(
-                          expense.amountMinor,
-                          expense.currency,
-                        )}
-                      </strong>
-                      <small>
-                        {new Date(expense.expenseDate).toLocaleDateString(
-                          'tr-TR',
-                        )}
-                      </small>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            ) : (
-              <div className="smart-empty smart-empty--expense">
-                <span>
-                  <ReceiptText />
-                </span>
-                <div>
-                  <h3>Henüz harcama yok.</h3>
-                  <p>
-                    {data.status === 'ACTIVE'
-                      ? 'İlk harcamayı eklediğinde Planın payları ve bakiyeleri burada oluşacak.'
-                      : 'Bu Plan tamamlandığı için yeni harcama eklenemez; mevcut kayıtlar okunmaya devam eder.'}
-                  </p>
+                  </div>
+                  <div>
+                    <CalendarDays />
+                    <span>
+                      <small>Bitiş</small>
+                      <strong>{formatDate(data.endsAt, 'Açık')}</strong>
+                    </span>
+                  </div>
+                  <div>
+                    <CheckSquare2 />
+                    <span>
+                      <small>Durum</small>
+                      <strong>{planStatusLabel(data.status)}</strong>
+                    </span>
+                  </div>
                 </div>
-                {data.status === 'ACTIVE' ? (
-                  <Link
-                    className="button button--primary"
-                    href={`/expenses/new?${data.ledgerId ? `ledgerId=${data.ledgerId}&` : ''}planId=${planId}`}
-                  >
-                    <Plus /> İlk harcamayı ekle
-                  </Link>
-                ) : null}
+              </section>
+              <section className="lined-section">
+                <span className="eyebrow">Sıradaki adım</span>
+                <h2>Sıradaki adım</h2>
+                <p className="context-note">
+                  {planNextStep(
+                    data.status,
+                    data.participantCount,
+                    expenses.data?.length ?? 0,
+                  )}
+                </p>
+              </section>
+            </div>
+            <section className="paper-section expense-section">
+              <div className="section-heading">
+                <div>
+                  <span className="eyebrow">Plan harcamaları</span>
+                  <h2>Birlikte ödenenler</h2>
+                </div>
               </div>
-            )}
-          </section>
-        </>
-      ) : null}
-      {activeView === 'activity' ? (
-        <ActivityFeed ledgerId={data.ledgerId} planId={planId} />
-      ) : null}
-      {activeView === 'balances' ? (
-        <>
-          <PageIntro
-            pageKey="balances"
-            title="Plan hesabı yalnız bu Planın kayıtlarını kapsar."
-            steps={[
-              'Ödeme önerileri Plan harcamaları ve ödeme kayıtlarından hesaplanır; Defterin diğer hareketleri bu sonuca karışmaz.',
-            ]}
-          />
-          <BalanceExperience
+              {expenses.data?.length ? (
+                <div className="expense-list">
+                  {expenses.data.slice(0, 6).map((expense) => (
+                    <Link href={`/expenses/${expense.id}`} key={expense.id}>
+                      <span>
+                        <ReceiptText />
+                      </span>
+                      <div>
+                        <strong>{expense.title}</strong>
+                        <small>
+                          {expense.payer.displayName} ödedi ·{' '}
+                          {expense.splits.length} kişi paylaştı
+                        </small>
+                        <ExpenseIndicators expense={expense} />
+                      </div>
+                      <div>
+                        <strong>
+                          {formatMoneyFromMinor(
+                            expense.amountMinor,
+                            expense.currency,
+                          )}
+                        </strong>
+                        <small>
+                          {new Date(expense.expenseDate).toLocaleDateString(
+                            'tr-TR',
+                          )}
+                        </small>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <div className="smart-empty smart-empty--expense">
+                  <span>
+                    <ReceiptText />
+                  </span>
+                  <div>
+                    <h3>Henüz harcama yok.</h3>
+                    <p>
+                      {data.status === 'ACTIVE'
+                        ? 'İlk harcamayı eklediğinde Planın payları ve bakiyeleri burada oluşacak.'
+                        : 'Bu Plan tamamlandığı için yeni harcama eklenemez; mevcut kayıtlar okunmaya devam eder.'}
+                    </p>
+                  </div>
+                  {data.status === 'ACTIVE' ? (
+                    <Link
+                      className="button button--primary"
+                      href={`/expenses/new?${data.ledgerId ? `ledgerId=${data.ledgerId}&` : ''}planId=${planId}`}
+                    >
+                      <Plus /> İlk harcamayı ekle
+                    </Link>
+                  ) : null}
+                </div>
+              )}
+            </section>
+          </>
+        ) : null}
+        {activeView === 'activity' ? (
+          <ActivityFeed ledgerId={data.ledgerId} planId={planId} />
+        ) : null}
+        {activeView === 'balances' ? (
+          <>
+            <PageIntro
+              pageKey="balances"
+              title="Plan hesabı yalnız bu Planın kayıtlarını kapsar."
+              steps={[
+                'Ödeme önerileri Plan harcamaları ve ödeme kayıtlarından hesaplanır; Defterin diğer hareketleri bu sonuca karışmaz.',
+              ]}
+            />
+            <BalanceExperience
+              scope="plan"
+              ledgerId={data.ledgerId}
+              planId={planId}
+              balance={balance.data}
+              isLoading={balance.isLoading}
+              isError={balance.isError}
+              onRetry={() => void balance.refetch()}
+              currentUserId={user?.id ?? ''}
+              role={
+                data.scope === 'STANDALONE' && data.createdById === user?.id
+                  ? 'OWNER'
+                  : (ledger.data?.role ?? 'MEMBER')
+              }
+              mutationsDisabled={Boolean(
+                ledger.data?.archivedAt || data.status === 'ARCHIVED',
+              )}
+              planStatus={data.status}
+            />
+          </>
+        ) : null}
+        {activeView === 'analytics' ? (
+          <AnalyticsExperience
             scope="plan"
-            ledgerId={data.ledgerId}
-            planId={planId}
-            balance={balance.data}
-            isLoading={balance.isLoading}
-            isError={balance.isError}
-            onRetry={() => void balance.refetch()}
-            currentUserId={user?.id ?? ''}
-            role={
-              data.scope === 'STANDALONE' && data.createdById === user?.id
-                ? 'OWNER'
-                : (ledger.data?.role ?? 'MEMBER')
-            }
-            mutationsDisabled={Boolean(
-              ledger.data?.archivedAt || data.status === 'ARCHIVED',
-            )}
+            resourceId={planId}
             planStatus={data.status}
+            participantCount={data.participantCount}
           />
-        </>
-      ) : null}
-      {activeView === 'analytics' ? (
-        <AnalyticsExperience
-          scope="plan"
-          resourceId={planId}
-          planStatus={data.status}
-          participantCount={data.participantCount}
-        />
-      ) : null}
-      {activeView === 'participants' ? (
-        <PlanParticipantsPanel
-          plan={data}
-          participants={participants.data ?? []}
-          members={members.data ?? []}
-          canManage={Boolean(canEdit)}
-        />
-      ) : null}
-      {activeView === 'settings' ? (
-        <PlanSettingsPanel
-          plan={data}
-          ledgers={ledgers.data ?? []}
-          canEdit={Boolean(canEdit)}
-          canAdmin={Boolean(canAdmin)}
-        />
-      ) : null}
+        ) : null}
+        {activeView === 'participants' ? (
+          <PlanParticipantsPanel
+            plan={data}
+            participants={participants.data ?? []}
+            members={members.data ?? []}
+            canManage={Boolean(canEdit)}
+          />
+        ) : null}
+        {activeView === 'settings' ? (
+          <PlanSettingsPanel
+            plan={data}
+            ledgers={ledgers.data ?? []}
+            canEdit={Boolean(canEdit)}
+            canAdmin={Boolean(canAdmin)}
+          />
+        ) : null}
+      </DetailViewTransition>
     </>
   );
 }

@@ -45,6 +45,7 @@ import { AnalyticsExperience } from '@/features/analytics/analytics-experience';
 import { CategoryManager } from '@/features/settings/category-manager';
 import { PageIntro } from '@/features/page-intro/page-intro';
 import { DetailViewHeader } from '@/components/detail-view-header';
+import { DetailViewTransition } from '@/components/detail-view-transition';
 
 const primaryViews = [
   { id: 'general', label: 'Genel', icon: BookOpenText },
@@ -56,6 +57,15 @@ const primaryViews = [
 const managementViews = [
   { id: 'members', label: 'Üyeler', icon: UsersRound },
   { id: 'settings', label: 'Ayarlar', icon: Settings },
+] as const;
+const ledgerViewOrder = [
+  'general',
+  'balances',
+  'activity',
+  'plans',
+  'analytics',
+  'members',
+  'settings',
 ] as const;
 type LedgerView =
   | 'general'
@@ -245,279 +255,283 @@ export default function LedgerDetailPage() {
         secondaryLabel="Yönetim"
       />
 
-      {activeView === 'general' ? (
-        <>
-          <section className="paper-section expense-section">
-            <div className="section-heading">
-              <div>
-                <span className="eyebrow">Defter hareketleri</span>
-                <h2>Son harcamalar</h2>
-              </div>
-            </div>
-            {expenses.data?.length ? (
-              <div className="expense-list">
-                {expenses.data.slice(0, 6).map((expense) => (
-                  <Link href={`/expenses/${expense.id}`} key={expense.id}>
-                    <span>
-                      <ReceiptText />
-                    </span>
-                    <div>
-                      <strong>{expense.title}</strong>
-                      <small>
-                        {!collaborative
-                          ? (expense.category?.name ?? 'Kategorisiz')
-                          : `${expense.payer.displayName} ödedi · ${expense.splits.length} kişi paylaştı`}
-                      </small>
-                      <ExpenseIndicators expense={expense} />
-                    </div>
-                    <div>
-                      <strong>
-                        {formatMoneyFromMinor(
-                          expense.amountMinor,
-                          expense.currency,
-                        )}
-                      </strong>
-                      <small>
-                        {new Date(expense.expenseDate).toLocaleDateString(
-                          'tr-TR',
-                        )}
-                      </small>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            ) : (
-              <div className="smart-empty smart-empty--expense">
-                <span>
-                  <ReceiptText />
-                </span>
-                <div>
-                  <h3>Henüz harcama yok.</h3>
-                  <p>
-                    {!data.archivedAt
-                      ? !collaborative
-                        ? 'İlk harcamanı ekleyebilirsin.'
-                        : 'İlk harcamayı eklediğinde paylar ve bakiyeler hesaplanır.'
-                      : 'Bu Defter arşivde olduğu için yeni harcama eklenemez; mevcut kayıtlar okunmaya devam eder.'}
-                  </p>
-                </div>
-                {!data.archivedAt ? (
-                  <Link
-                    className="button button--primary"
-                    href={`/expenses/new?ledgerId=${ledgerId}`}
-                  >
-                    <Plus /> İlk harcamayı ekle
-                  </Link>
-                ) : null}
-              </div>
-            )}
-          </section>
-          <div className="detail-grid">
-            <section className="paper-section">
+      <DetailViewTransition view={activeView} order={ledgerViewOrder}>
+        {activeView === 'general' ? (
+          <>
+            <section className="paper-section expense-section">
               <div className="section-heading">
                 <div>
-                  <span className="eyebrow">Planlar</span>
-                  <h2>Planlar</h2>
+                  <span className="eyebrow">Defter hareketleri</span>
+                  <h2>Son harcamalar</h2>
                 </div>
               </div>
-              <div className="simple-list">
-                {linkedPlans.slice(0, 5).map((plan) => (
-                  <Link href={`/plans/${plan.id}`} key={plan.id}>
-                    <strong>{plan.name}</strong>
-                    <small>
-                      {planStatusLabel(plan.status)} · {plan.participantCount}{' '}
-                      katılımcı
-                    </small>
-                  </Link>
-                ))}
-                {!linkedPlans.length ? (
-                  <p className="muted-copy">Bu Deftere bağlı Plan yok.</p>
-                ) : null}
-              </div>
-            </section>
-            <section className="paper-section">
-              <div className="section-heading">
-                <div>
-                  <span className="eyebrow">Gelen para</span>
-                  <h2>Son gelirler</h2>
+              {expenses.data?.length ? (
+                <div className="expense-list">
+                  {expenses.data.slice(0, 6).map((expense) => (
+                    <Link href={`/expenses/${expense.id}`} key={expense.id}>
+                      <span>
+                        <ReceiptText />
+                      </span>
+                      <div>
+                        <strong>{expense.title}</strong>
+                        <small>
+                          {!collaborative
+                            ? (expense.category?.name ?? 'Kategorisiz')
+                            : `${expense.payer.displayName} ödedi · ${expense.splits.length} kişi paylaştı`}
+                        </small>
+                        <ExpenseIndicators expense={expense} />
+                      </div>
+                      <div>
+                        <strong>
+                          {formatMoneyFromMinor(
+                            expense.amountMinor,
+                            expense.currency,
+                          )}
+                        </strong>
+                        <small>
+                          {new Date(expense.expenseDate).toLocaleDateString(
+                            'tr-TR',
+                          )}
+                        </small>
+                      </div>
+                    </Link>
+                  ))}
                 </div>
-              </div>
-              <div className="simple-list">
-                {(incomes.data ?? []).slice(0, 5).map((income) => (
-                  <div key={income.id}>
-                    <strong>{income.title}</strong>
-                    <small>
-                      {formatMoneyFromMinor(
-                        income.amountMinor,
-                        income.currency,
-                      )}{' '}
-                      ·{' '}
-                      {new Date(income.incomeDate).toLocaleDateString('tr-TR')}
-                    </small>
+              ) : (
+                <div className="smart-empty smart-empty--expense">
+                  <span>
+                    <ReceiptText />
+                  </span>
+                  <div>
+                    <h3>Henüz harcama yok.</h3>
+                    <p>
+                      {!data.archivedAt
+                        ? !collaborative
+                          ? 'İlk harcamanı ekleyebilirsin.'
+                          : 'İlk harcamayı eklediğinde paylar ve bakiyeler hesaplanır.'
+                        : 'Bu Defter arşivde olduğu için yeni harcama eklenemez; mevcut kayıtlar okunmaya devam eder.'}
+                    </p>
                   </div>
-                ))}
-                {!incomes.data?.length ? (
-                  <p className="muted-copy">Henüz gelir kaydı yok.</p>
-                ) : null}
-              </div>
+                  {!data.archivedAt ? (
+                    <Link
+                      className="button button--primary"
+                      href={`/expenses/new?ledgerId=${ledgerId}`}
+                    >
+                      <Plus /> İlk harcamayı ekle
+                    </Link>
+                  ) : null}
+                </div>
+              )}
             </section>
-          </div>
-        </>
-      ) : null}
-      {activeView === 'activity' ? (
-        <div className="ledger-subpage">
-          <DetailViewHeader
-            eyebrow="Kayıt geçmişi"
-            title="Hareketler"
-            description="Bu Defterde gerçekleşen işlemleri en yeniden eskiye doğru incele."
-            icon={Clock3}
-          />
-          <ActivityFeed ledgerId={ledgerId} showHeading={false} />
-        </div>
-      ) : null}
-      {activeView === 'plans' ? (
-        <div className="ledger-subpage">
-          <DetailViewHeader
-            eyebrow="Deftere bağlı"
-            title="Planlar"
-            description={`${data.name} kapsamında yürüttüğün Planları tek yerde takip et.`}
-            icon={NotebookTabs}
-            meta={
-              <span className="ledger-plans-workspace__count">
-                {linkedPlans.length} Plan
-              </span>
-            }
-          />
-          <section
-            className="ledger-plans-workspace"
-            aria-label={`${data.name} Planları`}
-          >
-            {plans.isLoading ? (
-              <LoadingState label="Defter Planları hazırlanıyor…" />
-            ) : null}
-            {plans.isError ? (
-              <ErrorState
-                message="Bu Deftere bağlı Planlar yüklenemedi."
-                onRetry={() => void plans.refetch()}
-              />
-            ) : null}
-            {!plans.isLoading && !plans.isError && linkedPlans.length ? (
-              <div className="ledger-plans-grid">
-                {linkedPlans.map((plan) => (
-                  <Link
-                    className="ledger-plan-row"
-                    href={`/plans/${plan.id}`}
-                    key={plan.id}
-                  >
-                    <span>
+            <div className="detail-grid">
+              <section className="paper-section">
+                <div className="section-heading">
+                  <div>
+                    <span className="eyebrow">Planlar</span>
+                    <h2>Planlar</h2>
+                  </div>
+                </div>
+                <div className="simple-list">
+                  {linkedPlans.slice(0, 5).map((plan) => (
+                    <Link href={`/plans/${plan.id}`} key={plan.id}>
                       <strong>{plan.name}</strong>
                       <small>
                         {planStatusLabel(plan.status)} · {plan.participantCount}{' '}
                         katılımcı
                       </small>
-                    </span>
-                    <span className="ledger-plan-row__context">
-                      <CalendarRange />
-                      {plan.startsAt
-                        ? new Date(plan.startsAt).toLocaleDateString('tr-TR')
-                        : 'Başlangıç serbest'}
-                    </span>
-                  </Link>
-                ))}
-              </div>
-            ) : null}
-            {!plans.isLoading && !plans.isError && !linkedPlans.length ? (
-              <div className="smart-empty">
-                <span>
-                  <NotebookTabs />
-                </span>
-                <div>
-                  <h3>Bu Deftere bağlı Plan yok.</h3>
-                  <p>
-                    Sağ alttaki oluştur menüsünden bu Defter için yeni bir Plan
-                    ekleyebilirsin.
-                  </p>
+                    </Link>
+                  ))}
+                  {!linkedPlans.length ? (
+                    <p className="muted-copy">Bu Deftere bağlı Plan yok.</p>
+                  ) : null}
                 </div>
-              </div>
-            ) : null}
-          </section>
-        </div>
-      ) : null}
-      {activeView === 'balances' && collaborative ? (
-        <div className="ledger-subpage">
-          <DetailViewHeader
-            eyebrow="Ortak hesap"
-            title="Hesap"
-            description="Borç ve alacak durumunu, ödeme önerilerini ve onay bekleyen kayıtları incele."
-            icon={WalletCards}
-          />
-          <PageIntro
-            pageKey="balances"
-            title="Bakiye, ortak hesabın bugünkü sonucudur."
-            steps={[
-              'Artı tutar alacağını, eksi tutar yapman gereken ödemeyi gösterir; önerilen ödeme kayıtları hesabı sadeleştirir.',
-            ]}
-          />
-          <BalanceExperience
-            scope="ledger"
-            ledgerId={ledgerId}
-            balance={balance.data}
-            isLoading={balance.isLoading}
-            isError={balance.isError}
-            onRetry={() => void balance.refetch()}
-            currentUserId={user?.id ?? ''}
-            role={data.role}
-            mutationsDisabled={Boolean(data.archivedAt)}
-          />
-        </div>
-      ) : null}
-      {activeView === 'balances' && !collaborative ? (
-        <div className="ledger-subpage">
-          <DetailViewHeader
-            eyebrow="Kişisel Defter"
-            title="Hesap"
-            description="Kişisel Defterlerde katılımcılar arası borç veya alacak hesabı oluşmaz."
-            icon={WalletCards}
-          />
-          <section className="paper-section personal-account-note">
-            <span aria-hidden="true">
-              <BookOpenText />
-            </span>
-            <div>
-              <span className="eyebrow">Bilmen gereken</span>
-              <h2>Ortak hesap oluşmaz</h2>
-              <p>
-                Bu alan yalnızca sana ait olduğu için kimseye borç veya alacak
-                hesaplanmaz. Harcamalarını Genel bölümünden takip edebilirsin.
-              </p>
+              </section>
+              <section className="paper-section">
+                <div className="section-heading">
+                  <div>
+                    <span className="eyebrow">Gelen para</span>
+                    <h2>Son gelirler</h2>
+                  </div>
+                </div>
+                <div className="simple-list">
+                  {(incomes.data ?? []).slice(0, 5).map((income) => (
+                    <div key={income.id}>
+                      <strong>{income.title}</strong>
+                      <small>
+                        {formatMoneyFromMinor(
+                          income.amountMinor,
+                          income.currency,
+                        )}{' '}
+                        ·{' '}
+                        {new Date(income.incomeDate).toLocaleDateString(
+                          'tr-TR',
+                        )}
+                      </small>
+                    </div>
+                  ))}
+                  {!incomes.data?.length ? (
+                    <p className="muted-copy">Henüz gelir kaydı yok.</p>
+                  ) : null}
+                </div>
+              </section>
             </div>
-          </section>
-        </div>
-      ) : null}
-      {activeView === 'analytics' ? (
-        <div className="ledger-subpage">
-          <DetailViewHeader
-            eyebrow="Dönem görünümü"
-            title="İstatistikler"
-            description="Harcama, gelir ve kategori dağılımlarını seçtiğin döneme göre karşılaştır."
-            icon={BarChart3}
-          />
-          <AnalyticsExperience
-            scope="ledger"
-            resourceId={ledgerId}
-            personal={!collaborative}
-          />
-        </div>
-      ) : null}
-      {activeView === 'members' ? (
-        <LedgerMembersPanel ledger={data} members={members.data ?? []} />
-      ) : null}
-      {activeView === 'settings' ? (
-        <>
-          <LedgerSettingsPanel ledger={data} members={members.data ?? []} />
-          <CategoryManager ledgerContext={data} />
-        </>
-      ) : null}
+          </>
+        ) : null}
+        {activeView === 'activity' ? (
+          <div className="ledger-subpage">
+            <DetailViewHeader
+              eyebrow="Kayıt geçmişi"
+              title="Hareketler"
+              description="Bu Defterde gerçekleşen işlemleri en yeniden eskiye doğru incele."
+              icon={Clock3}
+            />
+            <ActivityFeed ledgerId={ledgerId} showHeading={false} />
+          </div>
+        ) : null}
+        {activeView === 'plans' ? (
+          <div className="ledger-subpage">
+            <DetailViewHeader
+              eyebrow="Deftere bağlı"
+              title="Planlar"
+              description={`${data.name} kapsamında yürüttüğün Planları tek yerde takip et.`}
+              icon={NotebookTabs}
+              meta={
+                <span className="ledger-plans-workspace__count">
+                  {linkedPlans.length} Plan
+                </span>
+              }
+            />
+            <section
+              className="ledger-plans-workspace"
+              aria-label={`${data.name} Planları`}
+            >
+              {plans.isLoading ? (
+                <LoadingState label="Defter Planları hazırlanıyor…" />
+              ) : null}
+              {plans.isError ? (
+                <ErrorState
+                  message="Bu Deftere bağlı Planlar yüklenemedi."
+                  onRetry={() => void plans.refetch()}
+                />
+              ) : null}
+              {!plans.isLoading && !plans.isError && linkedPlans.length ? (
+                <div className="ledger-plans-grid">
+                  {linkedPlans.map((plan) => (
+                    <Link
+                      className="ledger-plan-row"
+                      href={`/plans/${plan.id}`}
+                      key={plan.id}
+                    >
+                      <span>
+                        <strong>{plan.name}</strong>
+                        <small>
+                          {planStatusLabel(plan.status)} ·{' '}
+                          {plan.participantCount} katılımcı
+                        </small>
+                      </span>
+                      <span className="ledger-plan-row__context">
+                        <CalendarRange />
+                        {plan.startsAt
+                          ? new Date(plan.startsAt).toLocaleDateString('tr-TR')
+                          : 'Başlangıç serbest'}
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+              ) : null}
+              {!plans.isLoading && !plans.isError && !linkedPlans.length ? (
+                <div className="smart-empty">
+                  <span>
+                    <NotebookTabs />
+                  </span>
+                  <div>
+                    <h3>Bu Deftere bağlı Plan yok.</h3>
+                    <p>
+                      Sağ alttaki oluştur menüsünden bu Defter için yeni bir
+                      Plan ekleyebilirsin.
+                    </p>
+                  </div>
+                </div>
+              ) : null}
+            </section>
+          </div>
+        ) : null}
+        {activeView === 'balances' && collaborative ? (
+          <div className="ledger-subpage">
+            <DetailViewHeader
+              eyebrow="Ortak hesap"
+              title="Hesap"
+              description="Borç ve alacak durumunu, ödeme önerilerini ve onay bekleyen kayıtları incele."
+              icon={WalletCards}
+            />
+            <PageIntro
+              pageKey="balances"
+              title="Bakiye, ortak hesabın bugünkü sonucudur."
+              steps={[
+                'Artı tutar alacağını, eksi tutar yapman gereken ödemeyi gösterir; önerilen ödeme kayıtları hesabı sadeleştirir.',
+              ]}
+            />
+            <BalanceExperience
+              scope="ledger"
+              ledgerId={ledgerId}
+              balance={balance.data}
+              isLoading={balance.isLoading}
+              isError={balance.isError}
+              onRetry={() => void balance.refetch()}
+              currentUserId={user?.id ?? ''}
+              role={data.role}
+              mutationsDisabled={Boolean(data.archivedAt)}
+            />
+          </div>
+        ) : null}
+        {activeView === 'balances' && !collaborative ? (
+          <div className="ledger-subpage">
+            <DetailViewHeader
+              eyebrow="Kişisel Defter"
+              title="Hesap"
+              description="Kişisel Defterlerde katılımcılar arası borç veya alacak hesabı oluşmaz."
+              icon={WalletCards}
+            />
+            <section className="paper-section personal-account-note">
+              <span aria-hidden="true">
+                <BookOpenText />
+              </span>
+              <div>
+                <span className="eyebrow">Bilmen gereken</span>
+                <h2>Ortak hesap oluşmaz</h2>
+                <p>
+                  Bu alan yalnızca sana ait olduğu için kimseye borç veya alacak
+                  hesaplanmaz. Harcamalarını Genel bölümünden takip edebilirsin.
+                </p>
+              </div>
+            </section>
+          </div>
+        ) : null}
+        {activeView === 'analytics' ? (
+          <div className="ledger-subpage">
+            <DetailViewHeader
+              eyebrow="Dönem görünümü"
+              title="İstatistikler"
+              description="Harcama, gelir ve kategori dağılımlarını seçtiğin döneme göre karşılaştır."
+              icon={BarChart3}
+            />
+            <AnalyticsExperience
+              scope="ledger"
+              resourceId={ledgerId}
+              personal={!collaborative}
+            />
+          </div>
+        ) : null}
+        {activeView === 'members' ? (
+          <LedgerMembersPanel ledger={data} members={members.data ?? []} />
+        ) : null}
+        {activeView === 'settings' ? (
+          <>
+            <LedgerSettingsPanel ledger={data} members={members.data ?? []} />
+            <CategoryManager ledgerContext={data} />
+          </>
+        ) : null}
+      </DetailViewTransition>
     </>
   );
 }

@@ -169,6 +169,17 @@
 .balance-hero {
   animation: balance-value-settle var(--motion-normal) var(--ease-enter) both;
 }
+.detail-view-transition {
+  min-width: 0;
+}
+.detail-view-transition[data-direction='forward'] {
+  animation: detail-view-enter-forward 180ms var(--ease-enter) both;
+  will-change: transform, opacity;
+}
+.detail-view-transition[data-direction='backward'] {
+  animation: detail-view-enter-backward 180ms var(--ease-enter) both;
+  will-change: transform, opacity;
+}
 
 @keyframes backdrop-enter {
   from {
@@ -256,5 +267,24 @@
   from {
     opacity: 0.65;
     transform: translateY(3px);
+  }
+}
+@keyframes detail-view-enter-forward {
+  from {
+    opacity: 0.94;
+    transform: translateX(12px);
+  }
+}
+@keyframes detail-view-enter-backward {
+  from {
+    opacity: 0.94;
+    transform: translateX(-12px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .detail-view-transition {
+    animation: none !important;
+    transform: none !important;
   }
 }

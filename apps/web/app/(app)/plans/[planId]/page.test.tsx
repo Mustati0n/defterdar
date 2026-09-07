@@ -1,5 +1,9 @@
 import { render, screen } from '@testing-library/react';
-import { useLedger, useLedgers, usePlanDetailData } from '@/features/data/hooks';
+import {
+  useLedger,
+  useLedgers,
+  usePlanDetailData,
+} from '@/features/data/hooks';
 import PlanDetailPage, { planNextStep } from './page';
 
 let view: string | null = null;
@@ -63,14 +67,18 @@ describe('Plan detail information architecture', () => {
     jest.mocked(useLedger).mockReturnValue({
       data: { role: 'OWNER', archivedAt: null },
     } as ReturnType<typeof useLedger>);
-    jest.mocked(useLedgers).mockReturnValue({ data: [] } as unknown as ReturnType<
-      typeof useLedgers
-    >);
+    jest
+      .mocked(useLedgers)
+      .mockReturnValue({ data: [] } as unknown as ReturnType<
+        typeof useLedgers
+      >);
   });
 
   it('keeps lifecycle completion accessible from the core General context', () => {
     render(<PlanDetailPage />);
-    expect(screen.getByRole('button', { name: 'Planı tamamla' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Planı tamamla' }),
+    ).toBeInTheDocument();
     expect(screen.getByText('İlk harcamayı ekle.')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Hesap/ })).toHaveAttribute(
       'href',
@@ -83,9 +91,19 @@ describe('Plan detail information architecture', () => {
     view = 'activity';
     rendered.rerender(<PlanDetailPage />);
     expect(screen.getByText('Plan hareketleri alanı')).toBeInTheDocument();
+    expect(
+      screen.getByText('Plan hareketleri alanı').parentElement,
+    ).toHaveAttribute('data-direction', 'forward');
     view = 'invalid';
     rendered.rerender(<PlanDetailPage />);
-    expect(screen.getByRole('button', { name: 'Planı tamamla' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Planı tamamla' }),
+    ).toBeInTheDocument();
+    expect(
+      screen
+        .getByRole('button', { name: 'Planı tamamla' })
+        .closest('.detail-view-transition'),
+    ).toHaveAttribute('data-direction', 'backward');
   });
 
   it('derives the next step from actual Plan state', () => {

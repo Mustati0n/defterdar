@@ -26,80 +26,6 @@
   max-width: 720px;
   margin: 0;
 }
-.detail-cover--ledger {
-  overflow: hidden;
-  color: #d9dfdc;
-  border-radius: 6px 30px 8px 18px;
-  background: var(--color-navy);
-}
-.detail-cover--ledger {
-  min-height: 168px;
-  padding: clamp(1.3rem, 2.6vw, 2rem) clamp(1.5rem, 3.6vw, 2.8rem);
-  border: var(--border-width) solid #0f2635;
-  border-left: 10px solid #102b3d;
-  box-shadow:
-    5px 6px 0 #d8cdb6,
-    var(--elevation-2);
-}
-.detail-cover--ledger::before {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 34px;
-  width: 4px;
-  content: '';
-  border-right: 1px solid rgba(221, 198, 155, 0.5);
-  border-left: 1px solid rgba(221, 198, 155, 0.5);
-}
-.detail-cover--ledger h1 {
-  color: white;
-  font-size: clamp(2.1rem, 3.7vw, 3.5rem);
-}
-.detail-cover--collaborative {
-  border-left-color: var(--color-wine);
-}
-.detail-cover--collaborative::after {
-  position: absolute;
-  top: 0;
-  right: 24px;
-  bottom: 0;
-  width: 3px;
-  content: '';
-  background: rgba(221, 198, 155, 0.55);
-}
-.detail-cover--collaborative .detail-cover__bookmark {
-  background: var(--color-wine);
-}
-.detail-cover--ledger > div {
-  position: relative;
-  z-index: 1;
-  width: min(100%, 880px);
-}
-.detail-cover__meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.55rem;
-  margin-top: 0.85rem;
-}
-.detail-cover__meta > span,
-.detail-cover__meta > a {
-  display: inline-flex;
-  min-height: 34px;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.4rem 0.65rem;
-  color: #edf0e9;
-  border: 1px solid rgba(238, 226, 199, 0.24);
-  border-radius: var(--radius-pill);
-  background: rgba(255, 255, 255, 0.06);
-  font-size: 0.75rem;
-  font-weight: 750;
-}
-.detail-cover__meta svg {
-  width: 16px;
-  height: 16px;
-  color: var(--color-gold-soft);
-}
 .expense-section .button--primary,
 .expense-section .button--primary:visited {
   color: #fffdf7;
@@ -109,18 +35,6 @@
 .expense-section .button--primary:focus-visible {
   color: white;
   background: #5e2330;
-}
-.detail-cover__bookmark {
-  position: absolute;
-  top: 0;
-  right: 7%;
-  padding: 0.65rem 0.65rem 1.25rem;
-  color: white;
-  background: var(--color-wine);
-  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 82%, 0 100%);
-  font-size: 0.6rem;
-  font-weight: 850;
-  letter-spacing: 0.1em;
 }
 .detail-cover--plan {
   margin-top: 0.5rem;
@@ -555,18 +469,6 @@
   }
   .ledger-financial-priority {
     grid-template-columns: minmax(0, 1fr);
-  }
-  .detail-cover--ledger {
-    min-height: 0;
-    padding: 1.25rem 1.1rem 1.4rem;
-  }
-  .detail-cover--ledger::before,
-  .detail-cover--collaborative::after {
-    display: none;
-  }
-  .detail-cover--ledger h1 {
-    padding-right: 3rem;
-    font-size: clamp(2rem, 10vw, 2.8rem);
   }
   .ledger-plans-grid {
     grid-template-columns: minmax(0, 1fr);
