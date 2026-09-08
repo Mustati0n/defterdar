@@ -62,7 +62,7 @@ describe('Design System V1 CSS contract', () => {
       /\.status-chip--active\s*\{[^}]*var\(--state-success-bg\)/s,
     );
     expect(collections).toMatch(
-      /\.collection-toolbar\s*\{[^}]*var\(--surface-base\)[^}]*var\(--elevation-1\)/s,
+      /\.collection-toolbar\s*\{[^}]*var\(--surface-normal\)[^}]*var\(--elevation-normal\)/s,
     );
     expect(dialogs).toMatch(
       /\.dialog-card\s*\{[^}]*var\(--surface-raised\)[^}]*var\(--elevation-raised\)/s,

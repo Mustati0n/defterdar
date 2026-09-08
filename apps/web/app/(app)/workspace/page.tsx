@@ -9,6 +9,7 @@ import {
   Layers3,
   Plus,
   Search,
+  SlidersHorizontal,
   Sparkles,
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
@@ -242,6 +243,8 @@ function WorkspaceContent() {
   const requestedType = searchParams.get('type');
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<WorkspaceFilter>('recent');
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const [searchDockStuck, setSearchDockStuck] = useState(false);
   const [itemType, setItemType] = useState<ItemType>(
     requestedType === 'ledger' || requestedType === 'plan'
       ? requestedType
@@ -259,10 +262,23 @@ function WorkspaceContent() {
   });
   const createMenuRef = useRef<HTMLDivElement>(null);
   const createTriggerRef = useRef<HTMLButtonElement>(null);
+  const searchDockSentinelRef = useRef<HTMLDivElement>(null);
   const createMenuFocusRef = useRef<'first' | 'last'>('first');
   const exitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const ledgers = useLedgers(true);
   const plans = useAllPlans(true);
+
+  useEffect(() => {
+    const sentinel = searchDockSentinelRef.current;
+    if (!sentinel || !('IntersectionObserver' in window)) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => setSearchDockStuck(!entry?.isIntersecting),
+      { rootMargin: '-12px 0px 0px', threshold: 0 },
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     if (!createMenuOpen) return;
@@ -358,131 +374,154 @@ function WorkspaceContent() {
 
   return (
     <>
-      <PageHeading
-        eyebrow="Çalışma alanı"
-        title="Defterler & Planlar"
-        description="Defterlerini ve bağımsız planlarını tek yerden yönet."
-        variant="compact"
-        action={
-          <div className="workspace-heading-actions">
-            <output
-              className="workspace-heading-count"
-              aria-live="polite"
-              aria-atomic="true"
-            >
-              {filtered.length} kayıt
-            </output>
-            <button
-              className="workspace-scope-filter workspace-scope-filter--header"
-              type="button"
-              role="switch"
-              aria-checked={includeLinkedPlans}
-              aria-describedby="workspace-scope-help"
-              disabled={itemType === 'ledger'}
-              onClick={() => setLinkedPlansVisibility(!includeLinkedPlans)}
-            >
-              <span
-                className="workspace-scope-filter__track"
-                aria-hidden="true"
+      <div className="workspace-page-heading">
+        <PageHeading
+          eyebrow="Çalışma alanı"
+          title="Defterler & Planlar"
+          description="Defterlerini ve bağımsız planlarını tek yerden yönet."
+          variant="compact"
+          action={
+            <div className="workspace-heading-actions">
+              <output
+                className="workspace-heading-count"
+                aria-live="polite"
+                aria-atomic="true"
               >
-                <span />
-              </span>
-              <span className="workspace-scope-filter__copy">
-                <strong>Defterlere bağlı planları göster</strong>
-              </span>
-              <span
-                id="workspace-scope-help"
-                className="workspace-visually-hidden"
-              >
-                {itemType === 'ledger'
-                  ? 'Defter filtresinde uygulanmaz.'
-                  : 'Kapalıyken yalnızca bağımsız planlar gösterilir.'}
-              </span>
-            </button>
-            <div className="workspace-create" ref={createMenuRef}>
+                {filtered.length} kayıt
+              </output>
               <button
-                ref={createTriggerRef}
-                className="button button--primary"
+                className="workspace-scope-filter workspace-scope-filter--header"
                 type="button"
-                aria-expanded={createMenuOpen}
-                aria-haspopup="menu"
-                aria-controls="workspace-create-menu"
-                onClick={() => {
-                  createMenuFocusRef.current = 'first';
-                  setCreateMenuOpen((current) => !current);
-                }}
-                onKeyDown={(event) => {
-                  if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp')
-                    return;
-                  event.preventDefault();
-                  createMenuFocusRef.current =
-                    event.key === 'ArrowDown' ? 'first' : 'last';
-                  setCreateMenuOpen(true);
-                }}
+                role="switch"
+                aria-checked={includeLinkedPlans}
+                aria-describedby="workspace-scope-help"
+                disabled={itemType === 'ledger'}
+                onClick={() => setLinkedPlansVisibility(!includeLinkedPlans)}
               >
-                <Plus /> Yeni <ChevronDown />
-              </button>
-              <AnchoredMenu
-                anchorRef={createTriggerRef}
-                open={createMenuOpen}
-                onDismiss={() => setCreateMenuOpen(false)}
-                className="workspace-create__menu"
-              >
-                <div
-                  id="workspace-create-menu"
-                  role="menu"
-                  aria-label="Yeni oluştur"
-                  onKeyDown={handleCreateMenuKeyDown}
+                <span
+                  className="workspace-scope-filter__track"
+                  aria-hidden="true"
                 >
-                  <button
-                    type="button"
-                    role="menuitem"
-                    onClick={() => {
-                      createTriggerRef.current?.focus();
-                      setCreator('ledger');
-                      setCreateMenuOpen(false);
-                    }}
+                  <span />
+                </span>
+                <span className="workspace-scope-filter__copy">
+                  <strong>Defterlere bağlı planları göster</strong>
+                </span>
+                <span
+                  id="workspace-scope-help"
+                  className="workspace-visually-hidden"
+                >
+                  {itemType === 'ledger'
+                    ? 'Defter filtresinde uygulanmaz.'
+                    : 'Kapalıyken yalnızca bağımsız planlar gösterilir.'}
+                </span>
+              </button>
+              <div className="workspace-create" ref={createMenuRef}>
+                <button
+                  ref={createTriggerRef}
+                  className="button button--primary"
+                  type="button"
+                  aria-expanded={createMenuOpen}
+                  aria-haspopup="menu"
+                  aria-controls="workspace-create-menu"
+                  onClick={() => {
+                    createMenuFocusRef.current = 'first';
+                    setCreateMenuOpen((current) => !current);
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp')
+                      return;
+                    event.preventDefault();
+                    createMenuFocusRef.current =
+                      event.key === 'ArrowDown' ? 'first' : 'last';
+                    setCreateMenuOpen(true);
+                  }}
+                >
+                  <Plus /> Yeni <ChevronDown />
+                </button>
+                <AnchoredMenu
+                  anchorRef={createTriggerRef}
+                  open={createMenuOpen}
+                  onDismiss={() => setCreateMenuOpen(false)}
+                  className="workspace-create__menu"
+                >
+                  <div
+                    id="workspace-create-menu"
+                    role="menu"
+                    aria-label="Yeni oluştur"
+                    onKeyDown={handleCreateMenuKeyDown}
                   >
-                    <BookOpenText />
-                    <span>
-                      <strong>Yeni Defter</strong>
-                      <small>Düzenli bir hesap aç</small>
-                    </span>
-                  </button>
-                  <button
-                    type="button"
-                    role="menuitem"
-                    onClick={() => {
-                      createTriggerRef.current?.focus();
-                      setCreator('plan');
-                      setCreateMenuOpen(false);
-                    }}
-                  >
-                    <CalendarPlus />
-                    <span>
-                      <strong>Yeni Plan</strong>
-                      <small>Bir etkinlik planla</small>
-                    </span>
-                  </button>
-                </div>
-              </AnchoredMenu>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={() => {
+                        createTriggerRef.current?.focus();
+                        setCreator('ledger');
+                        setCreateMenuOpen(false);
+                      }}
+                    >
+                      <BookOpenText />
+                      <span>
+                        <strong>Yeni Defter</strong>
+                        <small>Düzenli bir hesap aç</small>
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={() => {
+                        createTriggerRef.current?.focus();
+                        setCreator('plan');
+                        setCreateMenuOpen(false);
+                      }}
+                    >
+                      <CalendarPlus />
+                      <span>
+                        <strong>Yeni Plan</strong>
+                        <small>Bir etkinlik planla</small>
+                      </span>
+                    </button>
+                  </div>
+                </AnchoredMenu>
+              </div>
             </div>
-          </div>
-        }
-        tools={
-          <section
-            className="collection-toolbar"
-            aria-label="Çalışma alanı filtreleri"
+          }
+        />
+      </div>
+      <div
+        ref={searchDockSentinelRef}
+        className="workspace-search-dock-sentinel"
+      />
+      <div
+        className="workspace-search-dock"
+        data-stuck={searchDockStuck || undefined}
+      >
+        <section
+          className="collection-toolbar"
+          aria-label="Çalışma alanı filtreleri"
+        >
+          <label className="search-box">
+            <Search />
+            <input
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Defter ve planlarda ara…"
+              aria-label="Defter ve planlarda ara"
+            />
+          </label>
+          <button
+            className="workspace-mobile-filter-toggle"
+            type="button"
+            aria-expanded={mobileFiltersOpen}
+            aria-controls="workspace-filter-controls"
+            onClick={() => setMobileFiltersOpen((open) => !open)}
           >
-            <label className="search-box">
-              <Search />
-              <input
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="Defter ve planlarda ara…"
-                aria-label="Defter ve planlarda ara"
-              />
-            </label>
+            <SlidersHorizontal /> Filtreler
+          </button>
+          <div
+            id="workspace-filter-controls"
+            className={`workspace-filter-controls${mobileFiltersOpen ? ' is-open' : ''}`}
+          >
             <fieldset className="workspace-filter-group workspace-status-filter">
               <legend>Durum</legend>
               <div className="segmented-control">
@@ -541,9 +580,9 @@ function WorkspaceContent() {
                 </button>
               </div>
             </fieldset>
-          </section>
-        }
-      />
+          </div>
+        </section>
+      </div>
       {isLoading ? <LoadingState label="Çalışma alanı hazırlanıyor…" /> : null}
       {isError ? (
         <ErrorState

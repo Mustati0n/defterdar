@@ -162,6 +162,17 @@ describe('Defterler & Planlar workspace', () => {
         name: /Defterlere bağlı planları göster/,
       }),
     ).toHaveAttribute('aria-checked', 'false');
+    expect(document.querySelector('.workspace-search-dock')).toBeInTheDocument();
+    expect(
+      document.querySelector('.workspace-search-dock-sentinel'),
+    ).toBeInTheDocument();
+    const mobileFilters = screen.getByRole('button', { name: 'Filtreler' });
+    expect(mobileFilters).toHaveAttribute('aria-expanded', 'false');
+    fireEvent.click(mobileFilters);
+    expect(mobileFilters).toHaveAttribute('aria-expanded', 'true');
+    expect(
+      document.querySelector('#workspace-filter-controls'),
+    ).toHaveClass('is-open');
     fireEvent.click(screen.getByRole('button', { name: /Yeni/ }));
     expect(
       screen.getByRole('menuitem', { name: /Yeni Defter/ }),
