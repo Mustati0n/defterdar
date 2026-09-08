@@ -139,72 +139,6 @@
   background: var(--surface-raised);
   box-shadow: var(--elevation-highlight), var(--elevation-1);
 }
-.plan-detail-identity {
-  position: relative;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: var(--detail-content-gap);
-  overflow: hidden;
-  padding: var(--detail-surface-padding);
-  border: var(--border-width) solid var(--state-warning-border);
-  border-top: 5px solid var(--color-gold);
-  border-radius: var(--radius-md);
-  background-color: color-mix(
-    in srgb,
-    var(--state-warning-bg) 58%,
-    var(--surface-raised)
-  );
-  background-image: repeating-linear-gradient(
-    to bottom,
-    transparent 0 35px,
-    rgba(57, 93, 113, 0.055) 36px 37px
-  );
-  box-shadow: var(--elevation-highlight), var(--elevation-1);
-}
-.plan-detail-identity__copy {
-  min-width: 0;
-}
-.plan-detail-identity__copy .eyebrow {
-  margin-bottom: var(--space-2);
-}
-.plan-detail-identity__copy h1 {
-  margin: 0;
-  overflow-wrap: anywhere;
-}
-.plan-detail-identity__copy p {
-  max-width: var(--measure-detail-copy);
-  margin: var(--space-2) 0 0;
-  color: var(--text-secondary);
-  font-size: var(--type-detail-body);
-}
-.plan-detail-identity__meta {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: var(--space-2);
-}
-.plan-detail-identity__meta > span {
-  display: inline-flex;
-  min-height: 34px;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.38rem 0.68rem;
-  color: var(--text-secondary);
-  border: var(--border-width) solid var(--state-warning-border);
-  border-radius: var(--radius-pill);
-  background: var(--surface-raised);
-  font-size: var(--type-detail-meta);
-  font-weight: var(--font-weight-semibold);
-}
-.plan-detail-identity__meta svg {
-  width: 16px;
-  height: 16px;
-  color: var(--state-warning-fg);
-}
-.plan-financial-priority {
-  margin-top: var(--detail-section-gap);
-}
 .ledger-detail-identity--collaborative {
   border-left-color: var(--color-wine);
 }
@@ -482,13 +416,7 @@
   .ledger-detail-identity {
     grid-template-columns: minmax(0, 1fr);
   }
-  .plan-detail-identity {
-    grid-template-columns: minmax(0, 1fr);
-  }
   .ledger-detail-identity__meta {
-    justify-content: flex-start;
-  }
-  .plan-detail-identity__meta {
     justify-content: flex-start;
   }
   .ledger-financial-priority {

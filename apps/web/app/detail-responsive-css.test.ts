@@ -6,7 +6,10 @@ function stylesheet(name: string) {
 }
 
 describe('detail responsive CSS', () => {
-  const details = stylesheet('details.css');
+  const planDetail = readFileSync(
+    join(process.cwd(), 'app/(app)/plans/[planId]/page.module.css'),
+    'utf8',
+  );
   const financial = stylesheet('financial-surfaces.css');
   const adaptive = stylesheet('adaptive-ui.css');
   const motion = stylesheet('motion.css');
@@ -15,8 +18,8 @@ describe('detail responsive CSS', () => {
   const collections = stylesheet('collections.css');
 
   it('stacks identity, financial status and approval surfaces on tablets', () => {
-    expect(details).toMatch(
-      /@media \(max-width: 900px\)[\s\S]*?\.plan-detail-identity\s*\{[^}]*grid-template-columns: minmax\(0, 1fr\);/s,
+    expect(planDetail).toMatch(
+      /@media \(max-width: 900px\)[\s\S]*?\.identity\s*\{[^}]*grid-template-columns: minmax\(0, 1fr\);/s,
     );
     expect(financial).toMatch(
       /@media \(max-width: 900px\)[\s\S]*?\.financial-position\s*\{[^}]*grid-template-columns: auto minmax\(0, 1fr\);[\s\S]*?\.payment-attention__item,[\s\S]*?flex-direction: column;/s,

@@ -6,6 +6,7 @@ import {
   CalendarDays,
   CheckSquare2,
   Clock3,
+  MoreHorizontal,
   Settings,
   Plus,
   ReceiptText,
@@ -48,6 +49,7 @@ import {
   financialPositionState,
   prioritizeSuggestions,
 } from '@/features/financial/financial-ux';
+import styles from './page.module.css';
 
 const primaryViews = [
   { id: 'general', label: 'Genel', icon: CheckSquare2 },
@@ -172,87 +174,102 @@ export default function PlanDetailPage() {
       </Link>
       <CardDetailSurface transitionKey={`plan:${planId}`}>
         <section
-          className="plan-detail-identity"
+          className={`${styles.firstPage} plan-first-page`}
           aria-labelledby="plan-detail-title"
         >
-          <div className="plan-detail-identity__copy">
-            <span className="eyebrow">
-              {data.scope === 'STANDALONE'
-                ? 'Bağımsız Plan'
-                : 'Deftere bağlı Plan'}{' '}
-              · {planStatusLabel(data.status)}
-            </span>
-            <h1 className="type-detail-title" id="plan-detail-title">
-              {data.name}
-            </h1>
-            {data.description ? <p>{data.description}</p> : null}
-          </div>
-          <div className="plan-detail-identity__meta" aria-label="Plan özeti">
-            <span>
-              <CalendarDays /> {formatDate(data.startsAt, 'Başlangıç serbest')}
-            </span>
-            <span>
-              <UsersRound /> {data.participantCount} kişi
-            </span>
+          <header className={styles.identity}>
+            <div className={styles.copy}>
+              <span className="eyebrow">
+                {data.scope === 'STANDALONE'
+                  ? 'Bağımsız Plan'
+                  : 'Deftere bağlı Plan'}{' '}
+                · {planStatusLabel(data.status)}
+              </span>
+              <h1 className="type-detail-title" id="plan-detail-title">
+                {data.name}
+              </h1>
+              {data.description ? <p>{data.description}</p> : null}
+            </div>
+            <div
+              className={styles.metadata}
+              aria-label="Plan özeti"
+            >
+              <span>
+                <CalendarDays />{' '}
+                {formatDate(data.startsAt, 'Başlangıç serbest')}
+              </span>
+              <span>
+                <UsersRound /> {data.participantCount} kişi
+              </span>
+            </div>
+          </header>
+          {activeView === 'general' ? (
+            <div className={styles.financial}>
+              {balance.isLoading || expenses.isLoading ? (
+                <LoadingState label="Plan durumun hazırlanıyor…" />
+              ) : balance.isError || expenses.isError ? (
+                <ErrorState
+                  message="Bu Plandaki finansal durumun şu anda gösterilemiyor."
+                  onRetry={() => {
+                    void balance.refetch();
+                    void expenses.refetch();
+                  }}
+                />
+              ) : (
+                <FinancialPosition
+                  state={myFinancialState}
+                  currency={data.currency}
+                  amountMinor={myNet}
+                  items={financialItems}
+                  label="Senin durumun"
+                  description={
+                    myFinancialState === 'NO_ACTIVITY'
+                      ? 'Bu Planda henüz ortak harcama veya ödeme hareketi bulunmuyor.'
+                      : undefined
+                  }
+                  action={
+                    myFinancialState === 'NO_ACTIVITY' &&
+                    data.status === 'ACTIVE'
+                      ? {
+                          href: `/expenses/new?${data.ledgerId ? `ledgerId=${data.ledgerId}&` : ''}planId=${planId}`,
+                          label: 'İlk harcamayı ekle',
+                        }
+                      : myFinancialState !== 'NO_ACTIVITY'
+                        ? {
+                            href: `/plans/${planId}?view=balances`,
+                            label: 'Hesabı incele',
+                          }
+                        : undefined
+                  }
+                />
+              )}
+            </div>
+          ) : null}
+          <div className={styles.index}>
+            <DetailNavigation
+              label="Plan bölümleri"
+              basePath={`/plans/${planId}`}
+              activeView={activeView}
+              primary={primaryViews}
+              secondary={secondaryViews}
+            />
+            {canEdit && data.status !== 'ARCHIVED' ? (
+              <details className={`${styles.actions} plan-first-page__actions`}>
+                <summary aria-label="Plan yönetimi" title="Plan yönetimi">
+                  <MoreHorizontal aria-hidden="true" />
+                </summary>
+                <div>
+                  <PlanLifecycleAction plan={data} canEdit={Boolean(canEdit)} />
+                </div>
+              </details>
+            ) : null}
           </div>
         </section>
       </CardDetailSurface>
 
-      {activeView === 'general' ? (
-        <div className="plan-financial-priority">
-          {balance.isLoading || expenses.isLoading ? (
-            <LoadingState label="Plan durumun hazırlanıyor…" />
-          ) : balance.isError || expenses.isError ? (
-            <ErrorState
-              message="Bu Plandaki finansal durumun şu anda gösterilemiyor."
-              onRetry={() => {
-                void balance.refetch();
-                void expenses.refetch();
-              }}
-            />
-          ) : (
-            <FinancialPosition
-              state={myFinancialState}
-              currency={data.currency}
-              amountMinor={myNet}
-              items={financialItems}
-              label="Senin durumun"
-              description={
-                myFinancialState === 'NO_ACTIVITY'
-                  ? 'Bu Planda henüz ortak harcama veya ödeme hareketi bulunmuyor.'
-                  : undefined
-              }
-              action={
-                myFinancialState === 'NO_ACTIVITY' && data.status === 'ACTIVE'
-                  ? {
-                      href: `/expenses/new?${data.ledgerId ? `ledgerId=${data.ledgerId}&` : ''}planId=${planId}`,
-                      label: 'İlk harcamayı ekle',
-                    }
-                  : myFinancialState !== 'NO_ACTIVITY'
-                    ? {
-                        href: `/plans/${planId}?view=balances`,
-                        label: 'Hesabı incele',
-                      }
-                    : undefined
-              }
-            />
-          )}
-        </div>
-      ) : null}
-      <DetailNavigation
-        label="Plan bölümleri"
-        basePath={`/plans/${planId}`}
-        activeView={activeView}
-        primary={primaryViews}
-        secondary={secondaryViews}
-      />
-
       <DetailViewTransition view={activeView} order={planViewOrder}>
         {activeView === 'general' ? (
           <>
-            <div className="page-actions">
-              <PlanLifecycleAction plan={data} canEdit={Boolean(canEdit)} />
-            </div>
             <div className="detail-grid">
               <section className="paper-section">
                 <span className="eyebrow">Plan künyesi</span>

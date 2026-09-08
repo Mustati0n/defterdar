@@ -166,7 +166,19 @@ describe('Plan detail information architecture', () => {
     expect(screen.getByLabelText('Plan özeti')).toHaveTextContent(
       'Başlangıç serbest',
     );
-    expect(container.querySelector('.plan-detail-identity')).toBeVisible();
+    const firstPage = container.querySelector('.plan-first-page');
+    expect(firstPage).toBeVisible();
+    expect(firstPage).toContainElement(
+      screen.getByRole('heading', { name: 'Henüz hesap oluşmadı' }),
+    );
+    expect(firstPage).toContainElement(
+      screen.getByRole('navigation', { name: 'Plan bölümleri' }),
+    );
+    expect(
+      screen.getByRole('button', { name: 'Planı tamamla' }).closest(
+        '.plan-first-page__actions',
+      ),
+    ).toBeInTheDocument();
     expect(container.querySelector('.detail-cover--plan')).toBeNull();
   });
 
@@ -184,9 +196,9 @@ describe('Plan detail information architecture', () => {
       screen.getByRole('button', { name: 'Planı tamamla' }),
     ).toBeInTheDocument();
     expect(
-      screen
-        .getByRole('button', { name: 'Planı tamamla' })
-        .closest('.detail-view-transition'),
+      screen.getByRole('heading', { name: 'Takvim ve katılım' }).closest(
+        '.detail-view-transition',
+      ),
     ).toHaveAttribute('data-direction', 'backward');
   });
 
