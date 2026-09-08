@@ -216,6 +216,10 @@ describe('Ledger detail information architecture', () => {
     expect(financialState.compareDocumentPosition(navigation)).toBe(
       Node.DOCUMENT_POSITION_FOLLOWING,
     );
+    const firstPage = document.querySelector('.ledger-first-page');
+    expect(firstPage).toContainElement(identity);
+    expect(firstPage).toContainElement(financialState);
+    expect(firstPage).toContainElement(navigation);
     expect(screen.getAllByText(/12,34/)).toHaveLength(2);
   });
 

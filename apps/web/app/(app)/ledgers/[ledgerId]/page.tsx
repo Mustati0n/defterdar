@@ -47,6 +47,7 @@ import { PageIntro } from '@/features/page-intro/page-intro';
 import { DetailViewHeader } from '@/components/detail-view-header';
 import { DetailViewTransition } from '@/components/detail-view-transition';
 import { CardDetailSurface } from '@/components/card-detail-transition';
+import styles from './page.module.css';
 
 const primaryViews = [
   { id: 'general', label: 'Genel', icon: BookOpenText },
@@ -165,10 +166,11 @@ export default function LedgerDetailPage() {
       </Link>
       <CardDetailSurface transitionKey={`ledger:${ledgerId}`}>
         <section
-          className={`ledger-detail-identity${collaborative ? ' ledger-detail-identity--collaborative' : ''}`}
+          className={`${styles.firstPage} ledger-first-page${collaborative ? ` ${styles.collaborative}` : ''}`}
           aria-labelledby="ledger-detail-title"
         >
-          <div className="ledger-detail-identity__copy">
+          <header className={styles.identity}>
+            <div className={styles.copy}>
             <span className="eyebrow">
               {collaborative ? 'Ortak defter' : 'Defter'} · {data.currency}
             </span>
@@ -176,90 +178,88 @@ export default function LedgerDetailPage() {
               {data.name}
             </h1>
             {data.description ? <p>{data.description}</p> : null}
-          </div>
-          <div
-            className="ledger-detail-identity__meta"
-            aria-label="Defter özeti"
-          >
-            <span>{ledgerRoleLabel(data.role)}</span>
-            {data.archivedAt ? <span>Arşivde</span> : null}
-            {collaborative ? (
-              <span>
-                <UsersRound />
-                {data.activeMemberCount ?? members.data?.length ?? '—'} kişi
-              </span>
-            ) : (
-              <span>Tek kişilik alan</span>
-            )}
+            </div>
+            <div className={styles.metadata} aria-label="Defter özeti">
+              <span>{ledgerRoleLabel(data.role)}</span>
+              {data.archivedAt ? <span>Arşivde</span> : null}
+              {collaborative ? (
+                <span>
+                  <UsersRound />
+                  {data.activeMemberCount ?? members.data?.length ?? '—'} kişi
+                </span>
+              ) : (
+                <span>Tek kişilik alan</span>
+              )}
+            </div>
+          </header>
+          {activeView === 'general' ? (
+            <div className={styles.financial}>
+              {collaborative && (balance.isLoading || expenses.isLoading) ? (
+                <LoadingState label="Finansal durumun hazırlanıyor…" />
+              ) : collaborative && (balance.isError || expenses.isError) ? (
+                <ErrorState
+                  message="Finansal durumun şu anda gösterilemiyor. Kayıtların güvende."
+                  onRetry={() => {
+                    void balance.refetch();
+                    void expenses.refetch();
+                  }}
+                />
+              ) : (
+                <FinancialPosition
+                  state={collaborative ? myFinancialState : 'NO_ACTIVITY'}
+                  currency={data.currency}
+                  amountMinor={myNet}
+                  items={financialItems}
+                  label={collaborative ? 'Senin hesabın' : 'Senin alanın'}
+                  description={
+                    collaborative
+                      ? undefined
+                      : 'Bu kişisel Defterde ortak ödeme ve tahsilat hesabı oluşmaz.'
+                  }
+                  action={
+                    !data.archivedAt && myFinancialState === 'NO_ACTIVITY'
+                      ? {
+                          href: `/expenses/new?ledgerId=${ledgerId}`,
+                          label: collaborative
+                            ? 'İlk harcamayı ekle'
+                            : 'Harcama ekle',
+                        }
+                      : {
+                          href: `/ledgers/${ledgerId}?view=balances`,
+                          label:
+                            myFinancialState === 'DEBTOR'
+                              ? 'Hesabı incele / ödeme ekle'
+                              : 'Hesabı incele',
+                        }
+                  }
+                />
+              )}
+
+              {collaborative ? (
+                <PaymentApprovalSummary
+                  settlements={settlements.data}
+                  currentUserId={user?.id ?? ''}
+                  currency={data.currency}
+                  accountHref={`/ledgers/${ledgerId}?view=balances#payment-approvals`}
+                  isLoading={settlements.isLoading}
+                  isError={settlements.isError}
+                  onRetry={() => void settlements.refetch()}
+                />
+              ) : null}
+            </div>
+          ) : null}
+          <div className={styles.index}>
+            <DetailNavigation
+              label="Defter bölümleri"
+              basePath={`/ledgers/${ledgerId}`}
+              activeView={activeView}
+              primary={primaryViews}
+              secondary={secondaryViews}
+              secondaryLabel="Yönetim"
+            />
           </div>
         </section>
       </CardDetailSurface>
-
-      {activeView === 'general' ? (
-        <div className="ledger-financial-priority">
-          {collaborative && (balance.isLoading || expenses.isLoading) ? (
-            <LoadingState label="Finansal durumun hazırlanıyor…" />
-          ) : collaborative && (balance.isError || expenses.isError) ? (
-            <ErrorState
-              message="Finansal durumun şu anda gösterilemiyor. Kayıtların güvende."
-              onRetry={() => {
-                void balance.refetch();
-                void expenses.refetch();
-              }}
-            />
-          ) : (
-            <FinancialPosition
-              state={collaborative ? myFinancialState : 'NO_ACTIVITY'}
-              currency={data.currency}
-              amountMinor={myNet}
-              items={financialItems}
-              label={collaborative ? 'Senin hesabın' : 'Senin alanın'}
-              description={
-                collaborative
-                  ? undefined
-                  : 'Bu kişisel Defterde ortak ödeme ve tahsilat hesabı oluşmaz.'
-              }
-              action={
-                !data.archivedAt && myFinancialState === 'NO_ACTIVITY'
-                  ? {
-                      href: `/expenses/new?ledgerId=${ledgerId}`,
-                      label: collaborative
-                        ? 'İlk harcamayı ekle'
-                        : 'Harcama ekle',
-                    }
-                  : {
-                      href: `/ledgers/${ledgerId}?view=balances`,
-                      label:
-                        myFinancialState === 'DEBTOR'
-                          ? 'Hesabı incele / ödeme ekle'
-                          : 'Hesabı incele',
-                    }
-              }
-            />
-          )}
-
-          {collaborative ? (
-            <PaymentApprovalSummary
-              settlements={settlements.data}
-              currentUserId={user?.id ?? ''}
-              currency={data.currency}
-              accountHref={`/ledgers/${ledgerId}?view=balances#payment-approvals`}
-              isLoading={settlements.isLoading}
-              isError={settlements.isError}
-              onRetry={() => void settlements.refetch()}
-            />
-          ) : null}
-        </div>
-      ) : null}
-
-      <DetailNavigation
-        label="Defter bölümleri"
-        basePath={`/ledgers/${ledgerId}`}
-        activeView={activeView}
-        primary={primaryViews}
-        secondary={secondaryViews}
-        secondaryLabel="Yönetim"
-      />
 
       <DetailViewTransition view={activeView} order={ledgerViewOrder}>
         {activeView === 'general' ? (
