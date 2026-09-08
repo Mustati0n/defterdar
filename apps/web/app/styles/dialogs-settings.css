@@ -9,7 +9,6 @@
     max(2rem, env(safe-area-inset-right)) max(2rem, env(safe-area-inset-bottom))
     max(2rem, env(safe-area-inset-left));
   background: var(--surface-overlay);
-  backdrop-filter: blur(5px);
   place-items: center;
 }
 .dialog-card {
@@ -18,13 +17,13 @@
   padding: clamp(1.6rem, 4vw, 2.6rem);
   border: var(--border-width) solid var(--border-color);
   border-radius: var(--radius-dialog);
-  background-color: var(--surface-subtle);
+  background-color: var(--surface-raised);
   background-image: repeating-linear-gradient(
     to bottom,
     transparent 0 34px,
     rgba(54, 91, 111, 0.05) 35px 36px
   );
-  box-shadow: var(--elevation-highlight), var(--elevation-3);
+  box-shadow: var(--elevation-raised);
 }
 .dialog-card h2 {
   margin-bottom: 0.6rem;

@@ -28,7 +28,7 @@
   --text-heading: var(--color-navy);
   --text-on-strong: #fffaf0;
 
-  /* Surface hierarchy: canvas < sunken < base < raised < overlay */
+  /* Existing surface palette. Keep these aliases stable for current screens. */
   --surface-canvas: var(--color-ivory);
   --surface-sunken: var(--color-paper-deep);
   --surface-subtle: var(--color-cream);
@@ -36,6 +36,17 @@
   --surface-raised: var(--color-paper);
   --surface-strong: var(--color-navy);
   --surface-overlay: rgba(14, 30, 41, 0.68);
+
+  /*
+   * Surface contract: content stays paper-like; utility UI can float only
+   * when hierarchy requires it. New UI should use these roles directly.
+   */
+  --surface-normal: var(--surface-base);
+  --surface-normal-border: var(--border-color);
+  --surface-raised-border: var(--border-color);
+  --surface-active: var(--surface-strong);
+  --surface-active-fg: var(--text-on-strong);
+  --surface-active-border: var(--color-navy-soft);
 
   /* State roles keep status meaning independent from components. */
   --state-neutral-fg: #625b52;
@@ -131,17 +142,21 @@
   --border-color-strong: #b9ab91;
   --border-color-accent: var(--color-gold);
 
-  /* Controlled soft-3D: one highlight and three elevation levels. */
-  --elevation-highlight: inset 0 1px rgba(255, 255, 255, 0.42);
-  --elevation-1:
-    0 12px 34px rgba(47, 38, 25, 0.09), 0 2px 4px rgba(47, 38, 25, 0.06);
-  --elevation-2: 0 14px 30px rgba(23, 43, 58, 0.14);
-  --elevation-3: 0 22px 64px rgba(14, 30, 41, 0.24);
-  --elevation-control: 0 8px 18px rgba(130, 58, 70, 0.18);
-  --elevation-control-hover: 0 11px 24px rgba(130, 58, 70, 0.25);
-  --elevation-control-pressed: 0 3px 8px rgba(130, 58, 70, 0.2);
-  --shadow-paper: var(--elevation-1);
-  --shadow-raised: var(--elevation-3);
+  /* Three deliberate elevation levels; no layered or glow-like shadows. */
+  --elevation-normal: 0 1px 3px rgba(47, 38, 25, 0.08);
+  --elevation-raised: 0 12px 28px rgba(23, 43, 58, 0.14);
+  --elevation-active: 0 4px 10px rgba(23, 43, 58, 0.16);
+
+  /* Legacy aliases keep existing UI stable while it adopts the contract. */
+  --elevation-highlight: inset 0 1px rgba(255, 255, 255, 0.26);
+  --elevation-1: var(--elevation-normal);
+  --elevation-2: var(--elevation-raised);
+  --elevation-3: var(--elevation-raised);
+  --elevation-control: var(--elevation-active);
+  --elevation-control-hover: 0 6px 14px rgba(130, 58, 70, 0.2);
+  --elevation-control-pressed: var(--elevation-active);
+  --shadow-paper: var(--elevation-normal);
+  --shadow-raised: var(--elevation-raised);
   --focus-ring-color: #8d2d4a;
   --focus-ring-width: 3px;
   --focus-ring-offset: 3px;
@@ -527,6 +542,29 @@ h3 {
 }
 .financial-number--value {
   font-size: var(--type-finance-value);
+}
+
+/* Foundation utilities for new content, floating controls and active states. */
+.surface--normal,
+.surface--raised,
+.surface--active {
+  border: var(--border-width) solid;
+}
+.surface--normal {
+  border-color: var(--surface-normal-border);
+  background: var(--surface-normal);
+  box-shadow: var(--elevation-normal);
+}
+.surface--raised {
+  border-color: var(--surface-raised-border);
+  background: var(--surface-raised);
+  box-shadow: var(--elevation-raised);
+}
+.surface--active {
+  color: var(--surface-active-fg);
+  border-color: var(--surface-active-border);
+  background: var(--surface-active);
+  box-shadow: var(--elevation-active);
 }
 
 .button {

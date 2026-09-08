@@ -19,9 +19,14 @@ describe('Design System V1 CSS contract', () => {
     '--border-color:',
     '--radius-control:',
     '--elevation-1:',
+    '--elevation-normal:',
+    '--elevation-raised:',
+    '--elevation-active:',
     '--focus-ring-color:',
     '--motion-fast:',
     '--surface-canvas:',
+    '--surface-normal:',
+    '--surface-active:',
     '--state-success-bg:',
   ])('defines the %s semantic token family', (token) => {
     expect(tokens).toContain(token);
@@ -47,6 +52,12 @@ describe('Design System V1 CSS contract', () => {
   });
 
   it('uses shared surface and state roles across composite UI', () => {
+    expect(tokens).toMatch(
+      /\.surface--raised\s*\{[^}]*var\(--surface-raised\)[^}]*var\(--elevation-raised\)/s,
+    );
+    expect(tokens).toMatch(
+      /\.surface--active\s*\{[^}]*var\(--surface-active\)[^}]*var\(--elevation-active\)/s,
+    );
     expect(collections).toMatch(
       /\.status-chip--active\s*\{[^}]*var\(--state-success-bg\)/s,
     );
@@ -54,7 +65,7 @@ describe('Design System V1 CSS contract', () => {
       /\.collection-toolbar\s*\{[^}]*var\(--surface-base\)[^}]*var\(--elevation-1\)/s,
     );
     expect(dialogs).toMatch(
-      /\.dialog-card\s*\{[^}]*var\(--surface-subtle\)[^}]*var\(--elevation-3\)/s,
+      /\.dialog-card\s*\{[^}]*var\(--surface-raised\)[^}]*var\(--elevation-raised\)/s,
     );
   });
 });

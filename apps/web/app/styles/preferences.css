@@ -52,7 +52,6 @@ html[data-motion='reduced'] *::after {
     max(1rem, env(safe-area-inset-right)) max(1rem, env(safe-area-inset-bottom))
     max(1rem, env(safe-area-inset-left));
   background: rgba(14, 30, 41, 0.52);
-  backdrop-filter: blur(4px);
   place-items: center;
 }
 .page-intro-card {
